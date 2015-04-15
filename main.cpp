@@ -5,9 +5,12 @@
 #include <string>
 #include <math.h>
 #include <cmath>
+#include <stdlib.h>
 
 #include "param_inc.h"
 #include "tabelas.h"
+#include "parameter.h"
+#include "phase.h"
 
 using namespace std;
 
@@ -82,16 +85,14 @@ public:
 class PARAMS
 {
 public:
-    double GLB[20 +1];
-    double AGLB[20 +1];
-    int LGLB[20 +1];
-    double PAR[99 +1][30 +1];
-    double APAR[99 +1][30 +1];
-    int LPAR[99 +1][30 +1];
+    Parameter GLB_[20];
+    //Parameter PAR_[99][30];
+
     double XL[NATS][11 +1];
     int LP[NATS][11 +1];
-    double A[NATS][11 +1];
+    double A[NATS][11 +1];    
     int PTR[NATS +1];
+
     double RELAX[4 +1];
     double RATIO[2 +1];
 };
@@ -128,9 +129,9 @@ public:
 class CHAR
 {
 public:
-    string SYMB[99+1];
+    //string SYMB[99+1];
     string TITLE;
-    string PHSNM[99+1];
+    //string PHSNM[99+1];
 };
 
 class COEFC
@@ -445,6 +446,10 @@ public:
     void run(void);
 
 public:
+
+    Phase phases[99+1];
+
+
     DC* dc;
     REFLS* refls;
     G1* g1;
@@ -500,7 +505,6 @@ public:
     ofstream file6;
     string file6name;
 
-    ofstream file7;
 
     ofstream file8o;
     ifstream file8i;
@@ -1785,7 +1789,7 @@ void DBWS::run(void)
         INPTR();
         // Canton et all code starts here !cp may 03 97
         //-----OPEN,if NECESSARY, FILE CONTAINING AMORPHOUS SCATTERING
-        if (params->GLB[20] != 0.0 || params->AGLB[20] != 0.0 ) inpam();
+        if (params->GLB_[20-1] != 0.0 || params->GLB_[20-1].A != 0.0 ) inpam();
         // Canton et all code stops here
 
         ITER();
@@ -2032,10 +2036,6 @@ void DBWS::ASSIGN_(void)
     {
         if(KRR[2][I]-KRR[1][I] > NOV)
         {
-            file7 << "EXCESSIVE PEAK OVERLAP" << endl
-                  << "     AT THE" << I << "TH STEP THERE ARE "
-                  << KRR[2][I]-KRR[1][I] << " REFLECTIONS" << endl
-                  << "     INCREASE THE VALUE OF *NOV* WHICH IS NOW " << NOV << endl;
             file6 << "EXCESSIVE PEAK OVERLAP" << endl
                   << "     AT THE" << I << "TH STEP THERE ARE "
                   << KRR[2][I]-KRR[1][I] << " REFLECTIONS" << endl
@@ -2054,28 +2054,25 @@ void DBWS::ASSIGN_(void)
     if (cntrls->IASYM == 0)
     {
         // THE FOLLOWING TEST IS REALLY ONLY VALID FOR THE SINGLE PHASE CASE
-        if(refls->REFS[ KRR[1][I] ][2] >= g1->RLIM && params->LPAR[1][14] != 0)
+        if(refls->REFS[ KRR[1][I] ][2] >= g1->RLIM && phases[1-1].PAR_[14-1].L != 0)
         {
             file6 << "ASYMMETRY PARAMETER USAGE INVALID" << endl;
-            file7 << "ASYMMETRY PARAMETER USAGE INVALID" << endl;
             DBWSException("ASYMMETRY PARAMETER USAGE INVALID");
         }
     }
     else
     {
-        if(refls->REFS[ KRR[1][I] ][2] >= (90.0-g1->RLIM) && params->LPAR[1][14] != 0)
+        if(refls->REFS[ KRR[1][I] ][2] >= (90.0-g1->RLIM) && phases[1-1].PAR_[14-1].L != 0)
         {
             file6 << "ASYMMETRY PARAMETER USAGE INVALID" << endl;
-            file7 << "ASYMMETRY PARAMETER USAGE INVALID" << endl;
             DBWSException("ASYMMETRY PARAMETER USAGE INVALID");
         }
     }
     for (I=1; I <= cntrls->NPHASE; ++I)
     {
-        if(params->PAR[I][12] == 0.0 && params->PAR[I][13] == 0.0 && params->LPAR[I][13] != 0)
+        if(phases[I-1].PAR_[11] == 0.0 && phases[I-1].PAR_[12] == 0.0 && phases[I-1].PAR_[13-1].L != 0)
         {
             file6 << "PREFERRED ORIENTATION USAGE INVALID" << endl;
-            file7 << "PREFERRED ORIENTATION USAGE INVALID" << endl;
             DBWSException("PREFERRED ORIENTATION USAGE INVALID");
         }
     }
@@ -2123,7 +2120,7 @@ void DBWS::CHISQ(void)
         S2NOBK=S2NOBK+DEL*DEL*(datax->Y[I]-datax->BK[I])*(datax->Y[I]-datax->BK[I])/(datax->Y[I]*datax->Y[I])/datax->VAR[I];   //numerador para calcular Rwp(-bcg)
         g2->SS2 = g2->SS2 + DEL*DEL;
         if (SDELWP < 1.0e+24) g2->SS4=g2->SS4+(SDELW-SDELWP)*(SDELW-SDELWP);
-L10:;
+        L10:;
     }
     for (I=1; I <= datax->NPTS; ++I)
     {
@@ -2142,7 +2139,7 @@ L10:;
         g2->D2=g2->D2+datax->Y[I]*datax->Y[I]/datax->VAR[I];
         D2NOBK = D2NOBK + (datax->Y[I]-datax->BK[I])*(datax->Y[I]-datax->BK[I])/datax->VAR[I];          //denominador para calcular Rwp(-bcg)
         g2->S3=g2->S3+datax->BK[I]+datax->YC[I];
-L15:;
+        L15:;
     }
     g2->R1=0.0;
     g2->R2=100.0*g2->S1/g2->D1;
@@ -2223,9 +2220,9 @@ void DBWS::COMPTON(int K, double STH, double* CISK)
         //-----COMPUTE ASS3
         //     FORMULA MUST BE CHANGED FOR OTHER RADIATION AND MONOCHROMATOR
         //-----  ASS3 IS A LORENTZIAN FUNCTION
-        ASS3=1/(1+params->GLB[18]* pow(S,params->GLB[19]));
+        ASS3=1/(1+params->GLB_[18-1]* pow(S,params->GLB_[19-1]));
         //----- ASS3 IS A GAUSSIAN FUNCTION
-        //       ASS3=EXP(-params->GLB[18]*S2)
+        //       ASS3=EXP(-params->GLB_[18-1]*S2)
         //     ASS3=0.38*EXP(-4.0*S2)+0.62*EXP(-0.15*S2)
         CSP[ICX] = CSP[ICX] * ASS2 * ASS3  / ( ASS1 * BDF );
     }
@@ -2311,11 +2308,11 @@ void DBWS::DISORDER(int K, double STH, int IDERIV, double* SDK, double* DYC, int
                 atfat->FI2[ICX] += params->XL[I+IOF][5] * (pow(FI,2)+pow(coeff->DFPP[NI],2));
             }
             atfat->FI2[ICX] += static_cast<double>(IRL);
-            DIS[ICX] = ( 1.0 - exp(-params->PAR[K][2]*2.0*STHL2[ICX]) ) * atfat->FI2[ICX];
-            LK =params->LPAR[K][2];
+            DIS[ICX] = ( 1.0 - exp(-phases[K-1].PAR_[1]*2.0*STHL2[ICX]) ) * atfat->FI2[ICX];
+            LK =phases[K-1].PAR_[2-1].L;
             if(LK != 0 && IDERIV == 2)
             {
-                DER[ICX] = 2.0 * STHL2[ICX] * atfat->FI2[ICX] * exp(-params->PAR[K][2]*2.0*STHL2[ICX]);
+                DER[ICX] = 2.0 * STHL2[ICX] * atfat->FI2[ICX] * exp(-phases[K-1].PAR_[1]*2.0*STHL2[ICX]);
             }
             else
             {
@@ -2345,7 +2342,7 @@ void DBWS::DISORDER(int K, double STH, int IDERIV, double* SDK, double* DYC, int
     //                   params->PAR[K][2] IN THE K-TH PHASE
     if(FONDO == 2)
     {
-        LK =params->LPAR[K][2];				// TODO: Coloquei talez esteja incorreto, verificar depois de retirar os gotos
+        LK =phases[K-1].PAR_[2-1].L;				// TODO: Coloquei talez esteja incorreto, verificar depois de retirar os gotos
         if(LK != 0 && IDERIV == 2)
         {
             *DYC = params->RATIO[1] * DER[1] + params->RATIO[2] * DER[2];
@@ -2368,7 +2365,7 @@ void DBWS::SMTRY2(int* IPHASE)
     const int KE[3+1] = { 0,   0,4,8};
     const int KF[3+1] = { 0,   0,8,4};
 
-    int I,J,L,M,N,LA,JD,MS,NCO,NCX,K1JD,IXIT;
+    int I,J,L,M,N,LA,JD = 0,MS,NCO,NCX,K1JD,IXIT;
     double CI;
     int LD[3+1][48+1];
     int NCH[48+1];
@@ -2581,11 +2578,11 @@ L1002:
 
 void DBWS::CALCUL(int NN)
 {
-    double DPRECORX,X, B1, B2, BB, AH, BH, CH, DH, EH, AV, PI, CV, DV, BV,TR, SS, TT, SR,
-        YY,DA1, DA3, DA4, DA5, AH2, BH2,BNI, ARG,PAK, TAV, TLR, SAI,
+    double DPRECORX,X, B1, B2, BB, AH, BH, CH, DH, EH = 0.0, AV, PI, CV, DV, BV,TR, SS, TT, SR = 0.0,
+        YY,DA1, DA3, DA4, DA5, AH2 = 0.0, BH2 = 0.0,BNI, ARG,PAK, TAV, TLR, SAI,
         SBI, ARG2, FFX, FNN, DER, SRD,TLG, TLL, COSA, SINA,
-        SSNN, SNXI, SUMA, SUMB, DHDHG, DHDHL,PAKNN,SINTH, COSTH,TANTH,PREXP,
-        SNEXI, SLABDA,TANTHE, EXPARG, PRECOR, PREXPX, DPRECOR, PRECORX,ISITH;
+        SSNN, SNXI, SUMA, SUMB, DHDHG, DHDHL,PAKNN,SINTH, COSTH,TANTH,PREXP = 0.0,
+        SNEXI, SLABDA,TANTHE, EXPARG, PRECOR, PREXPX, DPRECOR = 0.0, PRECORX,ISITH = 0.0;
     int I, J, K, N,II, IJ,JJ,NX,NM,IR, IV, NI,KL,IOF, IRL, ICX,KKL,ICENT,
         IIPHAS;
     bool VERT,PAC;
@@ -2632,27 +2629,27 @@ void DBWS::CALCUL(int NN)
     DV=0.0;
     AV=0.0;
     BV=0.0;
-    PAC = params->PAR[prfx->IPH][12] != 0.0  ||  params->LPAR[prfx->IPH][12] != 0  ||
-          params->PAR[prfx->IPH][13] != 0.0  ||  params->LPAR[prfx->IPH][13] != 0;
-    for (I=1; I <= 3; ++I) AL[I][I]=params->PAR[prfx->IPH][I+5];
-    AL[3][2]=params->PAR[prfx->IPH][9];
+    PAC = phases[prfx->IPH-1].PAR_[11] != 0.0  ||  phases[prfx->IPH-1].PAR_[12-1].L != 0  ||
+          phases[prfx->IPH-1].PAR_[12] != 0.0  ||  phases[prfx->IPH-1].PAR_[13-1].L != 0;
+    for (I=1; I <= 3; ++I) AL[I][I]=phases[prfx->IPH-1].PAR_[I+5-1];
+    AL[3][2]=phases[prfx->IPH-1].PAR_[8];
     AL[2][3]=AL[3][2];
-    AL[3][1]=params->PAR[prfx->IPH][10];
+    AL[3][1]=phases[prfx->IPH-1].PAR_[9];
     AL[1][3]=AL[3][1];
-    AL[2][1]=params->PAR[prfx->IPH][11];
+    AL[2][1]=phases[prfx->IPH-1].PAR_[10];
     AL[1][2]=AL[2][1];
-    AH=params->PAR[prfx->IPH][3];
-    BH=params->PAR[prfx->IPH][4];
-    CH=params->PAR[prfx->IPH][5];
-    DH=params->PAR[prfx->IPH][20];
-    if (cntrls->NPROF == _pseudoVoigt) EH=params->PAR[prfx->IPH][21];
+    AH=phases[prfx->IPH-1].PAR_[2];
+    BH=phases[prfx->IPH-1].PAR_[3];
+    CH=phases[prfx->IPH-1].PAR_[4];
+    DH=phases[prfx->IPH-1].PAR_[19];
+    if (cntrls->NPROF == _pseudoVoigt) EH=phases[prfx->IPH-1].PAR_[20];
     if (cntrls->NPROF == _TCHZ)
     {
-        AH2=params->PAR[prfx->IPH][15];
-        BH2=params->PAR[prfx->IPH][16];
+        AH2=phases[prfx->IPH-1].PAR_[14];
+        BH2=phases[prfx->IPH-1].PAR_[15];
     }
-    B1=params->PAR[prfx->IPH][12];
-    B2=params->PAR[prfx->IPH][13];
+    B1=phases[prfx->IPH-1].PAR_[11];
+    B2=phases[prfx->IPH-1].PAR_[12];
     NM=(NN % NOV)+1;
     ICX=(refls->IREFS[NN]/(256*256*256)) % 8;
     SLABDA=g1->LAMDA[ICX]*g1->LAMDA[ICX]/4.0;
@@ -2717,7 +2714,7 @@ void DBWS::CALCUL(int NN)
     //L13:
     //SINTL[NM] = sqrt(SS);
     SSNN = 0.25*SS;
-    TAV = exp(-2.0*params->PAR[prfx->IPH][2]*SSNN)*PRECOR;
+    TAV = exp(-2.0*phases[prfx->IPH-1].PAR_[1]*SSNN)*PRECOR;
     SINTH = SLABDA*SS;
     COSTH = 1.0-SINTH;
     TANTH = sqrt(SINTH/COSTH);
@@ -2726,22 +2723,22 @@ void DBWS::CALCUL(int NN)
     if (cntrls->IABSR == 1)
     {
         ISITH=(1.0)/(sqrt(SINTH));
-        SR = params->GLB[12]*(1.0-params->GLB[8]*exp(-params->GLB[9])+params->GLB[8]*exp(-params->GLB[9]/sqrt(SINTH)))+(1.0-params->GLB[12])*(1+params->GLB[13]*(asin(sqrt(SINTH)))-1.5707963268);
+        SR = params->GLB_[12-1]*(1.0-params->GLB_[8-1]*exp(-params->GLB_[9-1])+params->GLB_[8-1]*exp(-params->GLB_[9-1]/sqrt(SINTH)))+(1.0-params->GLB_[12-1])*(1+params->GLB_[13-1]*(asin(sqrt(SINTH)))-1.5707963268);
     }
     else if (cntrls->IABSR == 2)
     {
         ISITH = sqrt(SINTH);
-        SR = 1.0-params->GLB[13]*(asin(ISITH)-1.5707963268);
+        SR = 1.0-params->GLB_[13-1]*(asin(ISITH)-1.5707963268);
     }
     else if (cntrls->IABSR == 3)
     {
         ISITH=(1.0)/(sqrt(SINTH));
-        SR = 1.0-params->GLB[8]*exp(-params->GLB[9])+params->GLB[8]*exp(-params->GLB[9]*ISITH);
+        SR = 1.0-params->GLB_[8-1]*exp(-params->GLB_[9-1])+params->GLB_[8-1]*exp(-params->GLB_[9-1]*ISITH);
     }
     else if (cntrls->IABSR == 4)
     {
         ISITH=(1.0)/(sqrt(SINTH));
-        SR = 1.0-params->GLB[8]*params->GLB[9]*(1.0-params->GLB[9])-ISITH*params->GLB[8]*params->GLB[9]*(1.0-params->GLB[9]*ISITH);
+        SR = 1.0-params->GLB_[8-1]*params->GLB_[9-1]*(1.0-params->GLB_[9-1])-ISITH*params->GLB_[8-1]*params->GLB_[9-1]*(1.0-params->GLB_[9-1]*ISITH);
     }
 
     refls->REFS[NN][2]=atan(TANTH)*PI;
@@ -2755,7 +2752,6 @@ void DBWS::CALCUL(int NN)
         cout << "1 = " << HNN[1] << " " << HNN[2] << " " << HNN[3]  << endl;
 
         file6 << "   SQUARE OF FWHM NEGATIVE AT TWO-THETA=" << setw(8) << setprecision(3) << refls->REFS[NN][2] << " FOR PHASE NO. " << setw(4) << prfx->IPH << endl;
-        file7 << "   SQUARE OF FWHM NEGATIVE AT TWO-THETA=" << setw(8) << setprecision(3) << refls->REFS[NN][2] << " FOR PHASE NO. " << setw(4) << prfx->IPH << endl;
         cout << "   SQUARE OF FWHM NEGATIVE AT TWO-THETA=" << setw(8) << setprecision(3) << refls->REFS[NN][2] << " FOR PHASE NO. " << setw(4) << prfx->IPH << endl;
         DBWSException("SQUARE OF FWHM IS NEGATIVE");
     }
@@ -2912,7 +2908,7 @@ L22:;
     }
     //-----CALCULATE DERIVATIVES
     //-----Preferred Orientation Derivatives
-    K = params->LPAR[prfx->IPH][12];
+    K = phases[prfx->IPH-1].PAR_[12-1].L;
     if ( K != 0 )
     {
         DERIV[K] = DERIV[K]+FNN*DPRECOR;
@@ -2922,7 +2918,7 @@ L22:;
     //////////////////////////////////////////////////////////
     // TODO: remover este isso. Aideia é dividir a rotina INPTR em duas e fazer estes teste por lá
 
-    K = params->LPAR[prfx->IPH][13];
+    K = phases[prfx->IPH-1].PAR_[13-1].L;
     if (cntrls->IPREF == 0)
     {
         if(K != 0) DERIV[K]=DERIV[K]+(1.0-PREXP)*FNN/PRECOR;
@@ -2940,26 +2936,26 @@ L22:;
     //-----Derivatives for microabsorption parameter
     if (cntrls->IABSR == 1)
     {
-        K = params->LGLB[13];
-        SRD = (1.0-params->GLB[12])*(asin(sqrt(SINTH))-1.5707963268);
+        K = params->GLB_[13-1].L;
+        SRD = (1.0-params->GLB_[12-1])*(asin(sqrt(SINTH))-1.5707963268);
         if (K != 0) DERIV[K] = DERIV[K] + SRD*FNN/SR;
-        K = params->LGLB[12];
-        SRD = 1.0 -params->GLB[8]*exp(-params->GLB[9])+params->GLB[8]*exp(-params->GLB[9]/sqrt(SINTH))-1.0-params->GLB[13]*(asin(sqrt(SINTH))-1.5707963268);
+        K = params->GLB_[12-1].L;
+        SRD = 1.0 -params->GLB_[8-1]*exp(-params->GLB_[9-1])+params->GLB_[8-1]*exp(-params->GLB_[9-1]/sqrt(SINTH))-1.0-params->GLB_[13-1]*(asin(sqrt(SINTH))-1.5707963268);
         if (K != 0) DERIV[K] = DERIV[K] + SRD*FNN/SR;
-        K = params->LGLB[9];
-        SRD = params->GLB[8]*params->GLB[12]*(exp(-params->GLB[9])-exp(-params->GLB[9]/sqrt(SINTH))/sqrt(SINTH));
+        K = params->GLB_[9-1].L;
+        SRD = params->GLB_[8-1]*params->GLB_[12-1]*(exp(-params->GLB_[9-1])-exp(-params->GLB_[9-1]/sqrt(SINTH))/sqrt(SINTH));
         if (K != 0) DERIV[K] = DERIV[K] + SRD*FNN/SR;
-        K = params->LGLB[8];
-        SRD = -params->GLB[12]*(exp(-params->GLB[9])+exp(-params->GLB[9]/sqrt(SINTH)));
+        K = params->GLB_[8-1].L;
+        SRD = -params->GLB_[12-1]*(exp(-params->GLB_[9-1])+exp(-params->GLB_[9-1]/sqrt(SINTH)));
         if (K != 0) DERIV[K] = DERIV[K] + SRD*FNN/SR;
     }
     else if (cntrls->IABSR == 2)
     {
         ///////////////////////////////
         // TODO: Eliminar este if
-        KKL = params->LGLB[12];
-        K  = params->LGLB[9];
-        KL = params->LGLB[8];
+        KKL = params->GLB_[12-1].L;
+        K  = params->GLB_[9-1].L;
+        KL = params->GLB_[8-1].L;
         if (K != 0 || KL != 0 || KKL != 0)
         {
             file6 << "P AND/OR Q AND/OR R ARE NOT REFINABLE PARAMETERS FOR IABSR=2" << endl;
@@ -2968,7 +2964,7 @@ L22:;
         }
         ///////////////////////////
 
-        K = params->LGLB[13];
+        K = params->GLB_[13-1].L;
         SRD = 1.5707963268 - asin(sqrt(SINTH));
         if (K != 0) DERIV[K] = DERIV[K] + SRD*FNN/SR;
     }
@@ -2976,8 +2972,8 @@ L22:;
     {
         /////////////////////////////////////////////////////////
         // TODO: Eliminar este if!!!
-        KKL = params->LGLB[13];
-        K = params->LGLB[12];
+        KKL = params->GLB_[13-1].L;
+        K = params->GLB_[12-1].L;
         if (K != 0 || KKL != 0)
         {
             file6 << "R AND/OR T IS NOT A REFINABLE PARAMETER FOR THE IABSR CHOICE" << endl;
@@ -2986,19 +2982,19 @@ L22:;
         }
         ////////////////////////////////////////////////////////////
 
-        K = params->LGLB[9];
-        SRD = params->GLB[8]*exp(-params->GLB[9])-params->GLB[8]*ISITH*exp(-params->GLB[9]*ISITH);
+        K = params->GLB_[9-1].L;
+        SRD = params->GLB_[8-1]*exp(-params->GLB_[9-1])-params->GLB_[8-1]*ISITH*exp(-params->GLB_[9-1]*ISITH);
         if (K != 0) DERIV[K] = DERIV[K] + SRD*FNN;
-        K = params->LGLB[8];
-        SRD = -exp(-params->GLB[9])+exp(-params->GLB[9]*ISITH);
+        K = params->GLB_[8-1].L;
+        SRD = -exp(-params->GLB_[9-1])+exp(-params->GLB_[9-1]*ISITH);
         if (K != 0) DERIV[K] = DERIV[K] + SRD*FNN;
     }
     else if (cntrls->IABSR == 4)
     {
         //////////////////////////////////////////
         // TODO: Eliminar este if!!!!
-        KKL = params->LGLB[13];
-        K = params->LGLB[12];
+        KKL = params->GLB_[13-1].L;
+        K = params->GLB_[12-1].L;
         if (K != 0 || KKL != 0)
         {
             file6 << "R AND/OR T IS NOT A REFINABLE PARAMETER FOR THE IABSR CHOICE" << endl;
@@ -3007,18 +3003,18 @@ L22:;
         }
         /////////////////////////////
 
-        K = params->LGLB[9];
-        SRD = params->GLB[8]*(2*params->GLB[9]-1)+params->GLB[8]*ISITH*(2*params->GLB[9]*ISITH-1);
+        K = params->GLB_[9-1].L;
+        SRD = params->GLB_[8-1]*(2*params->GLB_[9-1]-1)+params->GLB_[8-1]*ISITH*(2*params->GLB_[9-1]*ISITH-1);
         if (K != 0) DERIV[K] = DERIV[K] + SRD*FNN/SR;
-        K = params->LGLB[8];
-        SRD = params->GLB[9]*(params->GLB[9]-1)-params->GLB[9]*ISITH*(1-params->GLB[9]*ISITH);
+        K = params->GLB_[8-1].L;
+        SRD = params->GLB_[9-1]*(params->GLB_[9-1]-1)-params->GLB_[9-1]*ISITH*(1-params->GLB_[9-1]*ISITH);
         if (K != 0) DERIV[K] = DERIV[K] + SRD*FNN/SR;
     }
     //----Overall Temperature and Scale Factor
-    K=params->LPAR[prfx->IPH][2];
+    K=phases[prfx->IPH-1].PAR_[2-1].L;
     if(K != 0) DERIV[K]=DERIV[K]-2.0*SSNN*FNN;
-    K=params->LPAR[prfx->IPH][1];
-    if(K != 0) DERIV[K]=DERIV[K]+FNN/params->PAR[prfx->IPH][1];
+    K=phases[prfx->IPH-1].PAR_[1-1].L;
+    if(K != 0) DERIV[K]=DERIV[K]+FNN/phases[prfx->IPH-1].PAR_[1-1];
     SINTH=FNN*PI*SLABDA/(sqrt(SINTH*COSTH)*BB);
     SS=FNN/prfx->TL;
     X=TANTH*TANTH;
@@ -3026,13 +3022,13 @@ L22:;
     if (cntrls->NPROF == _SplitPearsonVII || cntrls->NPROF == _TCHZ) goto L9212;
     for (J=3; J <= 5; ++J)
     {
-        K=params->LPAR[prfx->IPH][J];
+        K=phases[prfx->IPH-1].PAR_[J-1].L;
         if(K == 0) goto L78;
         DERIV[K]=X*SS+DERIV[K];
 L78:
         X=X/TANTH;
     }
-    K=params->LPAR[prfx->IPH][21];
+    K=phases[prfx->IPH-1].PAR_[21-1].L;
     if(K == 0) goto L9212;
     // for cot^2 case                                    !cp nov 29 96
     DERIV[K]=SS/(TANTH*TANTH)+DERIV[K];
@@ -3052,7 +3048,7 @@ L9212:
         }
         for (J=3; J <= 5; ++J)
         {
-            K=params->LPAR[prfx->IPH][J];
+            K=phases[prfx->IPH-1].PAR_[J-1].L;
             if(K == 0) goto L780;
             DERIV[K]=DERIV[K]+X*SS*((DA3*prfx->DELT/(1.0+DA1*prfx->DELT))-(1.0/prfx->TL));
 L780:
@@ -3071,35 +3067,35 @@ L780:
         DHDHL = 0.2/pow(prfx->TL,4.0)*(2.69269*pow(TLG,4.0)+ 4.85686*pow(TLG,3.0)*TLL +13.41489*TLG*TLG*TLL*TLL + 0.31368*TLG*pow(TLL,3.0)+5.*pow(TLL,4.0));
         for (J=3; J <= 5; ++J)
         {
-            K=params->LPAR[prfx->IPH][J];
+            K=phases[prfx->IPH-1].PAR_[J-1].L;
             if(K == 0)goto L9078;
             DERIV[K]=DHDHG*X*SS+DERIV[K];
 L9078:
             X=X/TANTH;
         }
-        K=params->LPAR[prfx->IPH][20];
+        K=phases[prfx->IPH-1].PAR_[20-1].L;
         if  (K != 0) DERIV[K]=DHDHG*SS/COSTH+DERIV[K];
-        K = params->LPAR[prfx->IPH][15];
+        K = phases[prfx->IPH-1].PAR_[15-1].L;
         if (K == 0) goto L9213;
         DERIV[K] = 2.0*FNN*DHDHL*TANTH+DERIV[K];
 L9213:
-        K = params->LPAR[prfx->IPH][16];
+        K = phases[prfx->IPH-1].PAR_[16-1].L;
         if (K == 0) goto L9214;
         DERIV[K] = 2.0*FNN*DHDHL/sqrt(COSTH) + DERIV[K];
 L9214:;
     }
     //-----Profile Shape Derivatives
-    K = params->LPAR[prfx->IPH][17];
+    K = phases[prfx->IPH-1].PAR_[17-1].L;
     if(K != 0 && (cntrls->NPROF == _pseudoVoigt || cntrls->NPROF == _PearsonVII)) DERIV[K]=DERIV[K]+ FNN;
-    K = params->LPAR[prfx->IPH][18];
+    K = phases[prfx->IPH-1].PAR_[18-1].L;
     if(K != 0 && cntrls->NPROF == _pseudoVoigt) DERIV[K]=DERIV[K]+ FNN * refls->REFS[NN][2];
     if(K != 0 && cntrls->NPROF == _PearsonVII) DERIV[K]=DERIV[K]+ FNN / refls->REFS[NN][2];
-    K = params->LPAR[prfx->IPH][19];
+    K = phases[prfx->IPH-1].PAR_[19-1].L;
     if(K != 0 && cntrls->NPROF == _PearsonVII)DERIV[K]=DERIV[K]+FNN/refls->REFS[NN][2] /refls->REFS[NN][2];
     //-----Split Pearson VII Shape Derivative
     if (cntrls->NPROF == _SplitPearsonVII)
     {
-        K = params->LPAR[prfx->IPH][17];
+        K = phases[prfx->IPH-1].PAR_[17-1].L;
         if (K != 0.0)
         {
             if (prfx->DELTA < 0.0)
@@ -3111,7 +3107,7 @@ L9214:;
                 DERIV[K] = DERIV[K]+FNN*spvii->DA6L;
             }
         }
-        K = params->LPAR[prfx->IPH][18];
+        K = phases[prfx->IPH-1].PAR_[18-1].L;
         if (K != 0.0)
         {
             if (prfx->DELTA < 0.0)
@@ -3123,7 +3119,7 @@ L9214:;
                 DERIV[K] = DERIV[K]+FNN*spvii->DA6L/refls->REFS[NN][2];
             }
         }
-        K = params->LPAR[prfx->IPH][19];
+        K = phases[prfx->IPH-1].PAR_[19-1].L;
         if (K != 0.0)
         {
             if (prfx->DELTA < 0.0)
@@ -3135,7 +3131,7 @@ L9214:;
                 DERIV[K] = DERIV[K]+FNN*spvii->DA6L/refls->REFS[NN][2]/refls->REFS[NN][2];
             }
         }
-        K = params->LPAR[prfx->IPH][24];
+        K = phases[prfx->IPH-1].PAR_[24-1].L;
         if (K != 0.0)
         {
             if (prfx->DELTA < 0.0)
@@ -3147,7 +3143,7 @@ L9214:;
                 DERIV[K] = DERIV[K]+FNN*(-log(1.0+spvii->DA1H*prfx->DELT/BB)+spvii->DA7H*prfx->DELT/BB/(1.0+spvii->DA1H*prfx->DELT/BB));
             }
         }
-        K = params->LPAR[prfx->IPH][25];
+        K = phases[prfx->IPH-1].PAR_[25-1].L;
         if (K != 0.0)
         {
             if (prfx->DELTA < 0.0)
@@ -3159,7 +3155,7 @@ L9214:;
                 DERIV[K] = DERIV[K]+FNN*(-log(1.0+spvii->DA1H*prfx->DELT/BB)+spvii->DA7H*prfx->DELT/BB/(1.0+spvii->DA1H*prfx->DELT/BB))/refls->REFS[NN][2];
             }
         }
-        K = params->LPAR[prfx->IPH][26];
+        K = phases[prfx->IPH-1].PAR_[26-1].L;
         if (K != 0.0)
         {
             if (prfx->DELTA < 0.0)
@@ -3173,7 +3169,7 @@ L9214:;
         }
     }
     //-----Split Pearson VII Asymmetry Derivative
-    K = params->LPAR[prfx->IPH][27];
+    K = phases[prfx->IPH-1].PAR_[27-1].L;
     if (prfx->DELTA < 0.0)
     {
         DA1 = spvii->DA1L;
@@ -3191,16 +3187,16 @@ L9214:;
         DERIV[K]=DERIV[K]+FNN*(DA4+DA5*prfx->DELT/BB/(1.0+DA1*prfx->DELT/BB));
     }
     //-----Zero, Displacement, and Transparancy Derivatives
-    K=params->LGLB[1];
+    K=params->GLB_[1-1].L;
     if(K != 0)DERIV[K]=DERIV[K]+2.0*FNN/BB;
-    K=params->LGLB[10];
+    K=params->GLB_[10-1].L;
     if (K != 0) DERIV[K]=DERIV[K]+2.0*FNN/BB*sqrt(COSTH);
-    K=params->LGLB[11];
+    K=params->GLB_[11-1].L;
     if (K != 0) DERIV[K]=DERIV[K]+2.0*FNN/BB*sin(refls->REFS[NN][2]/57.2958);
     //c-----Lattice Parameter Derivatives
     for (J=1; J <= 6; ++J)
     {
-        K=params->LPAR[prfx->IPH][J+5];
+        K=phases[prfx->IPH-1].PAR_[J+5-1].L;
         if(K == 0) goto L79;
         if(J < 4) X=HNN[J]*HNN[J];
         if(J == 4) X=HNN[2]*HNN[3];
@@ -3210,7 +3206,7 @@ L9214:;
 L79:;
     }
     //-Asymmetry Derivative.  Test for asymmetry model included !cp may 97
-    K=params->LPAR[prfx->IPH][14];
+    K=phases[prfx->IPH-1].PAR_[14-1].L;
     if((K != 0) && VERT)
     {
         if (cntrls->IASYM == 0)
@@ -3461,19 +3457,19 @@ void DBWS::SUMMAT(int IPM, double CSK[], double DISK[], double DYCDD[], double I
         {
             VERT = abs(refls->REFS[I][2]-90.0) >= g1->RLIM;
         }
-        SHIFT = params->GLB[10] * cos(refls->REFS[I][2]/2.0/57.2958) + params->GLB[11] * sin(refls->REFS[I][2]/57.2958);
-        prfx->DELTA=g3->TH-refls->REFS[I][2]-params->GLB[1]-SHIFT;
+        SHIFT = params->GLB_[10-1] * cos(refls->REFS[I][2]/2.0/57.2958) + params->GLB_[11-1] * sin(refls->REFS[I][2]/57.2958);
+        prfx->DELTA=g3->TH-refls->REFS[I][2]-params->GLB_[1-1]-SHIFT;
         //TANTH=tan(g3->TH*3.14159265359/360.0);
         prfx->DELT=prfx->DELTA*prfx->DELTA;
         prfx->TL=refls->REFS[I][1];
-        if (cntrls->NPROF == _pseudoVoigt) prfx->GAM1 = params->PAR[prfx->IPH][17] + params->PAR[prfx->IPH][18] * refls->REFS[I][2];
-        if (cntrls->NPROF == _PearsonVII) prfx->GAM1 = params->PAR[prfx->IPH][17] + params->PAR[prfx->IPH][18] / refls->REFS[I][2] + params->PAR[prfx->IPH][19]/refls->REFS[I][2]/refls->REFS[I][2];
+        if (cntrls->NPROF == _pseudoVoigt) prfx->GAM1 = phases[prfx->IPH-1].PAR_[17-1] + phases[prfx->IPH-1].PAR_[18-1] * refls->REFS[I][2];
+        if (cntrls->NPROF == _PearsonVII) prfx->GAM1 = phases[prfx->IPH-1].PAR_[17-1] + phases[prfx->IPH-1].PAR_[18-1] / refls->REFS[I][2] + phases[prfx->IPH-1].PAR_[19-1]/refls->REFS[I][2]/refls->REFS[I][2];
         if (cntrls->NPROF == _PearsonVII) PRSVII(prfx->GAM1);
         if (cntrls->NPROF == _SplitPearsonVII)
         {
-            spvii->RL=params->PAR[prfx->IPH][17]+(params->PAR[prfx->IPH][18]+params->PAR[prfx->IPH][19]/refls->REFS[I][2])/refls->REFS[I][2];
-            spvii->RH=params->PAR[prfx->IPH][24]+(params->PAR[prfx->IPH][25]+params->PAR[prfx->IPH][26]/refls->REFS[I][2])/refls->REFS[I][2];
-            mspvii(params->PAR[prfx->IPH][27],prfx->TL);
+            spvii->RL=phases[prfx->IPH-1].PAR_[17-1]+(phases[prfx->IPH-1].PAR_[18-1]+phases[prfx->IPH-1].PAR_[19-1]/refls->REFS[I][2])/refls->REFS[I][2];
+            spvii->RH=phases[prfx->IPH-1].PAR_[24-1]+(phases[prfx->IPH-1].PAR_[25-1]+phases[prfx->IPH-1].PAR_[26-1]/refls->REFS[I][2])/refls->REFS[I][2];
+            mspvii(phases[prfx->IPH-1].PAR_[27-1],prfx->TL);
         }
         if(cntrls->NPROF == _TCHZ)
         {
@@ -3490,7 +3486,7 @@ void DBWS::SUMMAT(int IPM, double CSK[], double DISK[], double DYCDD[], double I
             if (cntrls->IASYM == 0)
             {
                 YX=prfx->DELT*sign(prfx->DELTA);
-                Z=1.0-params->PAR[prfx->IPH][14]*YX/g4->TANN[J];
+                Z=1.0-phases[prfx->IPH-1].PAR_[14-1]*YX/g4->TANN[J];
                 if ( Z <= 0.0 ) Z=0.0001;
             }
             else
@@ -3498,7 +3494,7 @@ void DBWS::SUMMAT(int IPM, double CSK[], double DISK[], double DYCDD[], double I
                 YX=sign(prfx->DELTA)*prfx->DELTA/(2*prfx->TL);
                 TANNJ=g4->TANN[J];
                 if (TANNJ >= 1.0) TANNJ=tan(atan(TANNJ)-3.14159265359/2);
-                Z=(params->PAR[prfx->IPH][14]/TANNJ) * (2.0*(prfx->DELTA/(2*prfx->TL))*exp(-YX));
+                Z=(phases[prfx->IPH-1].PAR_[14-1]/TANNJ) * (2.0*(prfx->DELTA/(2*prfx->TL))*exp(-YX));
                 Z=1+Z;
                 if ( Z <= 0.0 ) Z=0.0001;
             }
@@ -3511,11 +3507,11 @@ void DBWS::SUMMAT(int IPM, double CSK[], double DISK[], double DYCDD[], double I
         PRTEMP = PROFIL(cntrls->NPROF,prfx->DELT/BB);
         if (cntrls->NPROF == _SplitPearsonVII)
         {
-            OMEGA = refls->REFS[I][3]*Z*PRTEMP*params->PAR[prfx->IPH][1];
+            OMEGA = refls->REFS[I][3]*Z*PRTEMP*phases[prfx->IPH-1].PAR_[1-1];
         }
         else
         {
-            OMEGA = refls->REFS[I][3]*Z*PRTEMP*params->PAR[prfx->IPH][1]/prfx->TL;
+            OMEGA = refls->REFS[I][3]*Z*PRTEMP*phases[prfx->IPH-1].PAR_[1-1]/prfx->TL;
         }
         YCALC = YCALC+OMEGA*refls->FMGNTD[I];
         if ( cntrls->JOBTYP > 2 ) goto L33;
@@ -3526,27 +3522,27 @@ void DBWS::SUMMAT(int IPM, double CSK[], double DISK[], double DYCDD[], double I
             //-----Broadening Coeficients Derivatives
             if(cntrls->NPROF != _SplitPearsonVII)
             {
-                for (M=3; M <= 5; ++M) if(params->LPAR[prfx->IPH][M] == K) DER=X/prfx->TL/2.0;
+                for (M=3; M <= 5; ++M) if(phases[prfx->IPH-1].PAR_[M-1].L == K) DER=X/prfx->TL/2.0;
             }
-            if (params->LPAR[prfx->IPH][20] == K) DER=X/prfx->TL/2.0;
+            if (phases[prfx->IPH-1].PAR_[20-1].L == K) DER=X/prfx->TL/2.0;
             X1=0.0;
             //-----Asymmetry Derivative
             if (VERT)
             {
                 if (cntrls->IASYM == 0)
                 {
-                    X1=params->PAR[prfx->IPH][14]*sign(prfx->DELTA)*BB/g4->TANN[J]/Z;
+                    X1=phases[prfx->IPH-1].PAR_[14-1]*sign(prfx->DELTA)*BB/g4->TANN[J]/Z;
                 }
                 else
                 {
-                    X1=-params->PAR[prfx->IPH][14]*exp(-YX)*(prfx->TL/(2*prfx->DELTA)-sign(prfx->DELTA)*1.0/4)/TANNJ/Z;
+                    X1=-phases[prfx->IPH-1].PAR_[14-1]*exp(-YX)*(prfx->TL/(2*prfx->DELTA)-sign(prfx->DELTA)*1.0/4)/TANNJ/Z;
                 }
             }
             //-----Zero, Displacement, and Transparancy Derivative
-            if ( params->LGLB[1] == K ) DER=prfx->DELTA*(prfx->PRFDER+X1);
-            if ( params->LGLB[10] == K ) DER=prfx->DELTA*(prfx->PRFDER+X1);
-            if ( params->LGLB[11] == K ) DER=prfx->DELTA*(prfx->PRFDER+X1);
-            if ( (params->LPAR[prfx->IPH][14] == K)  &&  VERT )
+            if ( params->GLB_[1-1].L == K ) DER=prfx->DELTA*(prfx->PRFDER+X1);
+            if ( params->GLB_[10-1].L == K ) DER=prfx->DELTA*(prfx->PRFDER+X1);
+            if ( params->GLB_[11-1].L == K ) DER=prfx->DELTA*(prfx->PRFDER+X1);
+            if ( (phases[prfx->IPH-1].PAR_[14-1].L == K)  &&  VERT )
             {
                 if ( cntrls->IASYM == 0 )
                 {
@@ -3561,44 +3557,44 @@ void DBWS::SUMMAT(int IPM, double CSK[], double DISK[], double DYCDD[], double I
             //-----Pseudo-Voigt Shape Derivatives
             if(cntrls->NPROF == _pseudoVoigt)
             {
-                KRP1=params->LPAR[prfx->IPH][17];
+                KRP1=phases[prfx->IPH-1].PAR_[17-1].L;
                 if (K == KRP1) DER=(0.636619772/(1.0+4.0*prfx->DELT/BB)-0.939437279*exp(-2.772588722*prfx->DELT/BB))/PRTEMP;
-                KRP1=params->LPAR[prfx->IPH][18];
+                KRP1=phases[prfx->IPH-1].PAR_[18-1].L;
                 if (K == KRP1) DER=(0.636619772/(1.0+4.0*prfx->DELT/BB)-0.939437279*exp(-2.772588722*prfx->DELT/BB))/PRTEMP;
             }
             //-----Pearson VII Shape Derivatives
             if (cntrls->NPROF == _PearsonVII)
             {
-                KRP1=params->LPAR[prfx->IPH][17];
+                KRP1=phases[prfx->IPH-1].PAR_[17-1].L;
                 if(K == KRP1) DER=-log(1.0+pvii->TF9*prfx->DELT/BB)+pvii->TF4*(prfx->DELT/BB)/(1.0+pvii->TF9*prfx->DELT/BB)+pvii->TF8;
-                KRP1=params->LPAR[prfx->IPH][18];
+                KRP1=phases[prfx->IPH-1].PAR_[18-1].L;
                 if(K == KRP1)   DER=-log(1.0+pvii->TF9*prfx->DELT/BB)+pvii->TF4*(prfx->DELT/BB)/(1.0+pvii->TF9*prfx->DELT/BB)+pvii->TF8;
-                KRP1=params->LPAR[prfx->IPH][19];
+                KRP1=phases[prfx->IPH-1].PAR_[19-1].L;
                 if(K == KRP1) DER=-log(1.0+pvii->TF9*prfx->DELT/BB)+pvii->TF4*(prfx->DELT/BB)/(1.0+pvii->TF9*prfx->DELT/BB)+pvii->TF8;
             }
             //-----Lattice Parameter Derivatives
 L8:
-            for (M=6; M <= 11; ++M) if(params->LPAR[prfx->IPH][M] == K) DER=(prfx->PRFDER+X1)*prfx->DELTA;
+            for (M=6; M <= 11; ++M) if(phases[prfx->IPH-1].PAR_[M-1].L == K) DER=(prfx->PRFDER+X1)*prfx->DELTA;
             DERIV[K]=g4->DERSTO[J][K]*DER*OMEGA+DERIV[K];
             //L3:;
         }
         //----TCHZ Profile Derivatives
         if(cntrls->NPROF == _TCHZ)
         {
-            OMEGA8 = Z*params->PAR[prfx->IPH][1]*refls->REFS[I][3]/prfx->TL;
+            OMEGA8 = Z*phases[prfx->IPH-1].PAR_[1-1]*refls->REFS[I][3]/prfx->TL;
             for (K = 1; K <= cntrls->MAXS; ++K)
             {
                 for (M=3; M <= 5; ++M)
                 {
-                    if (params->LPAR[prfx->IPH][M] != K) goto L1001;
+                    if (phases[prfx->IPH-1].PAR_[M-1].L != K) goto L1001;
                     DERIV[K] = DERIV[K]+ OMEGA8*g4->DERSTO[J][K]/2.0*(0.939437279*exp(-2.772588722*prfx->DELT/BB) - 0.636619772/(1.0+4.0*prfx->DELT/BB)) * (1.36603*TLR/prfx->TL-0.95438*TLR*TLR/prfx->TL+0.33348 * pow(TLR,3.0)/prfx->TL);
 L1001:;
                 }
-                if (params->LPAR[prfx->IPH][20] == K) DERIV[K] = DERIV[K]+ OMEGA8*g4->DERSTO[J][K]/2.0*(0.939437279*exp(-2.772588722*prfx->DELT/BB) - 0.636619772/(1.0+4.0*prfx->DELT/BB)) * (1.36603*TLR/prfx->TL-0.95438*TLR*TLR/prfx->TL+0.33348*pow(TLR,3.0)/prfx->TL);
-                if (params->LPAR[prfx->IPH][15] != K) goto L1002;
+                if (phases[prfx->IPH-1].PAR_[20-1].L == K) DERIV[K] = DERIV[K]+ OMEGA8*g4->DERSTO[J][K]/2.0*(0.939437279*exp(-2.772588722*prfx->DELT/BB) - 0.636619772/(1.0+4.0*prfx->DELT/BB)) * (1.36603*TLR/prfx->TL-0.95438*TLR*TLR/prfx->TL+0.33348*pow(TLR,3.0)/prfx->TL);
+                if (phases[prfx->IPH-1].PAR_[15-1].L != K) goto L1002;
                 DERIV[K] = DERIV[K]+ OMEGA8*(0.939437279*exp(-2.772588722*prfx->DELT/BB) -0.636619772/(1.0+4.0*prfx->DELT/BB)) *((1.36603*TLR/prfx->TL-0.95438*TLR*TLR/prfx->TL+0.33348*pow(TLR,3.0)/prfx->TL)* g4->DERSTO[J][K]/2.0 - refls->FMGNTD[I]*g4->TANN[J]*(1.36603/prfx->TL-0.95438*TLR/prfx->TL+0.33348*TLR*TLR/prfx->TL));
 L1002:
-                if (params->LPAR[prfx->IPH][16] != K) goto L1003;
+                if (phases[prfx->IPH-1].PAR_[16-1].L != K) goto L1003;
                 DERIV[K] = DERIV[K]+ OMEGA8*(0.939437279*exp(-2.772588722*prfx->DELT/BB) -0.636619772/(1.0+4.0*prfx->DELT/BB)) *((1.36603*TLR/prfx->TL-0.95438*TLR*TLR/prfx->TL+0.33348*pow(TLR,3.0)/prfx->TL)* g4->DERSTO[J][K]/2.0 - refls->FMGNTD[I]*sqrt(1+g4->TANN[J]*g4->TANN[J])*(1.36603/prfx->TL-0.95438*TLR/prfx->TL+0.33348*TLR*TLR/prfx->TL));
 L1003:;
             }
@@ -3610,8 +3606,8 @@ L12:
     if(jnk->NBCKGD != 0)goto L11;
     for (II=2; II <= 7; ++II)
     {
-        if(params->LGLB[II] == 0)goto L10;
-        KM=params->LGLB[II];
+        if(params->GLB_[II-1].L == 0)goto L10;
+        KM=params->GLB_[II-1].L;
         if(II == 2)DERIV[KM]=DERIV[KM]+1.0;
         if(II == 2)goto L10;
         DERIV[KM]=DERIV[KM]+ pow( ((g1->THMIN+static_cast<double>(IPM-1)*g1->STEP)/g1->BKPOS-1.0) , (II-2));
@@ -3622,8 +3618,8 @@ L11:
     if (cntrls->JOBTYP > 2) goto L20;
     for (K = 1; K <= cntrls->NPHASE; ++K)
     {
-        LK1  = params->LPAR[K][1];
-        LK2  = params->LPAR[K][2];
+        LK1  = phases[K-1].PAR_[1-1].L;
+        LK2  = phases[K-1].PAR_[2-1].L;
         //
         //-----UPDATING GLOBAL SCALE DERIVATE FOR BKG CONTRIBUTE
         //
@@ -3657,26 +3653,26 @@ L11:
         }
     }
     //-----DYC RESPECT TO AMORPHOUS SCALE FACTOR
-    LK = params->LGLB[20];
+    LK = params->GLB_[20-1].L;
     if(LK != 0) DERIV[LK] = DERIV[LK] + datax->AMORPHOUS[IPM];
     //-----MONOCHROMATOR PARAMETERS DERIVATIVES
     LAMDAM=(g1->LAMDA[1]*params->RATIO[1]+g1->LAMDA[2]*params->RATIO[2])/(params->RATIO[1]+params->RATIO[2]);
-    ESSE=2*sin((g3->TH-params->GLB[1]-SHIFT)*0.00872665)/LAMDAM;
-    LK=params->LGLB[18];
+    ESSE=2*sin((g3->TH-params->GLB_[1-1]-SHIFT)*0.00872665)/LAMDAM;
+    LK=params->GLB_[18-1].L;
     if ( LK != 0 )
     {
         //-------NEXT LINE FOR A LORENTZIAN MONOCHROMATOR BASS-BAND  FUNCTION
-        ASS5=1/(1+params->GLB[18]*  pow(ESSE,params->GLB[19]) );
-        DERMON=-( pow(ESSE,params->GLB[19]) )/ ( pow((1+params->GLB[18]*  pow(ESSE,params->GLB[19]) ),2) );
+        ASS5=1/(1+params->GLB_[18-1]*  pow(ESSE,params->GLB_[19-1]) );
+        DERMON=-( pow(ESSE,params->GLB_[19-1]) )/ ( pow((1+params->GLB_[18-1]*  pow(ESSE,params->GLB_[19-1]) ),2) );
         //--------------------------------------------------------------------
         DERIV[LK]=DERIV[LK]+TOTCS/ASS5*DERMON;
     }
     //   !cp ap 20 97
-    LK=params->LGLB[19];
-    ASS5=1/(1+params->GLB[18]*  pow(ESSE,params->GLB[19]) );
+    LK=params->GLB_[19-1].L;
+    ASS5=1/(1+params->GLB_[18-1]*  pow(ESSE,params->GLB_[19-1]) );
     if ( LK != 0 )
     {
-        DERMON=-params->GLB[18]*log(ESSE)*( pow(ESSE,params->GLB[19]) )/ pow( (1+params->GLB[18]*(  pow(ESSE,params->GLB[19]) )) , 2);
+        DERMON=-params->GLB_[18-1]*log(ESSE)*( pow(ESSE,params->GLB_[19-1]) )/ pow( (1+params->GLB_[18-1]*(  pow(ESSE,params->GLB_[19-1]) )) , 2);
         DERIV[LK]=DERIV[LK]+TOTCS/ASS5*DERMON;
     }
     //-----FORM THE UPPER TRIANGULAR OF "RJAC" = MATRIX OF NORMAL EQUATIONS
@@ -3883,17 +3879,17 @@ void DBWS::DIRECT(double SM[][6+1], double V[], int* IPH)
 
     for (J=1; J <= 6; ++J)
     {
-        V[J]=params->PAR[*IPH][J+5];
-        K=params->LPAR[*IPH][J+5];
-        X=params->APAR[*IPH][J+5];
+        V[J]=phases[*IPH-1].PAR_[J+5-1];
+        K=phases[*IPH-1].PAR_[J+5-1].L;
+        X=phases[*IPH-1].PAR_[J+5-1].A;
         if(K == 0)X=0.0;
         for (L=J; L <= 6; ++L)
         {
-            M=params->LPAR[*IPH][L+5];
+            M=phases[*IPH-1].PAR_[L+5-1].L;
             SM[L][J]=0.0;
             if((M == 0) || (K == 0))goto L1;
-            SM[L][J]=f1->RJAC[M][K]*X*params->APAR[*IPH][L+5];
-L1:
+            SM[L][J]=f1->RJAC[M][K]*X*phases[*IPH-1].PAR_[L+5-1].A;
+            L1:
             SM[J][L]=SM[L][J];
         }
     }
@@ -3933,10 +3929,6 @@ void DBWS::OUTPTR(int ICYCLE)
 
     for (I=1; I <= 2*MSZ+4; ++I) DUMMY[I] = 0.0;
     file6 << endl
-        << "R-P        = " << setw(8) << setprecision(2) << g2->R2 << "%" << endl
-        << "R-WP       = " << setw(8) << setprecision(2) << g2->R3 << "%     "
-        << "R-WP(Background Removed) = " << setw(8) << setprecision(2) << g2->R3NOBK << "%" << endl;
-    file7 << endl
         << "R-P        = " << setw(8) << setprecision(2) << g2->R2 << "%" << endl
         << "R-WP       = " << setw(8) << setprecision(2) << g2->R3 << "%     "
         << "R-WP(Background Removed) = " << setw(8) << setprecision(2) << g2->R3NOBK << "%" << endl;
@@ -4032,19 +4024,19 @@ void DBWS::OUTPTR(int ICYCLE)
             }
             for (J=1; J <= 27; ++J)
             {
-                KM=params->LPAR[IP][J];
-                if (KM != 0) DUMMY[KM] = params->PAR[IP][J];
+                KM=phases[IP-1].PAR_[J-1].L;
+                if (KM != 0) DUMMY[KM] = phases[IP-1].PAR_[J-1];
             }
             DIRECT(dircv->DCSM,dircv->DCV,&IP);
             for (I=1; I <= 6; ++I)
             {
-                KM = params->LPAR[IP][I+5];
+                KM = phases[IP-1].PAR_[I+5-1].L;
                 MATCH = 0;
                 if (KM != 0)
                 {
                     if (I >= 4)
                     {
-                        for (MMM=1; MMM <= 3; ++MMM) if (KM == params->LPAR[IP][MMM+5]) MATCH=1;
+                        for (MMM=1; MMM <= 3; ++MMM) if (KM == phases[IP-1].PAR_[MMM+5-1].L) MATCH=1;
                     }
                     if (MATCH == 0) DUMMY[KM] = dc->SAVE[IP][I];
                 }
@@ -4056,8 +4048,8 @@ void DBWS::OUTPTR(int ICYCLE)
             if(cntrls->NPROF == _PearsonVII && (J == 14 || J == 15 || J == 16)) goto L6019;
             if(cntrls->NPROF == _pseudoVoigt && (J == 14 || J == 15 || J == 16)) goto L6019;
             if(cntrls->NPROF == _SplitPearsonVII && (J == 14 || J == 15 || J == 16)) goto L6019;
-            KM=params->LGLB[J];
-            if(KM != 0) DUMMY[KM] = params->GLB[J];
+            KM=params->GLB_[J-1].L;
+            if(KM != 0) DUMMY[KM] = params->GLB_[J-1];
 L6019:;
         }
         for (I=1; I <= cntrls->MAXSX; ++I) file8o << DUMMY[I];
@@ -4073,7 +4065,6 @@ L6019:;
     {
         for (J=1; J <= 2; ++J) allp->FINAL[I][J] = 0.0;
     }
-    file7 << "CYCLE NUMBER=" << setw(4) << ICYCLE << endl;
     file6 << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ CYCLE NUMBER=" << setw(4) << ICYCLE << endl;
     for (IP=1; IP <= cntrls->NPHASE; ++IP)
     {
@@ -4083,7 +4074,7 @@ L6019:;
             for (IIPHAS=2; IIPHAS <= IP; ++IIPHAS) IOF = IOF + jnk->NATOM[IIPHAS-1];
         }
         file6
-            << "PHASE " << setw(2) << IP << ": " << setw(50) << char_->PHSNM[IP] << endl
+            << "PHASE " << setw(2) << IP << ": " << setw(50) << phases[IP].PHSNM << endl
             << "NEW PARAMETERS, SHIFTS, AND STANDARD DEVIATIONS=" << endl << endl
             << "ATOM     X        DX       SX        Y        DY       SY        Z        DZ       SZ        B      DB     SB      So       DSo      SSo" << endl;
         N=jnk->NATOM[IP];
@@ -4224,21 +4215,21 @@ L8:;
             }
             allp->ILOC = allp->ILOC + 1;
             if ( J == 6 ) ILOC1 = allp->ILOC;
-            KM = params->LPAR[IP][J];
+            KM = phases[IP-1].PAR_[J-1].L;
             if ( KM == 0 )
             {
                 SY[J] = 0.0;
                 SZ[J] = 0.0;
-                allp->FINAL[allp->ILOC][1] = params->PAR[IP][J];
+                allp->FINAL[allp->ILOC][1] = phases[IP-1].PAR_[J-1];
             }
             else
             {
                 SZ[J] = sqrt(abs(f1->RJAC[KM][KM]));
-                SY[J] = f1->VX[KM]*params->APAR[IP][J]*params->RELAX[3];
-                DUMMY[KM] = params->PAR[IP][J];
-                params->PAR[IP][J] = params->PAR[IP][J]+SY[J];
+                SY[J] = f1->VX[KM]*phases[IP-1].PAR_[J-1].A*params->RELAX[3];
+                DUMMY[KM] = phases[IP-1].PAR_[J-1];
+                phases[IP-1].PAR_[J-1] = phases[IP-1].PAR_[J-1]+SY[J];
                 DUMMY[KM+MSZ] = SY[J];
-                allp->FINAL[allp->ILOC][1] = params->PAR[IP][J];
+                allp->FINAL[allp->ILOC][1] = phases[IP-1].PAR_[J-1];
                 allp->FINAL[allp->ILOC][2] = SZ[J];
             }
         }
@@ -4248,14 +4239,14 @@ L8:;
         for (I=1; I <= 6; ++I)
         {
             allp->ILOC = allp->ILOC + 1;
-            KM = params->LPAR[IP][I+5];
+            KM = phases[IP-1].PAR_[I+5-1].L;
             MATCH=0;
             SY[I+5]=dircv->DCV[I]-dc->SAVE[IP][I];
             if (KM != 0)
             {
                 if (I >= 4)
                 {
-                    for (MMM=1; MMM <= 3; ++MMM) if (KM == params->LPAR[IP][MMM+5]) MATCH=1;
+                    for (MMM=1; MMM <= 3; ++MMM) if (KM == phases[IP-1].PAR_[MMM+5-1].L) MATCH=1;
                 }
                 if (MATCH == 0)
                 {
@@ -4278,11 +4269,11 @@ L8:;
                     SRATIODCV=(dircv->DCV[1]*dircv->DCSM[3][3]+dircv->DCV[3]*dircv->DCSM[1][1])/(dircv->DCV[3] * dircv->DCV[3]);
                     file6
                         << "OVERALL SCALE FACTOR=" << scientific
-                        << setw(9) << setprecision(3) << params->PAR[IP][1]
+                        << setw(9) << setprecision(3) << phases[IP-1].PAR_[1-1]
                         << setw(9) << setprecision(3) << SY[1]
                         << setw(9) << setprecision(3) << SZ[1] << endl << fixed
                         << "OVERALL TEMP. FACTOR="
-                        << setw(9) << setprecision(4) << params->PAR[IP][2]
+                        << setw(9) << setprecision(4) << phases[IP-1].PAR_[2-1]
                         << setw(9) << setprecision(4) << SY[2]
                         << setw(9) << setprecision(4) << SZ[2] << endl
                         << "CELL PARAMETERS="
@@ -4307,25 +4298,25 @@ L8:;
                         << "            c/a= "  << setw(11) << setprecision(6) << RATIODCV << "  +/-" << setw(11) << setprecision(6) << SRATIODCV << endl << endl
                         << "PREFERRED ORIENTATION PARAMETERS="
                         << " "
-                        << setw(8) << setprecision(5) << params->PAR[IP][12]
+                        << setw(8) << setprecision(5) << phases[IP-1].PAR_[12-1]
                         << setw(8) << setprecision(5) << SY[12]
                         << setw(8) << setprecision(5) << SZ[12]
                         << " "
-                        << setw(8) << setprecision(5) << params->PAR[IP][13]
+                        << setw(8) << setprecision(5) << phases[IP-1].PAR_[13-1]
                         << setw(8) << setprecision(5) << SY[13]
                         << setw(8) << setprecision(5) << SZ[13] << endl
                         << "ASYMMETRY PARAMETER="
                         << " "
-                        << setw(8) << setprecision(4) << params->PAR[IP][14]
+                        << setw(8) << setprecision(4) << phases[IP-1].PAR_[14-1]
                         << setw(8) << setprecision(4) << SY[14]
                         << setw(8) << setprecision(4) << SZ[14] << endl
                         << "LORENTZIAN HALF WIDTH PARAMS (X AND Y) "
                         << " "
-                        << setw(8) << setprecision(5) << params->PAR[IP][15]
+                        << setw(8) << setprecision(5) << phases[IP-1].PAR_[15-1]
                         << setw(8) << setprecision(5) << SY[15]
                         << setw(8) << setprecision(5) << SZ[15] << endl
                         << " "
-                        << setw(8) << setprecision(5) << params->PAR[IP][16]
+                        << setw(8) << setprecision(5) << phases[IP-1].PAR_[16-1]
                         << setw(8) << setprecision(5) << SY[16]
                         << setw(8) << setprecision(5) << SZ[16] << endl;
                     goto L1032;
@@ -4333,11 +4324,11 @@ L8:;
             }
         }
         file6 << "OVERALL SCALE FACTOR=" << scientific
-            << setw(9) << setprecision(3) << params->PAR[IP][1]
+            << setw(9) << setprecision(3) << phases[IP-1].PAR_[1-1]
         << setw(9) << setprecision(3) << SY[1]
         << setw(9) << setprecision(3) << SZ[1] << fixed << endl
             << "OVERALL TEMP. FACTOR="
-            << setw(9) << setprecision(4) << params->PAR[IP][2]
+            << setw(9) << setprecision(4) << phases[IP-1].PAR_[2-1]
         << setw(9) << setprecision(4) << SY[2]
         << setw(9) << setprecision(4) << SZ[2] << endl
             << "CELL PARAMETERS=" << endl
@@ -4388,23 +4379,23 @@ L8:;
         << setw(8) << setprecision(5) << dircv->DCSM[6][6] << endl
             << endl
             << " "
-            << setw(8) << setprecision(5) << params->PAR[IP][12]
+            << setw(8) << setprecision(5) << phases[IP-1].PAR_[12-1]
         << setw(8) << setprecision(5) << SY[12]
         << setw(8) << setprecision(5) << SZ[12] << endl
             << " "
-            << setw(8) << setprecision(5) << params->PAR[IP][13]
+            << setw(8) << setprecision(5) << phases[IP-1].PAR_[13-1]
         << setw(8) << setprecision(5) << SY[13]
         << setw(8) << setprecision(5) << SZ[13] << endl
             << " "
-            << setw(8) << setprecision(5) << params->PAR[IP][14]
+            << setw(8) << setprecision(5) << phases[IP-1].PAR_[14-1]
         << setw(8) << setprecision(5) << SY[14]
         << setw(8) << setprecision(5) << SZ[14] << endl
             << " "
-            << setw(8) << setprecision(5) << params->PAR[IP][15]
+            << setw(8) << setprecision(5) << phases[IP-1].PAR_[15-1]
         << setw(8) << setprecision(5) << SY[15]
         << setw(8) << setprecision(5) << SZ[15] << endl
             << " "
-            << setw(8) << setprecision(5) << params->PAR[IP][16]
+            << setw(8) << setprecision(5) << phases[IP-1].PAR_[16-1]
         << setw(8) << setprecision(5) << SY[16]
         << setw(8) << setprecision(5) << SZ[16] << endl;
 L1032:
@@ -4414,34 +4405,34 @@ L1032:
             file6 << "LOW SIDE EXPONENT PARAMETERS (NA, NB, NC)=" << endl
                 //<< scientific
                 << " "
-                << setw(10) << setprecision(4) << params->PAR[IP][17]
+                << setw(10) << setprecision(4) << phases[IP-1].PAR_[17-1]
                 << setw(10) << setprecision(4) << SY[17]
                 << setw(10) << setprecision(4) << SZ[17] << endl
                 << " "
-                << setw(10) << setprecision(4) << params->PAR[IP][18]
+                << setw(10) << setprecision(4) << phases[IP-1].PAR_[18-1]
                 << setw(10) << setprecision(4) << SY[18]
                 << setw(10) << setprecision(4) << SZ[18] << endl
                 << " "
-                << setw(10) << setprecision(4) << params->PAR[IP][19]
+                << setw(10) << setprecision(4) << phases[IP-1].PAR_[19-1]
                 << setw(10) << setprecision(4) << SY[19]
                 << setw(10) << setprecision(4) << SZ[19] << endl
                 << "HIGH SIDE EXPONENT PARAMETERS (NA, NB, NC)=" << endl
                 << " "
-                << setw(10) << setprecision(4) << params->PAR[IP][24]
+                << setw(10) << setprecision(4) << phases[IP-1].PAR_[24-1]
                 << setw(10) << setprecision(4) << SY[24]
                 << setw(10) << setprecision(4) << SZ[24] << endl
                 << " "
-                << setw(10) << setprecision(4) << params->PAR[IP][25]
+                << setw(10) << setprecision(4) << phases[IP-1].PAR_[25-1]
                 << setw(10) << setprecision(4) << SY[25]
                 << setw(10) << setprecision(4) << SZ[25] << endl
                 << " "
-                << setw(10) << setprecision(4) << params->PAR[IP][26]
+                << setw(10) << setprecision(4) << phases[IP-1].PAR_[26-1]
                 << setw(10) << setprecision(4) << SY[26]
                 << setw(10) << setprecision(4) << SZ[26] << endl
                 << fixed
                 << "SPLIT PEARSON VII ASSYMETRY PARAMETER="
                 << " "
-                << setw(10) << setprecision(6) << params->PAR[IP][27]
+                << setw(10) << setprecision(6) << phases[IP-1].PAR_[27-1]
                 << setw(10) << setprecision(6) << SY[27]
                 << setw(10) << setprecision(6) << SZ[27] << endl;
         }
@@ -4451,37 +4442,37 @@ L1032:
             file6 << "MIXING PARAMETERS" << endl
                 << "NA= "
                 //<< scientific
-                << setw(10) << setprecision(3) << params->PAR[IP][17]
+                << setw(10) << setprecision(3) << phases[IP-1].PAR_[17-1]
                 << setw(10) << setprecision(3) << SY[17]
                 << setw(10) << setprecision(3) << SZ[17] << endl
                 << "NB= "
-                << setw(10) << setprecision(3) << params->PAR[IP][18]
+                << setw(10) << setprecision(3) << phases[IP-1].PAR_[18-1]
                 << setw(10) << setprecision(3) << SY[18]
                 << setw(10) << setprecision(3) << SZ[18] << endl
                 << "NC= "
-                << setw(10) << setprecision(3) << params->PAR[IP][19]
+                << setw(10) << setprecision(3) << phases[IP-1].PAR_[19-1]
                 << setw(10) << setprecision(3) << SY[19]
                 << setw(10) << setprecision(3) << SZ[19] << fixed << endl;
         }
         file6 << "FWHM PARAMETERS=" << endl
             << "U = "
-            << setw(10) << setprecision(6) << params->PAR[IP][3]
+            << setw(10) << setprecision(6) << phases[IP-1].PAR_[3-1]
             << setw(10) << setprecision(6) << SY[3]
             << setw(10) << setprecision(6) << SZ[3] << endl
             << "V = "
-            << setw(10) << setprecision(6) << params->PAR[IP][4]
+            << setw(10) << setprecision(6) << phases[IP-1].PAR_[4-1]
             << setw(10) << setprecision(6) << SY[4]
             << setw(10) << setprecision(6) << SZ[4] << endl
             << "W = "
-            << setw(10) << setprecision(6) << params->PAR[IP][5]
+            << setw(10) << setprecision(6) << phases[IP-1].PAR_[5-1]
             << setw(10) << setprecision(6) << SY[5]
             << setw(10) << setprecision(6) << SZ[5] << endl
             << "CT= "
-            << setw(10) << setprecision(6) << params->PAR[IP][21]
+            << setw(10) << setprecision(6) << phases[IP-1].PAR_[21-1]
             << setw(10) << setprecision(6) << SY[21]
             << setw(10) << setprecision(6) << SZ[21] << endl
             << "Z = "
-            << setw(10) << setprecision(6) << params->PAR[IP][20]
+            << setw(10) << setprecision(6) << phases[IP-1].PAR_[20-1]
             << setw(10) << setprecision(6) << SY[20]
             << setw(10) << setprecision(6) << SZ[20] << endl;
 
@@ -4513,8 +4504,8 @@ L1032:
         ARG3 = VOSQ*(2 * cos(dircv->DCV[6]) * sin(dircv->DCV[6]) - 2*sin(dircv->DCV[6]) *cos(dircv->DCV[4]) *cos(dircv->DCV[5])) * dircv->DCSM[6][6];
         DVOL[IP] = sqrt(pow((VOL[IP] * dircv->DCSM[1][1] / dircv->DCV[1]),2) + pow((VOL[IP] * dircv->DCSM[2][2] / dircv->DCV[2]),2) + pow((VOL[IP] * dircv->DCSM[3][3] / dircv->DCV[3]),2) + pow(ARG1,2) + pow(ARG2,2) + pow(ARG3,2));
         // standard deviations are calculed below                      !cp nov 96
-        W[IP] = params->PAR[IP][1] * multip->TMASSA[IP] * VOL[IP]/multip->SAQF[IP];
-        DW[IP] = (SZ[1]/params->PAR[IP][1]) + (DVOL[IP]/VOL[IP]) + (STMASSA[IP]/multip->TMASSA[IP])/multip->SAQF[IP];
+        W[IP] = phases[IP-1].PAR_[1-1] * multip->TMASSA[IP] * VOL[IP]/multip->SAQF[IP];
+        DW[IP] = (SZ[1]/phases[IP-1].PAR_[1-1]) + (DVOL[IP]/VOL[IP]) + (STMASSA[IP]/multip->TMASSA[IP])/multip->SAQF[IP];
         //   end of std
         file6 << "Volume= "
             << setw(9) << setprecision(3) << VOL[IP]
@@ -4620,84 +4611,84 @@ L2720:
     for (J=1; J <= 20; ++J)
     {
         allp->ILOC = allp->ILOC +1;
-        KM=params->LGLB[J];
+        KM=params->GLB_[J-1].L;
         if(KM != 0)goto L20;
         SY[J]=0.0;
         SZ[J]=0.0;
-        allp->FINAL[allp->ILOC][1] = params->GLB[J];
+        allp->FINAL[allp->ILOC][1] = params->GLB_[J-1];
         goto L19;
 L20:
         SZ[J]=sqrt(abs(f1->RJAC[KM][KM]));
-        SY[J]=f1->VX[KM]*params->AGLB[J]*params->RELAX[4];
-        DUMMY[KM] = params->GLB[J];
-        params->GLB[J]=params->GLB[J]+SY[J];
+        SY[J]=f1->VX[KM]*params->GLB_[J-1].A*params->RELAX[4];
+        DUMMY[KM] = params->GLB_[J-1];
+        params->GLB_[J-1]=params->GLB_[J-1]+SY[J];
         DUMMY[KM+MSZ]  = SY[J];
-        allp->FINAL[allp->ILOC][1] = params->GLB[J];
+        allp->FINAL[allp->ILOC][1] = params->GLB_[J-1];
         allp->FINAL[allp->ILOC][2] = SZ[J];
 L19:;
     }
     if (allp->ILOC  >  NFINAL) DBWSException("Parameter NFINAL in PARAM.INC file too small");
     file6 << "GLOBAL PARAMETERS" << endl
         << "ZEROPOINT (ZER)             :"
-        << setw(8) << setprecision(4) << params->GLB[1]
+        << setw(8) << setprecision(4) << params->GLB_[1-1]
     << setw(8) << setprecision(4) << SY[1]
     << setw(8) << setprecision(4) << SZ[1] << endl;
     file6 << "SAMPLE DISPLACEMENT (DISP)  :"
-        << setw(8) << setprecision(4) << params->GLB[10]
+        << setw(8) << setprecision(4) << params->GLB_[10-1]
     << setw(8) << setprecision(4) << SY[10]
     << setw(8) << setprecision(4) << SZ[10] << endl
         << "SAMPLE TRANSPARENCY (TRANSP):"
-        << setw(8) << setprecision(4) << params->GLB[11]
+        << setw(8) << setprecision(4) << params->GLB_[11-1]
     << setw(8) << setprecision(4) << SY[11]
     << setw(8) << setprecision(4) << SZ[11] << endl
         << "ROUGHNESS PARAMETERS        :"
         << "             P              :"
-        << setw(8) << setprecision(4) << params->GLB[8]
+        << setw(8) << setprecision(4) << params->GLB_[8-1]
     << setw(8) << setprecision(4) << SY[8]
     << setw(8) << setprecision(4) << SZ[8] << endl
         << "             Q              :"
-        << setw(8) << setprecision(4) << params->GLB[9]
+        << setw(8) << setprecision(4) << params->GLB_[9-1]
     << setw(8) << setprecision(4) << SY[9]
     << setw(8) << setprecision(4) << SZ[9] << endl
         << "             R              :"
-        << setw(8) << setprecision(4) << params->GLB[12]
+        << setw(8) << setprecision(4) << params->GLB_[12-1]
     << setw(8) << setprecision(4) << SY[12]
     << setw(8) << setprecision(4) << SZ[12] << endl
         << "             T              :"
-        << setw(8) << setprecision(4) << params->GLB[13]
+        << setw(8) << setprecision(4) << params->GLB_[13-1]
     << setw(8) << setprecision(4) << SY[13]
     << setw(8) << setprecision(4) << SZ[13] << endl;
     // !cp ap 20 97  !from It. codes
     file6 << "AMORPHOUS SCALE (SCAM):"
-        << setw(11) << setprecision(4) << params->GLB[20]
+        << setw(11) << setprecision(4) << params->GLB_[20-1]
     << setw(11) << setprecision(4) << SY[20]
     << setw(11) << setprecision(4) << SZ[20] << endl;
     // !cp ap 20 97   !from It. codes
     file6 << "MONOCROMATOR BANDPASS PARAMETERS (PMONI)" << endl
-        << setw(8) << setprecision(4) << params->GLB[18]
+        << setw(8) << setprecision(4) << params->GLB_[18-1]
     << setw(8) << setprecision(4) << SY[18]
     << setw(8) << setprecision(4) << SZ[18]
-    << setw(8) << setprecision(4) << params->GLB[19]
+    << setw(8) << setprecision(4) << params->GLB_[19-1]
     << setw(8) << setprecision(4) << SY[19]
     << setw(8) << setprecision(4) << SZ[19] << endl;
     if (jnk->NBCKGD != 0) goto L90;
     file6 << "BACKGROUND PARAMETERS" << endl //<< scientific
-        << setw(12) << setprecision(6) << params->GLB[2]
+        << setw(12) << setprecision(6) << params->GLB_[2-1]
     << setw(12) << setprecision(6) << SY[2]
     << setw(12) << setprecision(6) << SZ[2] << endl
-        << setw(12) << setprecision(6) << params->GLB[3]
+        << setw(12) << setprecision(6) << params->GLB_[3-1]
     << setw(12) << setprecision(6) << SY[3]
     << setw(12) << setprecision(6) << SZ[3] << endl
-        << setw(12) << setprecision(6) << params->GLB[4]
+        << setw(12) << setprecision(6) << params->GLB_[4-1]
     << setw(12) << setprecision(6) << SY[4]
     << setw(12) << setprecision(6) << SZ[4] << endl
-        << setw(12) << setprecision(6) << params->GLB[5]
+        << setw(12) << setprecision(6) << params->GLB_[5-1]
     << setw(12) << setprecision(6) << SY[5]
     << setw(12) << setprecision(6) << SZ[5] << endl
-        << setw(12) << setprecision(6) << params->GLB[6]
+        << setw(12) << setprecision(6) << params->GLB_[6-1]
     << setw(12) << setprecision(6) << SY[6]
     << setw(12) << setprecision(6) << SZ[6] << endl
-        << setw(12) << setprecision(6) << params->GLB[7]
+        << setw(12) << setprecision(6) << params->GLB_[7-1]
     << setw(12) << setprecision(6) << SY[7]
     << setw(12) << setprecision(6) << SZ[7] << endl;
 L90:
@@ -4752,8 +4743,8 @@ void DBWS::ITER(void)
         {
             g3->TH=g3->TH+g1->STEP;
             THX=g3->TH/g1->BKPOS-1.0;
-            datax->BK[I]=params->GLB[2];
-            for (J=2; J <= 6; ++J) datax->BK[I]=datax->BK[I]+params->GLB[J+1] * pow(THX,J-1);
+            datax->BK[I]=params->GLB_[2-1];
+            for (J=2; J <= 6; ++J) datax->BK[I]=datax->BK[I]+params->GLB_[J+1-1] * pow(THX,J-1);
             if(cntrls->MCYCLE == 1 && cntrls->MAXS == 0 && cntrls->IPLPOL == 1) fondi->BKPOL[I]=datax->BK[I];
         }
 L30:
@@ -4839,7 +4830,7 @@ L30:
             }
             //------AMORPHOUS EVALUATIONS
             TOTAS =0.0;
-            TOTAS = params->GLB[20] * datax->AMORPHOUS[IPM];
+            TOTAS = params->GLB_[20-1] * datax->AMORPHOUS[IPM];
             //-----AMORPHOUS UPDATE
             if ( cntrls->MCYCLE == 1  &&  cntrls->MAXS == 0  &&  cntrls->IPLAM == 1 ) fondi->BKAM[IPM] = TOTAS;
             datax->BK[IPM] = datax->BK[IPM] + TOTAS;
@@ -6172,62 +6163,62 @@ L124:;
     }
     for (I=1; I <= cntrls->NPHASE; ++I)
     {
-        for (J=1; J <= 6; ++J) params->PAR[I][J+5]=dc->SAVE[I][J];
-        for (J=1; J <= 27; ++J) params->APAR[I][J]=sign(params->APAR[I][J])*(static_cast<double>(10*params->LPAR[I][J])+abs(params->APAR[I][J]));
+        for (J=1; J <= 6; ++J) phases[I-1].PAR_[J+5-1]=dc->SAVE[I][J];
+        for (J=1; J <= 27; ++J) phases[I-1].PAR_[J-1].A=sign(phases[I-1].PAR_[J-1].A)*(static_cast<double>(10*phases[I-1].PAR_[J-1].L)+abs(phases[I-1].PAR_[J-1].A));
     }
-    for (J=1; J <= 20; ++J) params->AGLB[J]=sign(params->AGLB[J])*(static_cast<double>(10*params->LGLB[J])+abs(params->AGLB[J]));
+    for (J=1; J <= 20; ++J) params->GLB_[J-1].A=sign(params->GLB_[J-1].A)*(static_cast<double>(10*params->GLB_[J-1].L)+abs(params->GLB_[J-1].A));
 
     // line 10.1
     file5b
-        << setw(8) << setprecision(4) << params->GLB[1]
-        << setw(8) << setprecision(4) << params->GLB[10]
-        << setw(8) << setprecision(4) << params->GLB[11]
-        << setw(8) << setprecision(4) << params->GLB[8]
-        << setw(8) << setprecision(4) << params->GLB[9]
-        << setw(8) << setprecision(4) << params->GLB[12]
-        << setw(8) << setprecision(4) << params->GLB[13] << " ZER DISP TRANS p q r t" << endl;
+        << setw(8) << setprecision(4) << params->GLB_[1-1]
+        << setw(8) << setprecision(4) << params->GLB_[10-1]
+        << setw(8) << setprecision(4) << params->GLB_[11-1]
+        << setw(8) << setprecision(4) << params->GLB_[8-1]
+        << setw(8) << setprecision(4) << params->GLB_[9-1]
+        << setw(8) << setprecision(4) << params->GLB_[12-1]
+        << setw(8) << setprecision(4) << params->GLB_[13-1] << " ZER DISP TRANS p q r t" << endl;
 
     // line 10.11
     file5b
-        << setw(8) << setprecision(4) << params->GLB[1]
-        << setw(8) << setprecision(4) << params->AGLB[10]
-        << setw(8) << setprecision(4) << params->AGLB[11]
-        << setw(8) << setprecision(4) << params->AGLB[8]
-        << setw(8) << setprecision(4) << params->AGLB[9]
-        << setw(8) << setprecision(4) << params->AGLB[12]
-        << setw(8) << setprecision(4) << params->AGLB[13] << " CODEWORDS" << endl;
+        << setw(8) << setprecision(4) << params->GLB_[1-1]
+        << setw(8) << setprecision(4) << params->GLB_[10-1].A
+        << setw(8) << setprecision(4) << params->GLB_[11-1].A
+        << setw(8) << setprecision(4) << params->GLB_[8-1].A
+        << setw(8) << setprecision(4) << params->GLB_[9-1].A
+        << setw(8) << setprecision(4) << params->GLB_[12-1].A
+        << setw(8) << setprecision(4) << params->GLB_[13-1].A << " CODEWORDS" << endl;
     if (cntrls->IBGD == 1) goto L4600;
     // line 10.2
     file5b
-        << setw(8) << setprecision(4) << params->GLB[20]
-        << setw(8) << setprecision(4) << params->GLB[18]
-        << setw(8) << setprecision(4) << params->GLB[19]
+        << setw(8) << setprecision(4) << params->GLB_[20-1]
+        << setw(8) << setprecision(4) << params->GLB_[18-1]
+        << setw(8) << setprecision(4) << params->GLB_[19-1]
         << "                                 AM MON1 MON2" << endl;
 
     // line 10.21
     file5b
-        << setw(8) << setprecision(4) << params->AGLB[20]
-        << setw(8) << setprecision(4) << params->AGLB[18]
-        << setw(8) << setprecision(4) << params->AGLB[19]
+        << setw(8) << setprecision(4) << params->GLB_[20-1].A
+        << setw(8) << setprecision(4) << params->GLB_[18-1].A
+        << setw(8) << setprecision(4) << params->GLB_[19-1].A
         << "                                 CODEWORS" << endl;
 L4600:
     if(jnk->NBCKGD == 0)
     {
         file5b
-            << setw(9) << setprecision(2) << params->GLB[2]
-            << setw(9) << setprecision(2) << params->GLB[3]
-            << setw(9) << setprecision(2) << params->GLB[4]
-            << setw(9) << setprecision(2) << params->GLB[5]
-            << setw(9) << setprecision(2) << params->GLB[6]
-            << setw(9) << setprecision(2) << params->GLB[7]
+            << setw(9) << setprecision(2) << params->GLB_[2-1]
+            << setw(9) << setprecision(2) << params->GLB_[3-1]
+            << setw(9) << setprecision(2) << params->GLB_[4-1]
+            << setw(9) << setprecision(2) << params->GLB_[5-1]
+            << setw(9) << setprecision(2) << params->GLB_[6-1]
+            << setw(9) << setprecision(2) << params->GLB_[7-1]
             << "   BACKGROUND" << endl;
         file5b
-            << setw(9) << setprecision(2) << params->AGLB[2]
-            << setw(9) << setprecision(2) << params->AGLB[3]
-            << setw(9) << setprecision(2) << params->AGLB[4]
-            << setw(9) << setprecision(2) << params->AGLB[5]
-            << setw(9) << setprecision(2) << params->AGLB[6]
-            << setw(9) << setprecision(2) << params->AGLB[7]
+            << setw(9) << setprecision(2) << params->GLB_[2-1].A
+            << setw(9) << setprecision(2) << params->GLB_[3-1].A
+            << setw(9) << setprecision(2) << params->GLB_[4-1].A
+            << setw(9) << setprecision(2) << params->GLB_[5-1].A
+            << setw(9) << setprecision(2) << params->GLB_[6-1].A
+            << setw(9) << setprecision(2) << params->GLB_[7-1].A
             << "   CODEWORDS" << endl;
     }
     //L477:
@@ -6239,7 +6230,7 @@ L4600:
             for (IIPHAS=2; IIPHAS <= K; ++IIPHAS) IOF = IOF + jnk->NATOM[IIPHAS-1];
         }
         // line 11.1
-        file5b << setw(50) << char_->PHSNM[K] << "       PHASE NUMBER " << setw(2) << K << endl;
+        file5b << setw(50) << phases[K].PHSNM << "       PHASE NUMBER " << setw(2) << K << endl;
 
         // line 11.2
         file5b
@@ -6255,7 +6246,7 @@ L4600:
         N=jnk->NATOM[K];
 
         // line 11.3
-        file5b << setw(20) << char_->SYMB[K] << "                                     SPACE GROUP" << endl;
+        file5b << setw(20) << phases[K].SYMB << "                                     SPACE GROUP" << endl;
         // Changing N to 'so' !cp oct 96
         for (ISOF=1; ISOF <= N; ++ISOF) params->XL[ISOF+IOF][5]=params->XL[ISOF+IOF][5]*multip->XMLTP[K]/multip->MURT[ISOF+IOF];
         // !cp oct 96 #6 murt parametrs included below. FORMAT modified...
@@ -6294,74 +6285,74 @@ L4600:
             << "          CODEWORDS" << endl;
         }
         file5b
-            << scientific << setw(8) << setprecision(2) << params->PAR[K][1]
+            << scientific << setw(8) << setprecision(2) << phases[K-1].PAR_[1-1]
             << fixed
-            << setw(8) << setprecision(4) << params->PAR[K][2]
+            << setw(8) << setprecision(4) << phases[K-1].PAR_[2-1]
             << "                                         SCALE Bo(OVERALL)" << endl
-            << setw(8) << setprecision(2) << params->APAR[K][1]
-            << setw(8) << setprecision(2) << params->APAR[K][2] << endl
-            << setw(8) << setprecision(5) << params->PAR[K][3]
-            << setw(8) << setprecision(5) << params->PAR[K][4]
-            << setw(8) << setprecision(5) << params->PAR[K][5]
-            << setw(8) << setprecision(5) << params->PAR[K][21]
-            << setw(8) << setprecision(5) << params->PAR[K][20]
-            << setw(8) << setprecision(5) << params->PAR[K][15]
-            << setw(8) << setprecision(5) << params->PAR[K][16]
+            << setw(8) << setprecision(2) << phases[K-1].PAR_[1-1].A
+            << setw(8) << setprecision(2) << phases[K-1].PAR_[2-1].A << endl
+            << setw(8) << setprecision(5) << phases[K-1].PAR_[3-1]
+            << setw(8) << setprecision(5) << phases[K-1].PAR_[4-1]
+            << setw(8) << setprecision(5) << phases[K-1].PAR_[5-1]
+            << setw(8) << setprecision(5) << phases[K-1].PAR_[21-1]
+            << setw(8) << setprecision(5) << phases[K-1].PAR_[20-1]
+            << setw(8) << setprecision(5) << phases[K-1].PAR_[15-1]
+            << setw(8) << setprecision(5) << phases[K-1].PAR_[16-1]
             << " U V W CT Z X Y" << endl
 
-            << setw(8) << setprecision(2) << params->APAR[K][3]
-            << setw(8) << setprecision(2) << params->APAR[K][4]
-            << setw(8) << setprecision(2) << params->APAR[K][5]
-            << setw(8) << setprecision(2) << params->APAR[K][21]
-            << setw(8) << setprecision(2) << params->APAR[K][20]
-            << setw(8) << setprecision(2) << params->APAR[K][15]
-            << setw(8) << setprecision(2) << params->APAR[K][16] << endl
+            << setw(8) << setprecision(2) << phases[K-1].PAR_[3-1].A
+            << setw(8) << setprecision(2) << phases[K-1].PAR_[4-1].A
+            << setw(8) << setprecision(2) << phases[K-1].PAR_[5-1].A
+            << setw(8) << setprecision(2) << phases[K-1].PAR_[21-1].A
+            << setw(8) << setprecision(2) << phases[K-1].PAR_[20-1].A
+            << setw(8) << setprecision(2) << phases[K-1].PAR_[15-1].A
+            << setw(8) << setprecision(2) << phases[K-1].PAR_[16-1].A << endl
 
-            << setw(8) << setprecision(4) << params->PAR[K][6]
-            << setw(8) << setprecision(4) << params->PAR[K][7]
-            << setw(8) << setprecision(4) << params->PAR[K][8]
-            << setw(8) << setprecision(4) << params->PAR[K][9]
-            << setw(8) << setprecision(4) << params->PAR[K][10]
-            << setw(8) << setprecision(4) << params->PAR[K][11]
+            << setw(8) << setprecision(4) << phases[K-1].PAR_[6-1]
+            << setw(8) << setprecision(4) << phases[K-1].PAR_[7-1]
+            << setw(8) << setprecision(4) << phases[K-1].PAR_[8-1]
+            << setw(8) << setprecision(4) << phases[K-1].PAR_[9-1]
+            << setw(8) << setprecision(4) << phases[K-1].PAR_[10-1]
+            << setw(8) << setprecision(4) << phases[K-1].PAR_[11-1]
             << "         CELL PARAMETERS" << endl
 
-            << setw(8) << setprecision(2) << params->APAR[K][6]
-            << setw(8) << setprecision(2) << params->APAR[K][7]
-            << setw(8) << setprecision(2) << params->APAR[K][8]
-            << setw(8) << setprecision(2) << params->APAR[K][9]
-            << setw(8) << setprecision(2) << params->APAR[K][10]
-            << setw(8) << setprecision(2) << params->APAR[K][11] << endl
+            << setw(8) << setprecision(2) << phases[K-1].PAR_[6-1].A
+            << setw(8) << setprecision(2) << phases[K-1].PAR_[7-1].A
+            << setw(8) << setprecision(2) << phases[K-1].PAR_[8-1].A
+            << setw(8) << setprecision(2) << phases[K-1].PAR_[9-1].A
+            << setw(8) << setprecision(2) << phases[K-1].PAR_[10-1].A
+            << setw(8) << setprecision(2) << phases[K-1].PAR_[11-1].A << endl
 
-            << setw(8) << setprecision(5) << params->PAR[K][12]
-            << setw(8) << setprecision(5) << params->PAR[K][13]
-            << setw(8) << setprecision(5) << params->PAR[K][14]
+            << setw(8) << setprecision(5) << phases[K-1].PAR_[12-1]
+            << setw(8) << setprecision(5) << phases[K-1].PAR_[13-1]
+            << setw(8) << setprecision(5) << phases[K-1].PAR_[14-1]
             << "                                 PREF1 PREF2 R/RCF_ASYM" << endl
 
-            << setw(8) << setprecision(2) << params->APAR[K][12]
-            << setw(8) << setprecision(2) << params->APAR[K][13]
-            << setw(8) << setprecision(2) << params->APAR[K][14] << endl
+            << setw(8) << setprecision(2) << phases[K-1].PAR_[12-1].A
+            << setw(8) << setprecision(2) << phases[K-1].PAR_[13-1].A
+            << setw(8) << setprecision(2) << phases[K-1].PAR_[14-1].A << endl
 
-            << setw(8) << setprecision(4) << params->PAR[K][17]
-            << setw(8) << setprecision(4) << params->PAR[K][18]
-            << setw(8) << setprecision(4) << params->PAR[K][19]
+            << setw(8) << setprecision(4) << phases[K-1].PAR_[17-1]
+            << setw(8) << setprecision(4) << phases[K-1].PAR_[18-1]
+            << setw(8) << setprecision(4) << phases[K-1].PAR_[19-1]
             << "                                 NA NB NC (MIX_PARAMS)" << endl
 
-            << setw(8) << setprecision(2) << params->APAR[K][17]
-            << setw(8) << setprecision(2) << params->APAR[K][18]
-            << setw(8) << setprecision(2) << params->APAR[K][19] << endl
+            << setw(8) << setprecision(2) << phases[K-1].PAR_[17-1].A
+            << setw(8) << setprecision(2) << phases[K-1].PAR_[18-1].A
+            << setw(8) << setprecision(2) << phases[K-1].PAR_[19-1].A << endl
 
-            << setw(8) << setprecision(4) << params->PAR[K][24]
-            << setw(8) << setprecision(4) << params->PAR[K][25]
-            << setw(8) << setprecision(4) << params->PAR[K][26]
+            << setw(8) << setprecision(4) << phases[K-1].PAR_[24-1]
+            << setw(8) << setprecision(4) << phases[K-1].PAR_[25-1]
+            << setw(8) << setprecision(4) << phases[K-1].PAR_[26-1]
             << "                                 NA NB NC (HIGH SIDE)" << endl
 
-            << setw(8) << setprecision(2) << params->APAR[K][24]
-            << setw(8) << setprecision(2) << params->APAR[K][25]
-            << setw(8) << setprecision(2) << params->APAR[K][26] << endl
+            << setw(8) << setprecision(2) << phases[K-1].PAR_[24-1].A
+            << setw(8) << setprecision(2) << phases[K-1].PAR_[25-1].A
+            << setw(8) << setprecision(2) << phases[K-1].PAR_[26-1].A << endl
 
-            << setw(8) << setprecision(4) << params->PAR[K][27] << "" << endl
+            << setw(8) << setprecision(4) << phases[K-1].PAR_[27-1] << "" << endl
 
-            << setw(8) << setprecision(2) << params->APAR[K][27] << endl;
+            << setw(8) << setprecision(2) << phases[K-1].PAR_[27-1].A << endl;
     }
     if (cntrls->IPL != 0) file5b << setw(8) << ISCALE << IDIF << "                                         LINE PRINTER INFO" << endl;
     if (file5b.is_open()) file5b.close();
@@ -6387,10 +6378,10 @@ void DBWS::size(int K)
     // a segunda linha ira ler U,Z,X,Y da FWHM do padrao
     file17 >> UI >> ZI >> XI >> YI;
     file17.close();
-    UA = params->PAR[K][3];
-    ZA = params->PAR[K][20];
-    XA = params->PAR[K][15];
-    YA = params->PAR[K][16];
+    UA = phases[K-1].PAR_[3-1];
+    ZA = phases[K-1].PAR_[20-1];
+    XA = phases[K-1].PAR_[15-1];
+    YA = phases[K-1].PAR_[16-1];
     if (ZI  !=  0.0)
     {
         file6 << "SIZE NOT COMPUTED * bad standard? - check Z for standard." << endl;
@@ -6640,18 +6631,18 @@ L124:
     }
     for (I=1; I <= cntrls->NPHASE; ++I)
     {
-        for (J=1; J <= 6; ++J) params->PAR[I][J+5]=dc->SAVE[I][J];
-        for (J=1; J <= 27; ++J) params->APAR[I][J]=sign(params->APAR[I][J])*(static_cast<double>(10*params->LPAR[I][J])+abs(params->APAR[I][J]));
+        for (J=1; J <= 6; ++J) phases[I-1].PAR_[J+5-1]=dc->SAVE[I][J];
+        for (J=1; J <= 27; ++J) phases[I-1].PAR_[J-1].A=sign(phases[I-1].PAR_[J-1].A)*(static_cast<double>(10*phases[I-1].PAR_[J-1].L)+abs(phases[I-1].PAR_[J-1].A));
     }
-    for (J=1; J <= 20; ++J) params->AGLB[J]=sign(params->AGLB[J])*(static_cast<double>(10*params->LGLB[J])+abs(params->AGLB[J]));
+    for (J=1; J <= 20; ++J) params->GLB_[J-1].A=sign(params->GLB_[J-1].A)*(static_cast<double>(10*params->GLB_[J-1].L)+abs(params->GLB_[J-1].A));
 
     // line 10.1
-    file53 << setw(8) << setprecision(4) << params->GLB[1]
-    << setw(8) << setprecision(4) << params->AGLB[1]
-    << setw(8) << setprecision(4) << params->GLB[10]
-    << setw(8) << setprecision(4) << params->AGLB[10]
-    << setw(8) << setprecision(4) << params->GLB[11]
-    << setw(8) << setprecision(4) << params->AGLB[11]
+    file53 << setw(8) << setprecision(4) << params->GLB_[1-1]
+    << setw(8) << setprecision(4) << params->GLB_[1-1].A
+    << setw(8) << setprecision(4) << params->GLB_[10-1]
+    << setw(8) << setprecision(4) << params->GLB_[10-1].A
+    << setw(8) << setprecision(4) << params->GLB_[11-1]
+    << setw(8) << setprecision(4) << params->GLB_[11-1].A
     << "         ZER DISP TRANS + CODEWORS" << endl
         << setw(9) << setprecision(4) << 0.0
         << setw(9) << setprecision(4) << 0.0
@@ -6669,7 +6660,7 @@ L124:
             for (IIPHAS=2; IIPHAS <= K; ++IIPHAS) IOF = IOF + jnk->NATOM[IIPHAS-1];
         }
         // line 11.1
-        file53 << setw(50) << char_->PHSNM[K] << "       PHASE NUMBER " << setw(2) << K << endl;
+        file53 << setw(50) << phases[K].PHSNM << "       PHASE NUMBER " << setw(2) << K << endl;
 
         // line 11.2
         file53 << setw(4) << jnk->NATOM[K]
@@ -6682,7 +6673,7 @@ L124:
         N=jnk->NATOM[K];
 
         // line 11.3
-        file53 << setw(20) << char_->SYMB[K]
+        file53 << setw(20) << phases[K].SYMB
         << "                                     SPACE GROUP" << endl;
         for (I=1; I <= N; ++I)
         {
@@ -6718,64 +6709,64 @@ L124:
             << "          CODEWORDS" << endl;
         }
         file53 << scientific
-            << setw(8) << setprecision(2) << params->PAR[K][1]
+            << setw(8) << setprecision(2) << phases[K-1].PAR_[1-1]
         << fixed
-            << setw(8) << setprecision(4) << params->PAR[K][2]
+            << setw(8) << setprecision(4) << phases[K-1].PAR_[2-1]
         << "                                    SCALE Bo(OVERALL)" << endl
-            << setw(8) << setprecision(2) << params->APAR[K][1]
-        << setw(8) << setprecision(2) << params->APAR[K][2] << endl
-            << setw(8) << setprecision(5) << params->PAR[K][3]
-        << setw(8) << setprecision(5) << params->PAR[K][4]
-        << setw(8) << setprecision(5) << params->PAR[K][5]
-        << setw(8) << setprecision(5) << params->PAR[K][21]
-        << setw(8) << setprecision(5) << params->PAR[K][20]
-        << setw(8) << setprecision(5) << params->PAR[K][15]
-        << setw(8) << setprecision(5) << params->PAR[K][16]
+            << setw(8) << setprecision(2) << phases[K-1].PAR_[1-1].A
+        << setw(8) << setprecision(2) << phases[K-1].PAR_[2-1].A << endl
+            << setw(8) << setprecision(5) << phases[K-1].PAR_[3-1]
+        << setw(8) << setprecision(5) << phases[K-1].PAR_[4-1]
+        << setw(8) << setprecision(5) << phases[K-1].PAR_[5-1]
+        << setw(8) << setprecision(5) << phases[K-1].PAR_[21-1]
+        << setw(8) << setprecision(5) << phases[K-1].PAR_[20-1]
+        << setw(8) << setprecision(5) << phases[K-1].PAR_[15-1]
+        << setw(8) << setprecision(5) << phases[K-1].PAR_[16-1]
         << " U V W CT Z X Y" << endl
-            << setw(8) << setprecision(2) << params->APAR[K][3]
-        << setw(8) << setprecision(2) << params->APAR[K][4]
-        << setw(8) << setprecision(2) << params->APAR[K][5]
-        << setw(8) << setprecision(2) << params->APAR[K][21]
-        << setw(8) << setprecision(2) << params->APAR[K][20]
-        << setw(8) << setprecision(2) << params->APAR[K][15]
-        << setw(8) << setprecision(2) << params->APAR[K][16] << endl
-            << setw(8) << setprecision(4) << params->PAR[K][6]
-        << setw(8) << setprecision(4) << params->PAR[K][7]
-        << setw(8) << setprecision(4) << params->PAR[K][8]
-        << setw(8) << setprecision(4) << params->PAR[K][9]
-        << setw(8) << setprecision(4) << params->PAR[K][10]
-        << setw(8) << setprecision(4) << params->PAR[K][11]
+            << setw(8) << setprecision(2) << phases[K-1].PAR_[3-1].A
+        << setw(8) << setprecision(2) << phases[K-1].PAR_[4-1].A
+        << setw(8) << setprecision(2) << phases[K-1].PAR_[5-1].A
+        << setw(8) << setprecision(2) << phases[K-1].PAR_[21-1].A
+        << setw(8) << setprecision(2) << phases[K-1].PAR_[20-1].A
+        << setw(8) << setprecision(2) << phases[K-1].PAR_[15-1].A
+        << setw(8) << setprecision(2) << phases[K-1].PAR_[16-1].A << endl
+            << setw(8) << setprecision(4) << phases[K-1].PAR_[6-1]
+        << setw(8) << setprecision(4) << phases[K-1].PAR_[7-1]
+        << setw(8) << setprecision(4) << phases[K-1].PAR_[8-1]
+        << setw(8) << setprecision(4) << phases[K-1].PAR_[9-1]
+        << setw(8) << setprecision(4) << phases[K-1].PAR_[10-1]
+        << setw(8) << setprecision(4) << phases[K-1].PAR_[11-1]
         << "         CELL PARAMETERS" << endl
-            << setw(8) << setprecision(2) << params->APAR[K][6]
-        << setw(8) << setprecision(2) << params->APAR[K][7]
-        << setw(8) << setprecision(2) << params->APAR[K][8]
-        << setw(8) << setprecision(2) << params->APAR[K][9]
-        << setw(8) << setprecision(2) << params->APAR[K][10]
-        << setw(8) << setprecision(2) << params->APAR[K][11] << endl
-            << setw(8) << setprecision(5) << params->PAR[K][12]
-        << setw(8) << setprecision(5) << params->PAR[K][13]
-        << setw(8) << setprecision(5) << params->PAR[K][14]
+            << setw(8) << setprecision(2) << phases[K-1].PAR_[6-1].A
+        << setw(8) << setprecision(2) << phases[K-1].PAR_[7-1].A
+        << setw(8) << setprecision(2) << phases[K-1].PAR_[8-1].A
+        << setw(8) << setprecision(2) << phases[K-1].PAR_[9-1].A
+        << setw(8) << setprecision(2) << phases[K-1].PAR_[10-1].A
+        << setw(8) << setprecision(2) << phases[K-1].PAR_[11-1].A << endl
+            << setw(8) << setprecision(5) << phases[K-1].PAR_[12-1]
+        << setw(8) << setprecision(5) << phases[K-1].PAR_[13-1]
+        << setw(8) << setprecision(5) << phases[K-1].PAR_[14-1]
         << "                                 PREF1 PREF2 R/RCF_ASYM" << endl
-            << setw(8) << setprecision(2) << params->APAR[K][12]
-        << setw(8) << setprecision(2) << params->APAR[K][13]
-        << setw(8) << setprecision(2) << params->APAR[K][14] << endl
-            << setw(8) << setprecision(4) << params->PAR[K][17]
-        << setw(8) << setprecision(4) << params->PAR[K][18]
-        << setw(8) << setprecision(4) << params->PAR[K][19]
+            << setw(8) << setprecision(2) << phases[K-1].PAR_[12-1].A
+        << setw(8) << setprecision(2) << phases[K-1].PAR_[13-1].A
+        << setw(8) << setprecision(2) << phases[K-1].PAR_[14-1].A << endl
+            << setw(8) << setprecision(4) << phases[K-1].PAR_[17-1]
+        << setw(8) << setprecision(4) << phases[K-1].PAR_[18-1]
+        << setw(8) << setprecision(4) << phases[K-1].PAR_[19-1]
         << "                                 NA NB NC (MIX_PARAMS)" << endl
-            << setw(8) << setprecision(2) << params->APAR[K][17]
-        << setw(8) << setprecision(2) << params->APAR[K][18]
-        << setw(8) << setprecision(2) << params->APAR[K][19] << endl
-            << setw(8) << setprecision(4) << params->PAR[K][24]
-        << setw(8) << setprecision(4) << params->PAR[K][25]
-        << setw(8) << setprecision(4) << params->PAR[K][26]
+            << setw(8) << setprecision(2) << phases[K-1].PAR_[17-1].A
+        << setw(8) << setprecision(2) << phases[K-1].PAR_[18-1].A
+        << setw(8) << setprecision(2) << phases[K-1].PAR_[19-1].A << endl
+            << setw(8) << setprecision(4) << phases[K-1].PAR_[24-1]
+        << setw(8) << setprecision(4) << phases[K-1].PAR_[25-1]
+        << setw(8) << setprecision(4) << phases[K-1].PAR_[26-1]
         << "                                 NA NB NC (HIGH SIDE)" << endl
-            << setw(8) << setprecision(2) << params->APAR[K][24]
-        << setw(8) << setprecision(2) << params->APAR[K][25]
-        << setw(8) << setprecision(2) << params->APAR[K][26] << endl
-            << setw(8) << setprecision(2) << params->PAR[K][27]
+            << setw(8) << setprecision(2) << phases[K-1].PAR_[24-1].A
+        << setw(8) << setprecision(2) << phases[K-1].PAR_[25-1].A
+        << setw(8) << setprecision(2) << phases[K-1].PAR_[26-1].A << endl
+            << setw(8) << setprecision(2) << phases[K-1].PAR_[27-1]
         << "                                                 PEARSON ASYM.FACTOR" << endl
-            << setw(8) << setprecision(2) << params->APAR[K][27] << endl;
+            << setw(8) << setprecision(2) << phases[K-1].PAR_[27-1].A << endl;
     }
 
     if (file5.is_open()) file5.close();
@@ -6825,7 +6816,7 @@ void DBWS::EXPUT(void)
     TITLE8 = "ALL.TOT\"";
     //if (cntrls->NXT != 0 || cntrls->JOBTYP >= 3) cntrls->NPROF=cntrls->NPROF-1;
     RAD = 45.0/atan(1.0);
-    //	ZER = params->GLB[1];
+    //	ZER = params->GLB_[1-1];
     if (cntrls->IPL != 0)
     {
         getline(file5,s);
@@ -6893,8 +6884,8 @@ L37:
     {
         for (I=1; I <= datax->NPTS; ++I) datax->KR[I] = 0;
         if ((K % 2) == 1) allp->ILOC = allp->ILOC + 1;
-        file6 << "PHASE NO. = " << K << "     PHASE NAME " << char_->PHSNM[K] << endl;
-        file9 << char_->PHSNM[K];
+        file6 << "PHASE NO. = " << K << "     PHASE NAME " << phases[K].PHSNM << endl;
+        file9 << phases[K].PHSNM;
         T2OBS=0.0;
         TDOBS=0.0;
         RFNMR=0.0;
@@ -6906,19 +6897,19 @@ L37:
         for (IX=1; IX <= ICZ; ++IX)
         {
             if( K != refls->IREFS[IX]/(256*256*256*8) )goto L481;
-            SHIFT = params->GLB[10] * cos(refls->REFS[IX][2]/2.0/57.2958) + params->GLB[11] * sin(refls->REFS[IX][2]/57.2958);
+            SHIFT = params->GLB_[10-1] * cos(refls->REFS[IX][2]/2.0/57.2958) + params->GLB_[11-1] * sin(refls->REFS[IX][2]/57.2958);
             IXX=IXX+1;
             for (J=1; J <= jnk->NEXCRG; ++J)
             {
                 //-----CHECK FOR SPLIT PEARSON VII PROFILE
                 if (cntrls->NPROF == _SplitPearsonVII)
                 {
-                    if ((refls->REFS[IX][2]+SHIFT+params->GLB[1]) >= (jnk->ALOW[J]-g1->WDT*refls->FWHM[IX][1]) && (refls->REFS[IX][2]+SHIFT+params->GLB[1]) <= (jnk->AHIGH[J]+g1->WDT*refls->FWHM[IX][2]))  goto L481;
+                    if ((refls->REFS[IX][2]+SHIFT+params->GLB_[1-1]) >= (jnk->ALOW[J]-g1->WDT*refls->FWHM[IX][1]) && (refls->REFS[IX][2]+SHIFT+params->GLB_[1-1]) <= (jnk->AHIGH[J]+g1->WDT*refls->FWHM[IX][2]))  goto L481;
                     //-----FOR ALL OTHER PROFILES
                 }
                 else
                 {
-                    if ((refls->REFS[IX][2]+SHIFT+params->GLB[1]) >= (jnk->ALOW[J]-g1->WDT*refls->REFS[IX][1]) && (refls->REFS[IX][2]+SHIFT+params->GLB[1]) <= (jnk->AHIGH[J]+g1->WDT*refls->REFS[IX][1])) goto L481;
+                    if ((refls->REFS[IX][2]+SHIFT+params->GLB_[1-1]) >= (jnk->ALOW[J]-g1->WDT*refls->REFS[IX][1]) && (refls->REFS[IX][2]+SHIFT+params->GLB_[1-1]) <= (jnk->AHIGH[J]+g1->WDT*refls->REFS[IX][1])) goto L481;
                 }
             }
             IXXX=IXXX+1;                           //test !cp 29 jun 98
@@ -6930,14 +6921,14 @@ L37:
             //-----if SO CHANGE THE PROFILE LIMITS
             if (cntrls->NPROF == _SplitPearsonVII)
             {
-                RMIN=refls->REFS[IX][2]+params->GLB[1]+SHIFT-g1->WDT*refls->FWHM[IX][1];
-                RMAX=refls->REFS[IX][2]+params->GLB[1]+SHIFT+g1->WDT*refls->FWHM[IX][2];
+                RMIN=refls->REFS[IX][2]+params->GLB_[1-1]+SHIFT-g1->WDT*refls->FWHM[IX][1];
+                RMAX=refls->REFS[IX][2]+params->GLB_[1-1]+SHIFT+g1->WDT*refls->FWHM[IX][2];
             }
             else
             {
                 //-----FOR ALL OTHER PROFILES
-                RMIN=refls->REFS[IX][2]+params->GLB[1]+SHIFT-g1->WDT*refls->REFS[IX][1];
-                RMAX=refls->REFS[IX][2]+params->GLB[1]+SHIFT+g1->WDT*refls->REFS[IX][1];
+                RMIN=refls->REFS[IX][2]+params->GLB_[1-1]+SHIFT-g1->WDT*refls->REFS[IX][1];
+                RMAX=refls->REFS[IX][2]+params->GLB_[1-1]+SHIFT+g1->WDT*refls->REFS[IX][1];
             }
             MIN=static_cast<int>((RMIN-g1->THMIN)/g1->STEP+1.5);
             MAX=static_cast<int>((RMAX-g1->THMIN)/g1->STEP+1.5);
@@ -6949,11 +6940,11 @@ L37:
             VERT=refls->REFS[IX][2] <= g1->RLIM;
             if (cntrls->NPROF == _pseudoVoigt)
             {
-                prfx->GAM1=params->PAR[K][17] + params->PAR[K][18] * refls->REFS[IX][2];
+                prfx->GAM1=phases[K-1].PAR_[17-1] + phases[K-1].PAR_[18-1] * refls->REFS[IX][2];
             }
             else if (cntrls->NPROF == _PearsonVII)
             {
-                prfx->GAM1=params->PAR[K][17]+(params->PAR[K][18]+params->PAR[K][19]/refls->REFS[IX][2])/refls->REFS[IX][2];
+                prfx->GAM1=phases[K-1].PAR_[17-1]+(phases[K-1].PAR_[18-1]+phases[K-1].PAR_[19-1]/refls->REFS[IX][2])/refls->REFS[IX][2];
                 PRSVII(prfx->GAM1);
             }
             else if (cntrls->NPROF == _TCHZ)
@@ -6964,14 +6955,14 @@ L37:
             }
             else if (cntrls->NPROF == _SplitPearsonVII)
             {
-                spvii->RL=params->PAR[K][17]+(params->PAR[K][18]+params->PAR[K][19]/refls->REFS[IX][2])/refls->REFS[IX][2];
-                spvii->RH=params->PAR[K][24]+(params->PAR[K][25]+params->PAR[K][26]/refls->REFS[IX][2])/refls->REFS[IX][2];
-                mspvii(params->PAR[K][27],prfx->TL);
+                spvii->RL=phases[K-1].PAR_[17-1]+(phases[K-1].PAR_[18-1]+phases[K-1].PAR_[19-1]/refls->REFS[IX][2])/refls->REFS[IX][2];
+                spvii->RH=phases[K-1].PAR_[24-1]+(phases[K-1].PAR_[25-1]+phases[K-1].PAR_[26-1]/refls->REFS[IX][2])/refls->REFS[IX][2];
+                mspvii(phases[K-1].PAR_[27-1],prfx->TL);
             }
             BB=prfx->TL*prfx->TL;
             TIOBS=0.0;
             TIC=0.0;
-            refls->FMGNTD[IX] = refls->FMGNTD[IX]*refls->REFS[IX][3]*params->PAR[K][1];
+            refls->FMGNTD[IX] = refls->FMGNTD[IX]*refls->REFS[IX][3]*phases[K-1].PAR_[1-1];
             for (IS=MIN; IS <= MAX; ++IS)
             {
                 TH=g1->THMIN+static_cast<double>(IS-1)*g1->STEP;
@@ -6983,7 +6974,7 @@ L37:
                     }
                 }
                 TH2 = 0.5*TH/RAD;
-                prfx->DELTA=TH-refls->REFS[IX][2]-params->GLB[1]-SHIFT;
+                prfx->DELTA=TH-refls->REFS[IX][2]-params->GLB_[1-1]-SHIFT;
                 prfx->DELT=prfx->DELTA*prfx->DELTA;
                 //     NEXT LINE IS NECESSEARY FOR 2 PHASES WITH VERY DifFERENT FWHM.
                 if (prfx->DELT/BB > g1->WDT*g1->WDT) goto L410;
@@ -6991,13 +6982,13 @@ L37:
                 if (cntrls->IASYM == 0)
                 {
                     YX=prfx->DELT * sign(prfx->DELTA);
-                    Z=1.0-params->PAR[K][14]*YX/tan(TH2);
+                    Z=1.0-phases[K-1].PAR_[14-1]*YX/tan(TH2);
                 }
                 else
                 {
                     YX=sign(prfx->DELTA)*prfx->DELTA/(2*prfx->TL);
                     if (TH2 > (45.0/RAD)) TH2 = TH2-(90.0/RAD);
-                    Z=(params->PAR[K][14]/tan(TH2)) * (2.0*(prfx->DELTA/(2*prfx->TL))*exp(-YX));
+                    Z=(phases[K-1].PAR_[14-1]/tan(TH2)) * (2.0*(prfx->DELTA/(2*prfx->TL))*exp(-YX));
                     Z=1+Z;
                 }
                 if(Z <= 0.0)Z=0.0001;
@@ -7026,14 +7017,14 @@ L410:;
             //        WHICH ARE OUTSIDE THE MEASUREMENTS RANGE BUT WHOSE TAILS ARE
             //        IN THE PATTERN
             //        ***************************************************************
-            if((refls->REFS[IX][2]+SHIFT+params->GLB[1]) <= g1->THMAX)
+            if((refls->REFS[IX][2]+SHIFT+params->GLB_[1-1]) <= g1->THMAX)
             {
                 T2OBS = T2OBS+TIOBS;
                 TDOBS = TDOBS + abs(TIOBS-TIC);
                 if (cntrls->IPC == 2 || cntrls->IPC == 3)
                 {
-                    TFCAL= sqrt(abs(TIC/refls->REFS[IX][3]/params->PAR[K][1]/struphase->TAVIX[IX]/struphase->SRIX[IX]));
-                    TFOBS= sqrt(abs(TIOBS/refls->REFS[IX][3]/params->PAR[K][1]/struphase->TAVIX[IX]/struphase->SRIX[IX]));
+                    TFCAL= sqrt(abs(TIC/refls->REFS[IX][3]/phases[K-1].PAR_[1-1]/struphase->TAVIX[IX]/struphase->SRIX[IX]));
+                    TFOBS= sqrt(abs(TIOBS/refls->REFS[IX][3]/phases[K-1].PAR_[1-1]/struphase->TAVIX[IX]/struphase->SRIX[IX]));
                     AFCAL=TFCAL*cos(struphase->APHASE[IX]);
                     BFCAL=TFCAL*sin(struphase->APHASE[IX]);
                     AFOBS=TFOBS*cos(struphase->APHASE[IX]);
@@ -7076,7 +7067,7 @@ L410:;
                     << setw(4) << IRK
                     << setw(4) << IRL
                     << setw(8) << setprecision(3) << HW
-                    << setw(8) << setprecision(3) << refls->REFS[IX][2]+params->GLB[1]+SHIFT
+                    << setw(8) << setprecision(3) << refls->REFS[IX][2]+params->GLB_[1-1]+SHIFT
                     << setw(10) << setprecision(0) << TIC
                     << setw(10) << setprecision(0) << TIOBS << endl;
                 if(IRC == 1)
@@ -7087,7 +7078,7 @@ L410:;
                             << setw(3) << IRK << " "
                             << setw(3) << IRL << " "
                             << setw(8) << setprecision(4) << HW << " "
-                            << setw(8) << setprecision(4) << refls->REFS[IX][2]+params->GLB[1]+SHIFT << " "
+                            << setw(8) << setprecision(4) << refls->REFS[IX][2]+params->GLB_[1-1]+SHIFT << " "
                             << setw(8) << setprecision(0) << TIC << " "
                             << setw(8) << setprecision(0) << TIOBS << " "
                             << setw(9) << setprecision(0) << (-K*maxint->XMAXINT/10) << endl;
@@ -7104,7 +7095,7 @@ L410:;
                         << setw(4) << IRK
                         << setw(4) << IRL
                         << setw(8) << setprecision(3) << HW
-                        << setw(8) << setprecision(3) << refls->REFS[IX][2]+params->GLB[1]+SHIFT
+                        << setw(8) << setprecision(3) << refls->REFS[IX][2]+params->GLB_[1-1]+SHIFT
                         << setw(10) << setprecision(0) << TIC
                         << setw(10) << setprecision(0) << TIOBS
                         << setw(10) << setprecision(3) << TFCAL
@@ -7116,7 +7107,7 @@ L410:;
                             << setw(3) << IRK << " "
                             << setw(3) << IRL << " "
                             << setw(8) << setprecision(4) << HW << " "
-                            << setw(8) << setprecision(4) << refls->REFS[IX][2]+params->GLB[1]+SHIFT << " "
+                            << setw(8) << setprecision(4) << refls->REFS[IX][2]+params->GLB_[1-1]+SHIFT << " "
                             << setw(8) << setprecision(1) << TIC << " "
                             << setw(8) << setprecision(1) << TIOBS << " "
                             << setw(8) << setprecision(1) << TFCAL << " "
@@ -7133,7 +7124,7 @@ L410:;
                         << setw(4) << IRK
                         << setw(4) << IRL
                         << setw(8) << setprecision(3) << HW
-                        << setw(8) << setprecision(3) << refls->REFS[IX][2]+params->GLB[1]+SHIFT
+                        << setw(8) << setprecision(3) << refls->REFS[IX][2]+params->GLB_[1-1]+SHIFT
                         << setw(10) << setprecision(0) << TIC
                         << setw(10) << setprecision(0) << TIOBS << endl;
                 }
@@ -7148,7 +7139,7 @@ L410:;
                         << setw(4) << IRK
                         << setw(4) << IRL
                         << setw(8) << setprecision(3) << HW
-                        << setw(8) << setprecision(3) << refls->REFS[IX][2]+params->GLB[1]+SHIFT
+                        << setw(8) << setprecision(3) << refls->REFS[IX][2]+params->GLB_[1-1]+SHIFT
                         << setw(10) << setprecision(0) << TIC
                         << setw(10) << setprecision(0) << TIOBS
                         << setw(10) << setprecision(3) << AFCAL
@@ -7161,7 +7152,7 @@ L410:;
                             << setw(3) << IRK << " "
                             << setw(3) << IRL << " "
                             << setw(8) << setprecision(4) << HW << " "
-                            << setw(8) << setprecision(4) << refls->REFS[IX][2]+params->GLB[1]+SHIFT << " "
+                            << setw(8) << setprecision(4) << refls->REFS[IX][2]+params->GLB_[1-1]+SHIFT << " "
                             << setw(8) << setprecision(1) << TIC << " "
                             << setw(8) << setprecision(1) << TIOBS << " "
                             << setw(8) << setprecision(1) << AFCAL << " "
@@ -7179,12 +7170,12 @@ L410:;
                         << setw(4) << IRK
                         << setw(4) << IRL
                         << setw(8) << setprecision(3) << HW
-                        << setw(8) << setprecision(3) << refls->REFS[IX][2]+params->GLB[1]+SHIFT
+                        << setw(8) << setprecision(3) << refls->REFS[IX][2]+params->GLB_[1-1]+SHIFT
                         << setw(10) << setprecision(0) << TIC
                         << setw(10) << setprecision(0) << TIOBS << endl;
                 }
             }
-            file9 << setw(8) << setprecision(3) << refls->REFS[IX][2]+params->GLB[1]+SHIFT
+            file9 << setw(8) << setprecision(3) << refls->REFS[IX][2]+params->GLB_[1-1]+SHIFT
                 << " K" << setw(1) << IRC << " "
                 << setw(4) << IRH
                 << setw(4) << IRK
@@ -7219,7 +7210,7 @@ L9221:
                     << setw(4) << IRL
                     << setw(8) << setprecision(3) << refls->FWHM[IX][1]
                     << setw(8) << setprecision(3) << refls->FWHM[IX][2]
-                    << setw(8) << setprecision(3) << refls->REFS[IX][2]+params->GLB[1]+SHIFT
+                    << setw(8) << setprecision(3) << refls->REFS[IX][2]+params->GLB_[1-1]+SHIFT
                     << setw(10) << setprecision(3) << TIC
                     << setw(10) << setprecision(3) << TIOBS << endl;
                 if(IRC == 1)
@@ -7231,7 +7222,7 @@ L9221:
                             << setw(3) << IRL << " "
                             << setw(8) << setprecision(4) << refls->FWHM[IX][1] << " "
                             << setw(8) << setprecision(4) << refls->FWHM[IX][2] << " "
-                            << setw(8) << setprecision(4) << refls->REFS[IX][2]+params->GLB[1]+SHIFT << " "
+                            << setw(8) << setprecision(4) << refls->REFS[IX][2]+params->GLB_[1-1]+SHIFT << " "
                             << setw(8) << setprecision(0) << TIC << " "
                             << setw(8) << setprecision(0) << TIOBS << " "
                             << setw(8) << setprecision(4) << (-K*maxint->XMAXINT/10) << endl;
@@ -7249,7 +7240,7 @@ L9221:
                         << setw(4) << IRL
                         << setw(8) << setprecision(3) << refls->FWHM[IX][1]
                         << setw(8) << setprecision(3) << refls->FWHM[IX][2]
-                        << setw(8) << setprecision(3) << refls->REFS[IX][2]+params->GLB[1]+SHIFT
+                        << setw(8) << setprecision(3) << refls->REFS[IX][2]+params->GLB_[1-1]+SHIFT
                         << setw(10) << setprecision(0) << TIC
                         << setw(10) << setprecision(0) << TIOBS
                         << setw(10) << setprecision(3) << TFCAL
@@ -7262,7 +7253,7 @@ L9221:
                             << setw(3) << IRL << " "
                             << setw(8) << setprecision(4) << refls->FWHM[IX][1] << " "
                             << setw(8) << setprecision(4) << refls->FWHM[IX][2] << " "
-                            << setw(8) << setprecision(4) << refls->REFS[IX][2]+params->GLB[1]+SHIFT << " "
+                            << setw(8) << setprecision(4) << refls->REFS[IX][2]+params->GLB_[1-1]+SHIFT << " "
                             << setw(8) << setprecision(0) << TIC << " "
                             << setw(8) << setprecision(0) << TIOBS << " "
                             << setw(8) << setprecision(4) << TFCAL << " "
@@ -7280,7 +7271,7 @@ L9221:
                         << setw(4) << IRL
                         << setw(8) << setprecision(3) << refls->FWHM[IX][1]
                         << setw(8) << setprecision(3) << refls->FWHM[IX][2]
-                        << setw(8) << setprecision(3) << refls->REFS[IX][2]+params->GLB[1]+SHIFT
+                        << setw(8) << setprecision(3) << refls->REFS[IX][2]+params->GLB_[1-1]+SHIFT
                         << setw(10) << setprecision(0) << TIC << endl;
                 }
             }
@@ -7295,7 +7286,7 @@ L9221:
                         << setw(4) << IRL
                         << setw(8) << setprecision(3) << refls->FWHM[IX][1]
                         << setw(8) << setprecision(3) << refls->FWHM[IX][2]
-                        << setw(8) << setprecision(3) << refls->REFS[IX][2]+params->GLB[1]+SHIFT
+                        << setw(8) << setprecision(3) << refls->REFS[IX][2]+params->GLB_[1-1]+SHIFT
                         << setw(10) << setprecision(0) << TIC
                         << setw(10) << setprecision(0) << TIOBS
                         << setw(10) << setprecision(3) << AFCAL
@@ -7309,7 +7300,7 @@ L9221:
                             << setw(3) << IRL << " "
                             << setw(8) << setprecision(4) << refls->FWHM[IX][1] << " "
                             << setw(8) << setprecision(4) << refls->FWHM[IX][2] << " "
-                            << setw(8) << setprecision(4) << refls->REFS[IX][2]+params->GLB[1]+SHIFT << " "
+                            << setw(8) << setprecision(4) << refls->REFS[IX][2]+params->GLB_[1-1]+SHIFT << " "
                             << setw(8) << setprecision(0) << TIC << " "
                             << setw(8) << setprecision(0) << TIOBS << " "
                             << setw(8) << setprecision(2) << AFCAL << " "
@@ -7328,12 +7319,12 @@ L9221:
                         << setw(4) << IRL
                         << setw(8) << setprecision(3) << refls->FWHM[IX][1]
                         << setw(8) << setprecision(3) << refls->FWHM[IX][2]
-                        << setw(8) << setprecision(3) << refls->REFS[IX][2]+params->GLB[1]+SHIFT
+                        << setw(8) << setprecision(3) << refls->REFS[IX][2]+params->GLB_[1-1]+SHIFT
                         << setw(10) << setprecision(0) << TIC
                         << setw(10) << setprecision(0) << TIOBS << endl;
                 }
             }
-            file9 << setw(8) << setprecision(3) << refls->REFS[IX][2]+params->GLB[1]+SHIFT << " K"
+            file9 << setw(8) << setprecision(3) << refls->REFS[IX][2]+params->GLB_[1-1]+SHIFT << " K"
                 << setw(1) << IRC << " "
                 << setw(4) << IRH
                 << setw(4) << IRK
@@ -7368,7 +7359,7 @@ L9222:
                     << setw(4) << IRK
                     << setw(4) << IRL
                     << setw(8) << setprecision(3) << HW
-                    << setw(8) << setprecision(3) << refls->REFS[IX][2]+params->GLB[1]+SHIFT
+                    << setw(8) << setprecision(3) << refls->REFS[IX][2]+params->GLB_[1-1]+SHIFT
                     << setw(10) << setprecision(0) << TIC
                     << setw(10) << setprecision(0) << TIOBS
                     << setw(8) << setprecision(3) << TLG
@@ -7381,7 +7372,7 @@ L9222:
                         << setw(3) << IRK << " "
                         << setw(3) << IRL << " "
                         << setw(8) << setprecision(4) << HW << " "
-                        << setw(8) << setprecision(4) << refls->REFS[IX][2]+params->GLB[1]+SHIFT << " "
+                        << setw(8) << setprecision(4) << refls->REFS[IX][2]+params->GLB_[1-1]+SHIFT << " "
                         << setw(8) << setprecision(0) << TIC << " "
                         << setw(8) << setprecision(4) << TIOBS << " "
                         << setw(8) << setprecision(4) << TLG << " "
@@ -7401,7 +7392,7 @@ L9222:
                         << setw(4) << IRK
                         << setw(4) << IRL
                         << setw(8) << setprecision(3) << HW
-                        << setw(8) << setprecision(3) << refls->REFS[IX][2]+params->GLB[1]+SHIFT
+                        << setw(8) << setprecision(3) << refls->REFS[IX][2]+params->GLB_[1-1]+SHIFT
                         << setw(10) << setprecision(0) << TIC
                         << setw(10) << setprecision(0) << TIOBS
                         << setw(8) << setprecision(3) << TLG
@@ -7416,7 +7407,7 @@ L9222:
                             << setw(3) << IRK << " "
                             << setw(3) << IRL << " "
                             << setw(8) << setprecision(4) << HW << " "
-                            << setw(8) << setprecision(4) << refls->REFS[IX][2]+params->GLB[1]+SHIFT << " "
+                            << setw(8) << setprecision(4) << refls->REFS[IX][2]+params->GLB_[1-1]+SHIFT << " "
                             << setw(8) << setprecision(0) << TIC << " "
                             << setw(8) << setprecision(0) << TIOBS << " "
                             << setw(8) << setprecision(4) << TLG << " "
@@ -7436,7 +7427,7 @@ L9222:
                         << setw(4) << IRK
                         << setw(4) << IRL
                         << setw(8) << setprecision(3) << HW
-                        << setw(8) << setprecision(3) << refls->REFS[IX][2]+params->GLB[1]+SHIFT
+                        << setw(8) << setprecision(3) << refls->REFS[IX][2]+params->GLB_[1-1]+SHIFT
                         << setw(10) << setprecision(0) << TIC
                         << setw(10) << setprecision(0) << TIOBS
                         << setw(8) << setprecision(3) << TLG
@@ -7454,7 +7445,7 @@ L9222:
                         << setw(4) << IRK
                         << setw(4) << IRL
                         << setw(8) << setprecision(3) << HW
-                        << setw(8) << setprecision(3) << refls->REFS[IX][2]+params->GLB[1]+SHIFT
+                        << setw(8) << setprecision(3) << refls->REFS[IX][2]+params->GLB_[1-1]+SHIFT
                         << setw(10) << setprecision(0) << TIC
                         << setw(10) << setprecision(0) << TIOBS
                         << setw(8) << setprecision(3) << TLG
@@ -7470,7 +7461,7 @@ L9222:
                             << setw(3) << IRK << " "
                             << setw(3) << IRL << " "
                             << setw(8) << setprecision(4) << HW << " "
-                            << setw(8) << setprecision(4) << refls->REFS[IX][2]+params->GLB[1]+SHIFT << " "
+                            << setw(8) << setprecision(4) << refls->REFS[IX][2]+params->GLB_[1-1]+SHIFT << " "
                             << setw(8) << setprecision(0) << TIC << " "
                             << setw(8) << setprecision(0) << TIOBS << " "
                             << setw(8) << setprecision(4) << TLG << " "
@@ -7491,7 +7482,7 @@ L9222:
                         << setw(4) << IRK
                         << setw(4) << IRL
                         << setw(8) << setprecision(3) << HW
-                        << setw(8) << setprecision(3) << refls->REFS[IX][2]+params->GLB[1]+SHIFT
+                        << setw(8) << setprecision(3) << refls->REFS[IX][2]+params->GLB_[1-1]+SHIFT
                         << setw(10) << setprecision(0) << TIC
                         << setw(10) << setprecision(0) << TIOBS
                         << setw(8) << setprecision(3) << TLG
@@ -7910,45 +7901,48 @@ void DBWS::REFGEN(int IPHASE, double ZERO, double DIS, double TRANS, double PREF
         {
             goto L8000;
         }
-L8001:
+        L8001:
         I3DEL = 3;
         I1D = 2;
         I123D = 3;
         goto L9000;
-L8002:
+        L8002:
         if ( spgcom->NCONT[I]-576 == 0 ) goto L8003; else goto L8004;
-L8003:
+        L8003:
         I3DEL = 2;
         I23D = 2;
         goto L8000;
-L8004:
+        L8004:
         if ( spgcom->NCONT[I]-516 == 0 ) goto L8009; else goto L8008;
-L8009:
+        L8009:
         I3DEL = 2;
         I13D = 2;
         goto L8000;
-L8008:
+        L8008:
         if ( spgcom->NCONT[I]-68 == 0 ) goto L8013; else goto L8012;
-L8012:
+        L8012:
         if ( spgcom->NCONT[I]-580  == 0) goto L8016; else goto L8015;
-L8013:
+        L8013:
         I2DEL = 2;
         I12D = 2;
         goto L8000;
-L8016:
+        L8016:
         I123D = 2;
         I3DEL = 2;
-L8015:;
-L8000:;
+        L8015:;
+        L8000:;
     }
-L9000:
-    //	N = J-1;
+    L9000:
+    //N = J-1;
     //L97:
     TMIN = pow(( sin( (g1->THMIN/720.0)*6.28318531 )/g1->LAMDA[1]),2);
     IC = 0;
     if ( IPHASE >= 2 )
     {
-        for (IIPHAS=2; IIPHAS <= IPHASE; ++IIPHAS) IC = IC+refls->ICR[IIPHAS-1];
+        for (IIPHAS=2; IIPHAS <= IPHASE; ++IIPHAS)
+        {
+            IC = IC+refls->ICR[IIPHAS-1];
+        }
     }
     SMAX = pow(( sin((g1->THMAX/720.0)*6.28318531) /g1->LAMDA[1]),2);
 
@@ -7973,9 +7967,7 @@ L9000:
     }
     else
     {
-        cout << "2" << endl;
         file6 << "  SQUARE OF FWHM NEGATIVE AT TWO-THETA" << setw(8) << setprecision(3) << POS << " PHASE NO. " << setw(4) << IPHASE << endl;
-        file7 << "  SQUARE OF FWHM NEGATIVE AT TWO-THETA" << setw(8) << setprecision(3) << POS << " PHASE NO. " << setw(4) << IPHASE << endl;
         DBWSException("SQUARE OF FWHM IS NEGATIVE");
     }
     ANGTTETA=g1->THMAX+THMAX1;
@@ -8153,7 +8145,7 @@ L2222:
     }
     GOTOER();
 L2223:
-    I3= -min(I3MAX,int((I1+abs(I2))*I3MAX)); //xxxxxxxxxxxxxxxxxxxxxxxxx
+    I3= -min(I3MAX,(I1+abs(I2))*I3MAX); //xxxxxxxxxxxxxxxxxxxxxxxxx
     goto L2228;
 L2224:
     I3 = 0;
@@ -8165,7 +8157,7 @@ L2226:  I3= min(I2,I1+I3DEL);
     goto L2228;
 L2227:
     I3 = I2;
-L2228:  I3= I3DEL*(I3/I3DEL)+  (((I1+I1D*I2 % I123D)+I123D) % I123D) + (I1 % I13D)+ (I2 % I23D);
+L2228:  I3= I3DEL*(I3/I3DEL)+  ((((I1+I1D*I2) % I123D)+I123D) % I123D) + (I1 % I13D)+ (I2 % I23D);
     if ( I3D-1 < 0 )
     {
         goto L2232;
@@ -8302,7 +8294,6 @@ L4000:
             {
                 cout << "3" << endl;
                 file6 << "  SQUARE OF FWHM NEGATIVE AT TWO-THETA" << setw(8) << setprecision(3) << POS << "FOR PHASE NO. " << setw(IPHASE) << endl;
-                file7 << "  SQUARE OF FWHM NEGATIVE AT TWO-THETA" << setw(8) << setprecision(3) << POS << "FOR PHASE NO. " << setw(IPHASE) << endl;
                 DBWSException("SQUARE OF FWHM IS NEGATIVE");
             }
             refls->HALFL[IC] = g1->ULOR*TANX+g1->VLOR/sqrt(1.0-SQH);
@@ -8327,7 +8318,6 @@ L4000:
         {
             cout << "4" << endl;
             file6 << "  SQUARE OF FWHM NEGATIVE AT TWO-THETA" << setw(8) << setprecision(3) << POS << "FOR PHASE NO. " << setw(IPHASE) << endl;
-            file7 << "  SQUARE OF FWHM NEGATIVE AT TWO-THETA" << setw(8) << setprecision(3) << POS << "FOR PHASE NO. " << setw(IPHASE) << endl;
             DBWSException("SQUARE OF FWHM IS NEGATIVE");
         }
         //L7000:
@@ -8338,7 +8328,6 @@ L3118:;
     goto L2233;
 L6001:
     file6 << "TOO MANY REFLECTIONS (" << setw(6) << IRS << "). INCREASE *IRS* IN THE PARAMETER STATEMENT IN THE SOURCE CODE " << endl;
-    file7 << "TOO MANY REFLECTIONS (" << setw(6) << IRS << "). INCREASE *IRS* IN THE PARAMETER STATEMENT IN THE SOURCE CODE " << endl;
     cout  << "TOO MANY REFLECTIONS (" << setw(6) << IRS << "). INCREASE *IRS* IN THE PARAMETER STATEMENT IN THE SOURCE CODE " << endl;
     DBWSException("");
 }
@@ -8687,74 +8676,74 @@ L813:
 
     //  line 10 (read)
     getline(file5,s);
-    stringstream(s.substr(0*8,8)) >> params->GLB[1];
-    stringstream(s.substr(1*8,8)) >> params->GLB[10];
-    stringstream(s.substr(2*8,8)) >> params->GLB[11];
-    stringstream(s.substr(3*8,8)) >> params->GLB[8];
-    stringstream(s.substr(4*8,8)) >> params->GLB[9];
-    stringstream(s.substr(5*8,8)) >> params->GLB[12];
-    stringstream(s.substr(6*8,8)) >> params->GLB[13];
+    params->GLB_[1-1] = s.substr(0*8,8);
+    params->GLB_[10-1] = s.substr(1*8,8);
+    params->GLB_[11-1] = s.substr(2*8,8);
+    params->GLB_[8-1] = s.substr(3*8,8);
+    params->GLB_[9-1] = s.substr(4*8,8);
+    params->GLB_[12-1] = s.substr(5*8,8);
+    params->GLB_[13-1] = s.substr(6*8,8);
 
     getline(file5,s);
-    stringstream(s.substr(0*8,8)) >> params->AGLB[1];
-    stringstream(s.substr(1*8,8)) >> params->AGLB[10];
-    stringstream(s.substr(2*8,8)) >> params->AGLB[11];
-    stringstream(s.substr(3*8,8)) >> params->AGLB[8];
-    stringstream(s.substr(4*8,8)) >> params->AGLB[9];
-    stringstream(s.substr(5*8,8)) >> params->AGLB[12];
-    stringstream(s.substr(6*8,8)) >> params->AGLB[13];
+    stringstream(s.substr(0*8,8)) >> params->GLB_[1-1].A;
+    stringstream(s.substr(1*8,8)) >> params->GLB_[10-1].A;
+    stringstream(s.substr(2*8,8)) >> params->GLB_[11-1].A;
+    stringstream(s.substr(3*8,8)) >> params->GLB_[8-1].A;
+    stringstream(s.substr(4*8,8)) >> params->GLB_[9-1].A;
+    stringstream(s.substr(5*8,8)) >> params->GLB_[12-1].A;
+    stringstream(s.substr(6*8,8)) >> params->GLB_[13-1].A;
 
     // line 10.1 (write)
-    file6 << setw(8) << setprecision(4) << params->GLB[1]
-    << setw(8) << setprecision(4) << params->GLB[10]
-    << setw(8) << setprecision(4) << params->GLB[11]
-    << setw(8) << setprecision(4) << params->GLB[8]
-    << setw(8) << setprecision(4) << params->GLB[9]
-    << setw(8) << setprecision(4) << params->GLB[12]
-    << setw(8) << setprecision(4) << params->GLB[13]
+    file6 << setw(8) << setprecision(4) << params->GLB_[1-1]
+    << setw(8) << setprecision(4) << params->GLB_[10-1]
+    << setw(8) << setprecision(4) << params->GLB_[11-1]
+    << setw(8) << setprecision(4) << params->GLB_[8-1]
+    << setw(8) << setprecision(4) << params->GLB_[9-1]
+    << setw(8) << setprecision(4) << params->GLB_[12-1]
+    << setw(8) << setprecision(4) << params->GLB_[13-1]
     << " ZER DISP TRANS p q r t" << endl;
     // line 10.11 (write)
-    file6 << setw(8) << setprecision(4) << params->AGLB[1]
-    << setw(8) << setprecision(4) << params->AGLB[10]
-    << setw(8) << setprecision(4) << params->AGLB[11]
-    << setw(8) << setprecision(4) << params->AGLB[8]
-    << setw(8) << setprecision(4) << params->AGLB[9]
-    << setw(8) << setprecision(4) << params->AGLB[12]
-    << setw(8) << setprecision(4) << params->AGLB[13]
+    file6 << setw(8) << setprecision(4) << params->GLB_[1-1].A
+    << setw(8) << setprecision(4) << params->GLB_[10-1].A
+    << setw(8) << setprecision(4) << params->GLB_[11-1].A
+    << setw(8) << setprecision(4) << params->GLB_[8-1].A
+    << setw(8) << setprecision(4) << params->GLB_[9-1].A
+    << setw(8) << setprecision(4) << params->GLB_[12-1].A
+    << setw(8) << setprecision(4) << params->GLB_[13-1].A
     << " CODEWORDS" << endl;
 
     // line 10.3 (read & write)
     if(jnk->NBCKGD != 0)goto L49;
     getline(file5,s);
-    stringstream(s.substr(0*9,9)) >> params->GLB[2];
-    stringstream(s.substr(1*9,9)) >> params->GLB[3];
-    stringstream(s.substr(2*9,9)) >> params->GLB[4];
+    params->GLB_[2-1] = s.substr(0*9,9);
+    params->GLB_[3-1] = s.substr(1*9,9);
+    params->GLB_[4-1] = s.substr(2*9,9);
 
     getline(file5,s);
-    stringstream(s.substr(0*9,9)) >> params->AGLB[2];
-    stringstream(s.substr(1*9,9)) >> params->AGLB[3];
-    stringstream(s.substr(2*9,9)) >> params->AGLB[4];
+    stringstream(s.substr(0*9,9)) >> params->GLB_[2-1].A;
+    stringstream(s.substr(1*9,9)) >> params->GLB_[3-1].A;
+    stringstream(s.substr(2*9,9)) >> params->GLB_[4-1].A;
 
-    file6 << setw(9) << setprecision(2) << params->GLB[2]
-    << setw(9) << setprecision(2) << params->GLB[3]
-    << setw(9) << setprecision(2) << params->GLB[4]
-    << setw(9) << setprecision(2) << params->GLB[5]
-    << setw(9) << setprecision(2) << params->GLB[6]
-    << setw(9) << setprecision(2) << params->GLB[7] << "   BACKGROUND" << endl
-        << setw(9) << setprecision(4) << params->AGLB[2]
-    << setw(9) << setprecision(4) << params->AGLB[3]
-    << setw(9) << setprecision(4) << params->AGLB[4]
-    << setw(9) << setprecision(4) << params->AGLB[5]
-    << setw(9) << setprecision(4) << params->AGLB[6]
-    << setw(9) << setprecision(4) << params->AGLB[7] << "   CODEWORDS" << endl;
+    file6 << setw(9) << setprecision(2) << params->GLB_[2-1]
+    << setw(9) << setprecision(2) << params->GLB_[3-1]
+    << setw(9) << setprecision(2) << params->GLB_[4-1]
+    << setw(9) << setprecision(2) << params->GLB_[5-1]
+    << setw(9) << setprecision(2) << params->GLB_[6-1]
+    << setw(9) << setprecision(2) << params->GLB_[7-1] << "   BACKGROUND" << endl
+        << setw(9) << setprecision(4) << params->GLB_[2-1].A
+    << setw(9) << setprecision(4) << params->GLB_[3-1].A
+    << setw(9) << setprecision(4) << params->GLB_[4-1].A
+    << setw(9) << setprecision(4) << params->GLB_[5-1].A
+    << setw(9) << setprecision(4) << params->GLB_[6-1].A
+    << setw(9) << setprecision(4) << params->GLB_[7-1].A << "   CODEWORDS" << endl;
 L49:
     // read AND rewrite for phases
     for (K=1; K <= cntrls->NPHASE; ++K)
     {
         // line 11.1
         getline(file5,s);
-        char_->PHSNM[K] = s.substr(0,50);
-        file6 << setw(50) << char_->PHSNM[K] << "       PHASE NUMBER " << setw(2) << K << endl;
+        phases[K].PHSNM = s.substr(0,50);
+        file6 << setw(50) << phases[K].PHSNM << "       PHASE NUMBER " << setw(2) << K << endl;
 
         // line 11.2
         getline(file5,s);
@@ -8776,9 +8765,9 @@ L49:
 
         // line 11.3
         getline(file5,s);
-        char_->SYMB[K] = s.substr(0,20);
-        file6 << setw(20) << char_->SYMB[K] << "                                     SPACE GROUP" << endl;
-        SPG = " " + char_->SYMB[K];
+        phases[K].SYMB = s.substr(0,20);
+        file6 << setw(20) << phases[K].SYMB << "                                     SPACE GROUP" << endl;
+        SPG = " " + phases[K].SYMB;
         for (I=1; I <= 20; ++I)
         {
             // convert lower case to upper case
@@ -8872,126 +8861,126 @@ L49:
 
         }
         getline(file5,s);
-        stringstream(s.substr(0,8)) >> params->PAR[K][1];
-        stringstream(s.substr(8,8)) >> params->PAR[K][2];
+        phases[K-1].PAR_[1-1] = s.substr(0,8);
+        phases[K-1].PAR_[2-1] = s.substr(8,8);
         getline(file5,s);
-        stringstream(s.substr(0,8)) >> params->APAR[K][1];
-        stringstream(s.substr(8,8)) >> params->APAR[K][2];
+        stringstream(s.substr(0,8)) >> phases[K-1].PAR_[1-1].A;
+        stringstream(s.substr(8,8)) >> phases[K-1].PAR_[2-1].A;
         getline(file5,s);
-        stringstream(s.substr(0*8,8)) >> params->PAR[K][3];
-        stringstream(s.substr(1*8,8)) >> params->PAR[K][4];
-        stringstream(s.substr(2*8,8)) >> params->PAR[K][5];
-        stringstream(s.substr(3*8,8)) >> params->PAR[K][20];
-        stringstream(s.substr(4*8,8)) >> params->PAR[K][15];
-        stringstream(s.substr(5*8,8)) >> params->PAR[K][16];
+        phases[K-1].PAR_[3-1] = s.substr(0*8,8);
+        phases[K-1].PAR_[4-1] = s.substr(1*8,8);
+        phases[K-1].PAR_[5-1] = s.substr(2*8,8);
+        phases[K-1].PAR_[20-1] = s.substr(3*8,8);
+        phases[K-1].PAR_[15-1] = s.substr(4*8,8);
+        phases[K-1].PAR_[16-1] = s.substr(5*8,8);
         getline(file5,s);
-        stringstream(s.substr(0*8,8)) >> params->APAR[K][3];
-        stringstream(s.substr(1*8,8)) >> params->APAR[K][4];
-        stringstream(s.substr(2*8,8)) >> params->APAR[K][5];
-        stringstream(s.substr(3*8,8)) >> params->APAR[K][20];
-        stringstream(s.substr(4*8,8)) >> params->APAR[K][15];
-        stringstream(s.substr(5*8,8)) >> params->APAR[K][16];
+        stringstream(s.substr(0*8,8)) >> phases[K-1].PAR_[3-1].A;
+        stringstream(s.substr(1*8,8)) >> phases[K-1].PAR_[4-1].A;
+        stringstream(s.substr(2*8,8)) >> phases[K-1].PAR_[5-1].A;
+        stringstream(s.substr(3*8,8)) >> phases[K-1].PAR_[20-1].A;
+        stringstream(s.substr(4*8,8)) >> phases[K-1].PAR_[15-1].A;
+        stringstream(s.substr(5*8,8)) >> phases[K-1].PAR_[16-1].A;
         getline(file5,s);
-        stringstream(s.substr(0*8,8)) >> params->PAR[K][6];
-        stringstream(s.substr(1*8,8)) >> params->PAR[K][7];
-        stringstream(s.substr(2*8,8)) >> params->PAR[K][8];
-        stringstream(s.substr(3*8,8)) >> params->PAR[K][9];
-        stringstream(s.substr(4*8,8)) >> params->PAR[K][10];
-        stringstream(s.substr(5*8,8)) >> params->PAR[K][11];
+        phases[K-1].PAR_[6-1] = s.substr(0*8,8);
+        phases[K-1].PAR_[7-1] = s.substr(1*8,8);
+        phases[K-1].PAR_[8-1] = s.substr(2*8,8);
+        phases[K-1].PAR_[9-1] = s.substr(3*8,8);
+        phases[K-1].PAR_[10-1] = s.substr(4*8,8);
+        phases[K-1].PAR_[11-1] = s.substr(5*8,8);
         getline(file5,s);
-        stringstream(s.substr(0*8,8)) >> params->APAR[K][6];
-        stringstream(s.substr(1*8,8)) >> params->APAR[K][7];
-        stringstream(s.substr(2*8,8)) >> params->APAR[K][8];
-        stringstream(s.substr(3*8,8)) >> params->APAR[K][9];
-        stringstream(s.substr(4*8,8)) >> params->APAR[K][10];
-        stringstream(s.substr(5*8,8)) >> params->APAR[K][11];
+        stringstream(s.substr(0*8,8)) >> phases[K-1].PAR_[6-1].A;
+        stringstream(s.substr(1*8,8)) >> phases[K-1].PAR_[7-1].A;
+        stringstream(s.substr(2*8,8)) >> phases[K-1].PAR_[8-1].A;
+        stringstream(s.substr(3*8,8)) >> phases[K-1].PAR_[9-1].A;
+        stringstream(s.substr(4*8,8)) >> phases[K-1].PAR_[10-1].A;
+        stringstream(s.substr(5*8,8)) >> phases[K-1].PAR_[11-1].A;
         getline(file5,s);
-        stringstream(s.substr(0*8,8)) >> params->PAR[K][12];
-        stringstream(s.substr(1*8,8)) >> params->PAR[K][13];
-        stringstream(s.substr(2*8,8)) >> params->PAR[K][14];
+        phases[K-1].PAR_[12-1] = s.substr(0*8,8);
+        phases[K-1].PAR_[13-1] = s.substr(1*8,8);
+        phases[K-1].PAR_[14-1] = s.substr(2*8,8);
         getline(file5,s);
-        stringstream(s.substr(0*8,8)) >> params->APAR[K][12];
-        stringstream(s.substr(1*8,8)) >> params->APAR[K][13];
-        stringstream(s.substr(2*8,8)) >> params->APAR[K][14];
+        stringstream(s.substr(0*8,8)) >> phases[K-1].PAR_[12-1].A;
+        stringstream(s.substr(1*8,8)) >> phases[K-1].PAR_[13-1].A;
+        stringstream(s.substr(2*8,8)) >> phases[K-1].PAR_[14-1].A;
         getline(file5,s);
-        stringstream(s.substr(0*8,8)) >> params->PAR[K][17];
-        stringstream(s.substr(1*8,8)) >> params->PAR[K][18];
-        stringstream(s.substr(2*8,8)) >> params->PAR[K][19];
+        phases[K-1].PAR_[17-1] = s.substr(0*8,8);
+        phases[K-1].PAR_[18-1] = s.substr(1*8,8);
+        phases[K-1].PAR_[19-1] = s.substr(2*8,8);
         getline(file5,s);
-        stringstream(s.substr(0*8,8)) >> params->APAR[K][17];
-        stringstream(s.substr(1*8,8)) >> params->APAR[K][18];
-        stringstream(s.substr(2*8,8)) >> params->APAR[K][19];
+        stringstream(s.substr(0*8,8)) >> phases[K-1].PAR_[17-1].A;
+        stringstream(s.substr(1*8,8)) >> phases[K-1].PAR_[18-1].A;
+        stringstream(s.substr(2*8,8)) >> phases[K-1].PAR_[19-1].A;
         getline(file5,s);
-        stringstream(s.substr(0*8,8)) >> params->PAR[K][24];
-        stringstream(s.substr(1*8,8)) >> params->PAR[K][25];
-        stringstream(s.substr(2*8,8)) >> params->PAR[K][26];
+        phases[K-1].PAR_[24-1] = s.substr(0*8,8);
+        phases[K-1].PAR_[25-1] = s.substr(1*8,8);
+        phases[K-1].PAR_[26-1] = s.substr(2*8,8);
         getline(file5,s);
-        stringstream(s.substr(0*8,8)) >> params->APAR[K][24];
-        stringstream(s.substr(1*8,8)) >> params->APAR[K][25];
-        stringstream(s.substr(2*8,8)) >> params->APAR[K][26];
+        stringstream(s.substr(0*8,8)) >> phases[K-1].PAR_[24-1].A;
+        stringstream(s.substr(1*8,8)) >> phases[K-1].PAR_[25-1].A;
+        stringstream(s.substr(2*8,8)) >> phases[K-1].PAR_[26-1].A;
         getline(file5,s);
-        stringstream(s.substr(0*8,8)) >> params->PAR[K][27];
+        phases[K-1].PAR_[27-1] = s.substr(0*8,8);
         getline(file5,s);
-        stringstream(s.substr(0*8,8)) >> params->APAR[K][27];
-        params->PAR[K][21]  = 0.0;
-        params->APAR[K][21] = 0.0;
-        file6 << scientific << setw(8) << setprecision(3) << params->PAR[K][1]
-        << fixed << setw(8) << setprecision(4) << params->PAR[K][2]
+        stringstream(s.substr(0*8,8)) >> phases[K-1].PAR_[27-1].A;
+        phases[K-1].PAR_[21-1]  = 0.0;
+        phases[K-1].PAR_[21-1].A = 0.0;
+        file6 << scientific << setw(8) << setprecision(3) << phases[K-1].PAR_[1-1]
+        << fixed << setw(8) << setprecision(4) << phases[K-1].PAR_[2-1]
         << "                                         SCALE Bo(OVERALL)" << endl
-            << setw(8) << setprecision(2) << params->APAR[K][1]
-        << setw(8) << setprecision(2) << params->APAR[K][2] << endl
-            << setw(8) << setprecision(5) << params->PAR[K][3]
-        << setw(8) << setprecision(5) << params->PAR[K][4]
-        << setw(8) << setprecision(5) << params->PAR[K][5]
-        << setw(8) << setprecision(5) << params->PAR[K][21]
-        << setw(8) << setprecision(5) << params->PAR[K][20]
-        << setw(8) << setprecision(5) << params->PAR[K][15]
-        << setw(8) << setprecision(5) << params->PAR[K][16]
+            << setw(8) << setprecision(2) << phases[K-1].PAR_[1-1].A
+        << setw(8) << setprecision(2) << phases[K-1].PAR_[2-1].A << endl
+            << setw(8) << setprecision(5) << phases[K-1].PAR_[3-1]
+        << setw(8) << setprecision(5) << phases[K-1].PAR_[4-1]
+        << setw(8) << setprecision(5) << phases[K-1].PAR_[5-1]
+        << setw(8) << setprecision(5) << phases[K-1].PAR_[21-1]
+        << setw(8) << setprecision(5) << phases[K-1].PAR_[20-1]
+        << setw(8) << setprecision(5) << phases[K-1].PAR_[15-1]
+        << setw(8) << setprecision(5) << phases[K-1].PAR_[16-1]
         << " U V W CT Z X Y" << endl
-            << setw(8) << setprecision(2) << params->APAR[K][3]
-        << setw(8) << setprecision(2) << params->APAR[K][4]
-        << setw(8) << setprecision(2) << params->APAR[K][5]
-        << setw(8) << setprecision(2) << params->APAR[K][21]
-        << setw(8) << setprecision(2) << params->APAR[K][20]
-        << setw(8) << setprecision(2) << params->APAR[K][15]
-        << setw(8) << setprecision(2) << params->APAR[K][16] << endl
-            << setw(8) << setprecision(4) << params->PAR[K][6]
-        << setw(8) << setprecision(4) << params->PAR[K][7]
-        << setw(8) << setprecision(4) << params->PAR[K][8]
-        << setw(8) << setprecision(4) << params->PAR[K][9]
-        << setw(8) << setprecision(4) << params->PAR[K][10]
-        << setw(8) << setprecision(4) << params->PAR[K][11]
+            << setw(8) << setprecision(2) << phases[K-1].PAR_[3-1].A
+        << setw(8) << setprecision(2) << phases[K-1].PAR_[4-1].A
+        << setw(8) << setprecision(2) << phases[K-1].PAR_[5-1].A
+        << setw(8) << setprecision(2) << phases[K-1].PAR_[21-1].A
+        << setw(8) << setprecision(2) << phases[K-1].PAR_[20-1].A
+        << setw(8) << setprecision(2) << phases[K-1].PAR_[15-1].A
+        << setw(8) << setprecision(2) << phases[K-1].PAR_[16-1].A << endl
+            << setw(8) << setprecision(4) << phases[K-1].PAR_[6-1]
+        << setw(8) << setprecision(4) << phases[K-1].PAR_[7-1]
+        << setw(8) << setprecision(4) << phases[K-1].PAR_[8-1]
+        << setw(8) << setprecision(4) << phases[K-1].PAR_[9-1]
+        << setw(8) << setprecision(4) << phases[K-1].PAR_[10-1]
+        << setw(8) << setprecision(4) << phases[K-1].PAR_[11-1]
         << "         CELL PARAMETERS" << endl
-            << setw(8) << setprecision(2) << params->APAR[K][6]
-        << setw(8) << setprecision(2) << params->APAR[K][7]
-        << setw(8) << setprecision(2) << params->APAR[K][8]
-        << setw(8) << setprecision(2) << params->APAR[K][9]
-        << setw(8) << setprecision(2) << params->APAR[K][10]
-        << setw(8) << setprecision(2) << params->APAR[K][11] << endl
-            << setw(8) << setprecision(5) << params->PAR[K][12]
-        << setw(8) << setprecision(5) << params->PAR[K][13]
-        << setw(8) << setprecision(5) << params->PAR[K][14]
+            << setw(8) << setprecision(2) << phases[K-1].PAR_[6-1].A
+        << setw(8) << setprecision(2) << phases[K-1].PAR_[7-1].A
+        << setw(8) << setprecision(2) << phases[K-1].PAR_[8-1].A
+        << setw(8) << setprecision(2) << phases[K-1].PAR_[9-1].A
+        << setw(8) << setprecision(2) << phases[K-1].PAR_[10-1].A
+        << setw(8) << setprecision(2) << phases[K-1].PAR_[11-1].A << endl
+            << setw(8) << setprecision(5) << phases[K-1].PAR_[12-1]
+        << setw(8) << setprecision(5) << phases[K-1].PAR_[13-1]
+        << setw(8) << setprecision(5) << phases[K-1].PAR_[14-1]
         << "                                 PREF1 PREF2 R/RCF_ASYM" << endl
-            << setw(8) << setprecision(2) << params->APAR[K][12]
-        << setw(8) << setprecision(2) << params->APAR[K][13]
-        << setw(8) << setprecision(2) << params->APAR[K][14] << endl
-            << setw(8) << setprecision(5) << params->PAR[K][17]
-        << setw(8) << setprecision(5) << params->PAR[K][18]
-        << setw(8) << setprecision(5) << params->PAR[K][19]
+            << setw(8) << setprecision(2) << phases[K-1].PAR_[12-1].A
+        << setw(8) << setprecision(2) << phases[K-1].PAR_[13-1].A
+        << setw(8) << setprecision(2) << phases[K-1].PAR_[14-1].A << endl
+            << setw(8) << setprecision(5) << phases[K-1].PAR_[17-1]
+        << setw(8) << setprecision(5) << phases[K-1].PAR_[18-1]
+        << setw(8) << setprecision(5) << phases[K-1].PAR_[19-1]
         << "                                 NA NB NC (MIX_PARAMS)" << endl
-            << setw(8) << setprecision(2) << params->APAR[K][17]
-        << setw(8) << setprecision(2) << params->APAR[K][18]
-        << setw(8) << setprecision(2) << params->APAR[K][19] << endl
-            << setw(8) << setprecision(5) << params->PAR[K][24]
-        << setw(8) << setprecision(5) << params->PAR[K][25]
-        << setw(8) << setprecision(5) << params->PAR[K][26]
+            << setw(8) << setprecision(2) << phases[K-1].PAR_[17-1].A
+        << setw(8) << setprecision(2) << phases[K-1].PAR_[18-1].A
+        << setw(8) << setprecision(2) << phases[K-1].PAR_[19-1].A << endl
+            << setw(8) << setprecision(5) << phases[K-1].PAR_[24-1]
+        << setw(8) << setprecision(5) << phases[K-1].PAR_[25-1]
+        << setw(8) << setprecision(5) << phases[K-1].PAR_[26-1]
         << "                                 NA NB NC (HIGH SIDE)" << endl
-            << setw(8) << setprecision(2) << params->APAR[K][24]
-        << setw(8) << setprecision(2) << params->APAR[K][25]
-        << setw(8) << setprecision(2) << params->APAR[K][26] << endl
-        << setw(8) << setprecision(4) << params->PAR[K][27]
+            << setw(8) << setprecision(2) << phases[K-1].PAR_[24-1].A
+        << setw(8) << setprecision(2) << phases[K-1].PAR_[25-1].A
+        << setw(8) << setprecision(2) << phases[K-1].PAR_[26-1].A << endl
+        << setw(8) << setprecision(4) << phases[K-1].PAR_[27-1]
         << "                                                 PEARSON ASYM.FACTOR" << endl
-            << setw(8) << setprecision(2) << params->APAR[K][27] << endl;
+            << setw(8) << setprecision(2) << phases[K-1].PAR_[27-1].A << endl;
     }
     return;
     //L99999:
@@ -9064,9 +9053,6 @@ L21:
     if (datax->NPTS > IDSZ)
     {
         file6 << "PROGRAM CAN HANDLE " << setw(5) << IDSZ << "POINTS" << endl
-            << setw(5) << datax->NPTS << "POINTS WERE INPUT" << endl
-            << "INCREASE IDSZ IN PARAMETER STATEMENT" << endl;
-        file7 << "PROGRAM CAN HANDLE " << setw(5) << IDSZ << "POINTS" << endl
             << setw(5) << datax->NPTS << "POINTS WERE INPUT" << endl
             << "INCREASE IDSZ IN PARAMETER STATEMENT" << endl;
         cout  << "PROGRAM CAN HANDLE " << setw(5) << IDSZ << "POINTS" << endl
@@ -9167,9 +9153,6 @@ L30:
         file6 << "PROGRAM CAN HANDLE " << setw(5) << IDSZ << "POINTS" << endl
             << setw(5) << datax->NPTS << "POINTS WERE INPUT" << endl
             << "INCREASE IDSZ IN PARAMETER STATEMENT" << endl;
-        file7 << "PROGRAM CAN HANDLE " << setw(5) << IDSZ << "POINTS" << endl
-            << setw(5) << datax->NPTS << "POINTS WERE INPUT" << endl
-            << "INCREASE IDSZ IN PARAMETER STATEMENT" << endl;
         cout  << "PROGRAM CAN HANDLE " << setw(5) << IDSZ << "POINTS" << endl
             << setw(5) << datax->NPTS << "POINTS WERE INPUT" << endl
             << "INCREASE IDSZ IN PARAMETER STATEMENT" << endl;
@@ -9227,7 +9210,7 @@ void DBWS::qpainit(void)
         //		ARG1 = VOSQ*(2 * cos(dircv->DCV[4]) * sin(dircv->DCV[4]) - 2*sin(dircv->DCV[4]) *cos(dircv->DCV[5]) *cos(dircv->DCV[6])) * dircv->DCSM[4][4];
         //		ARG2 = VOSQ*(2 * cos(dircv->DCV[5]) * sin(dircv->DCV[5]) - 2*sin(dircv->DCV[5]) *cos(dircv->DCV[4]) *cos(dircv->DCV[6])) * dircv->DCSM[5][5];
         //		ARG3 = VOSQ*(2 * cos(dircv->DCV[6]) * sin(dircv->DCV[6]) - 2*sin(dircv->DCV[6]) *cos(dircv->DCV[4]) *cos(dircv->DCV[5])) * dircv->DCSM[6][6];
-        W[IP] = params->PAR[IP][1] * multip->TMASSA[IP] * VOL[IP]/multip->SAQF[IP];
+        W[IP] = phases[IP-1].PAR_[1-1] * multip->TMASSA[IP] * VOL[IP]/multip->SAQF[IP];
         file6 << "Volume("
             << setw(2) << IP << ")= "
             << setw(9) << setprecision(3) << VOL[IP]
@@ -9384,9 +9367,6 @@ L20:
         file6 << "PROGRAM CAN HANDLE " << setw(5) << IDSZ << "POINTS" << endl
             << setw(5) << datax->NPTS << "POINTS WERE INPUT" << endl
             << "INCREASE IDSZ IN PARAMETER STATEMENT" << endl;
-        file7 << "PROGRAM CAN HANDLE " << setw(5) << IDSZ << "POINTS" << endl
-            << setw(5) << datax->NPTS << "POINTS WERE INPUT" << endl
-            << "INCREASE IDSZ IN PARAMETER STATEMENT" << endl;
         cout  << "PROGRAM CAN HANDLE " << setw(5) << IDSZ << "POINTS" << endl
             << setw(5) << datax->NPTS << "POINTS WERE INPUT" << endl
             << "INCREASE IDSZ IN PARAMETER STATEMENT" << endl;
@@ -9491,9 +9471,6 @@ L70:
         file6 << "PROGRAM CAN HANDLE " << setw(5) << IDSZ << "POINTS" << endl
             << setw(5) << datax->NPTS << "POINTS WERE INPUT" << endl
             << "INCREASE IDSZ IN PARAMETER STATEMENT" << endl;
-        file7 << "PROGRAM CAN HANDLE " << setw(5) << IDSZ << "POINTS" << endl
-            << setw(5) << datax->NPTS << "POINTS WERE INPUT" << endl
-            << "INCREASE IDSZ IN PARAMETER STATEMENT" << endl;
         cout  << "PROGRAM CAN HANDLE " << setw(5) << IDSZ << "POINTS" << endl
             << setw(5) << datax->NPTS << "POINTS WERE INPUT" << endl
             << "INCREASE IDSZ IN PARAMETER STATEMENT" << endl;
@@ -9566,9 +9543,6 @@ L20:
         file6 << "PROGRAM CAN HANDLE " << setw(5) << IDSZ << "POINTS" << endl
             << setw(5) << datax->NPTS << "POINTS WERE INPUT" << endl
             << "INCREASE IDSZ IN PARAMETER STATEMENT" << endl;
-        file7 << "PROGRAM CAN HANDLE " << setw(5) << IDSZ << "POINTS" << endl
-            << setw(5) << datax->NPTS << "POINTS WERE INPUT" << endl
-            << "INCREASE IDSZ IN PARAMETER STATEMENT" << endl;
         cout  << "PROGRAM CAN HANDLE " << setw(5) << IDSZ << "POINTS" << endl
             << setw(5) << datax->NPTS << "POINTS WERE INPUT" << endl
             << "INCREASE IDSZ IN PARAMETER STATEMENT" << endl;
@@ -9605,11 +9579,13 @@ void DBWS::INPTR(void)
 
     // line 1
     getline(file5,s);
+    cout << "linha 1" << endl;
     cout << s << endl;
     char_->TITLE = s.substr(0,70);
 
     // line 2
     getline(file5,s);
+    cout << s << endl;
     stringstream(s.substr( 0*4,4)) >> cntrls->JOBTYP;
     stringstream(s.substr( 1*4,4)) >> cntrls->NPROF;
     stringstream(s.substr( 2*4,4)) >> cntrls->NPHASE;
@@ -10033,11 +10009,6 @@ L124:
             << "MSZ,  MATRIX SIZE                = " << setw(6) << MSZ << endl
             << "MAXS, NO. OF PARAMETERS VARIED   = " << setw(6) << endl
             << "*** JUST A DIMENSIONING ERROR ***" << endl;
-        file7 << "CHANGE IDSZ OR MSZ SO THAT IDSZ IS EQUAL TO OR GREATER THAN MSZ*MAXS" << endl
-            << "IDSZ, MAXIMUM NO. OF DATA POINTS = " << setw(6) << IDSZ << endl
-            << "MSZ,  MATRIX SIZE                = " << setw(6) << MSZ << endl
-            << "MAXS, NO. OF PARAMETERS VARIED   = " << setw(6) << endl
-            << "*** JUST A DIMENSIONING ERROR ***" << endl;
         DBWSException("IDSZ IS LESS THAN MSZ*MAXS");
     }
     if (cntrls->JOBTYP > 2) cntrls->MAXS=0;
@@ -10045,121 +10016,121 @@ L124:
 
     // line 10.1
     getline(file5,s);
-    stringstream(s.substr(0,8))   >> params->GLB[1];
-    stringstream(s.substr(1*8,8)) >> params->GLB[10];
-    stringstream(s.substr(2*8,8)) >> params->GLB[11];
-    stringstream(s.substr(3*8,8)) >> params->GLB[8];
-    stringstream(s.substr(4*8,8)) >> params->GLB[9];
-    stringstream(s.substr(5*8,8)) >> params->GLB[12];
-    stringstream(s.substr(6*8,8)) >> params->GLB[13];
+    params->GLB_[1-1] = s.substr(0,8);
+    params->GLB_[10-1] = s.substr(1*8,8);
+    params->GLB_[11-1] = s.substr(2*8,8);
+    params->GLB_[8-1] = s.substr(3*8,8);
+    params->GLB_[9-1] = s.substr(4*8,8);
+    params->GLB_[12-1] = s.substr(5*8,8);
+    params->GLB_[13-1] = s.substr(6*8,8);
 
     // line 10.11
     getline(file5,s);
-    stringstream(s.substr(0,8))   >> params->AGLB[1];
-    stringstream(s.substr(1*8,8)) >> params->AGLB[10];
-    stringstream(s.substr(2*8,8)) >> params->AGLB[11];
-    stringstream(s.substr(3*8,8)) >> params->AGLB[8];
-    stringstream(s.substr(4*8,8)) >> params->AGLB[9];
-    stringstream(s.substr(5*8,8)) >> params->AGLB[12];
-    stringstream(s.substr(6*8,8)) >> params->AGLB[13];
+    stringstream(s.substr(0,8))   >> params->GLB_[1-1].A;
+    stringstream(s.substr(1*8,8)) >> params->GLB_[10-1].A;
+    stringstream(s.substr(2*8,8)) >> params->GLB_[11-1].A;
+    stringstream(s.substr(3*8,8)) >> params->GLB_[8-1].A;
+    stringstream(s.substr(4*8,8)) >> params->GLB_[9-1].A;
+    stringstream(s.substr(5*8,8)) >> params->GLB_[12-1].A;
+    stringstream(s.substr(6*8,8)) >> params->GLB_[13-1].A;
 
     file6 << "GLOBAL PARAMETERS AND CODEWORDS" << endl
         << "ZEROPOINT= "
-        << setw(8) << setprecision(2) << params->GLB[1]
-    << setw(8) << setprecision(2) << params->AGLB[1] << endl;
+        << setw(8) << setprecision(2) << params->GLB_[1-1]
+    << setw(8) << setprecision(2) << params->GLB_[1-1].A << endl;
 
     //-----PMON1,PMON2=PARAMETER OF THE MONOCHROMATOR
     //-----IT READS PARAMETER OF THE MONOCHROMATOR AND AIR SCALE
     //-----if THE MONOCHROMATOR WORKS ON THE INCIDENT BEAM PUT :
     //-----PMON1=1;PMON2=0;
     // next 2 'READ' are for amorphous bkg codes
-    // SCAIR=glb(17), FLSCAIR=aglb(17), SCAM =params->GLB[20], FLSCAM=params->AGLB[20]
-    // PMON1=params->GLB[18], FLMON1 =params->AGLB[18], PMON2=params->GLB[19], FLMON2=params->AGLB[19]
+    // SCAIR=glb(17), FLSCAIR=aglb(17), SCAM =params->GLB_[20-1], FLSCAM=params->GLB_[20-1].A
+    // PMON1=params->GLB_[18-1], FLMON1 =params->GLB_[18-1].A, PMON2=params->GLB_[19-1], FLMON2=params->GLB_[19-1].A
     //      READ(5,455,END=99999)SCAIR,FLSCAIR,SCAM,FLSCAM,
     //     *  PMON1,FLMON1,PMON2,FLMON2
     //
-    //      READ(5,455,END=99999)glb(17),aglb(17),params->GLB[20], params->AGLB[20],
-    //     *  params->GLB[18],params->AGLB[18],params->GLB[19], params->AGLB[19]
+    //      READ(5,455,END=99999)glb(17),aglb(17),params->GLB_[20-1], params->GLB_[20-1].A,
+    //     *  params->GLB_[18-1],params->GLB_[18-1].A,params->GLB_[19-1], params->GLB_[19-1].A
     //455     FORMAT(BZ,8F8.0)
     //  !cp jun 95 start
     if (cntrls->IBGD == 1) goto L4555;
 
     // line 10.2 and line 10.21
     getline(file5,s);
-    stringstream(s.substr(0*8,8)) >> params->GLB[20];
-    stringstream(s.substr(1*8,8)) >> params->GLB[18];
-    stringstream(s.substr(2*8,8)) >> params->GLB[19];
+    params->GLB_[20-1] = s.substr(0*8,8);
+    params->GLB_[18-1] = s.substr(1*8,8);
+    params->GLB_[19-1] = s.substr(2*8,8);
 
     getline(file5,s);
-    stringstream(s.substr(0*8,8)) >> params->AGLB[20];
-    stringstream(s.substr(1*8,8)) >> params->AGLB[18];
-    stringstream(s.substr(2*8,8)) >> params->AGLB[19];
+    stringstream(s.substr(0*8,8)) >> params->GLB_[20-1].A;
+    stringstream(s.substr(1*8,8)) >> params->GLB_[18-1].A;
+    stringstream(s.substr(2*8,8)) >> params->GLB_[19-1].A;
 
     file6 << "AMORPHOUS SCALE and CODEWORD= "
-        << setw(14) << setprecision(4) << params->GLB[20]
-    << setw(14) << setprecision(4) << params->AGLB[20] << endl;
+        << setw(14) << setprecision(4) << params->GLB_[20-1]
+    << setw(14) << setprecision(4) << params->GLB_[20-1].A << endl;
     file6 << "MONOCROMATOR BANDPASS PARAMETERS AND CODEWORDS" << endl
         << "PARAMETERS MONOC="
-        << setw(8) << setprecision(4) << params->GLB[18]
-    << setw(8) << setprecision(4) << params->AGLB[18]
+        << setw(8) << setprecision(4) << params->GLB_[18-1]
+    << setw(8) << setprecision(4) << params->GLB_[18-1].A
     << "                  "
-        << setw(8) << setprecision(4) << params->GLB[19]
-    << setw(8) << setprecision(4) << params->AGLB[19] << endl;
+        << setw(8) << setprecision(4) << params->GLB_[19-1]
+    << setw(8) << setprecision(4) << params->GLB_[19-1].A << endl;
 L4555:
     if(jnk->NBCKGD != 0)goto L49;
     // line 10.4(*)
     // line 10.3 and line 10.31
     getline(file5,s);
-    stringstream(s.substr(0*9,9)) >> params->GLB[2];
-    stringstream(s.substr(1*9,9)) >> params->GLB[3];
-    stringstream(s.substr(2*9,9)) >> params->GLB[4];
-    stringstream(s.substr(3*9,9)) >> params->GLB[5];
-    stringstream(s.substr(4*9,9)) >> params->GLB[6];
-    stringstream(s.substr(5*9,9)) >> params->GLB[7];
+    params->GLB_[2-1] = s.substr(0*9,9);
+    params->GLB_[3-1] = s.substr(1*9,9);
+    params->GLB_[4-1] = s.substr(2*9,9);
+    params->GLB_[5-1] = s.substr(3*9,9);
+    params->GLB_[6-1] = s.substr(4*9,9);
+    params->GLB_[7-1] = s.substr(5*9,9);
 
     getline(file5,s);
-    stringstream(s.substr(0*9,9)) >> params->AGLB[2];
-    stringstream(s.substr(1*9,9)) >> params->AGLB[3];
-    stringstream(s.substr(2*9,9)) >> params->AGLB[4];
-    stringstream(s.substr(3*9,9)) >> params->AGLB[5];
-    stringstream(s.substr(4*9,9)) >> params->AGLB[6];
-    stringstream(s.substr(5*9,9)) >> params->AGLB[7];
+    stringstream(s.substr(0*9,9)) >> params->GLB_[2-1].A;
+    stringstream(s.substr(1*9,9)) >> params->GLB_[3-1].A;
+    stringstream(s.substr(2*9,9)) >> params->GLB_[4-1].A;
+    stringstream(s.substr(3*9,9)) >> params->GLB_[5-1].A;
+    stringstream(s.substr(4*9,9)) >> params->GLB_[6-1].A;
+    stringstream(s.substr(5*9,9)) >> params->GLB_[7-1].A;
 
 
     file6 << "BACKGROUND PARAMETERS AND CODEWORDS" << endl
         << "ORIGIN OF BACKGROUND POLYNOMIAL AT TWO-THETA = "
         << setw(8) << setprecision(3) << g1->BKPOS << "DEGREES" << endl
-        << setw(12) << setprecision(4) << params->GLB[2]
-        << setw(12) << setprecision(4) << params->GLB[3]
-        << setw(12) << setprecision(4) << params->GLB[4]
-        << setw(12) << setprecision(4) << params->GLB[5]
-        << setw(12) << setprecision(4) << params->GLB[6]
-        << setw(12) << setprecision(4) << params->GLB[7] << endl
-        << setw(12) << setprecision(3) << params->AGLB[2] << "    "
-        << setw(12) << setprecision(3) << params->AGLB[3] << "    "
-        << setw(12) << setprecision(3) << params->AGLB[4] << "    "
-        << setw(12) << setprecision(3) << params->AGLB[5] << "    "
-        << setw(12) << setprecision(3) << params->AGLB[6] << "    "
-        << setw(12) << setprecision(3) << params->AGLB[7] << "    " << endl;
+        << setw(12) << setprecision(4) << params->GLB_[2-1]
+        << setw(12) << setprecision(4) << params->GLB_[3-1]
+        << setw(12) << setprecision(4) << params->GLB_[4-1]
+        << setw(12) << setprecision(4) << params->GLB_[5-1]
+        << setw(12) << setprecision(4) << params->GLB_[6-1]
+        << setw(12) << setprecision(4) << params->GLB_[7-1] << endl
+        << setw(12) << setprecision(3) << params->GLB_[2-1].A << "    "
+        << setw(12) << setprecision(3) << params->GLB_[3-1].A << "    "
+        << setw(12) << setprecision(3) << params->GLB_[4-1].A << "    "
+        << setw(12) << setprecision(3) << params->GLB_[5-1].A << "    "
+        << setw(12) << setprecision(3) << params->GLB_[6-1].A << "    "
+        << setw(12) << setprecision(3) << params->GLB_[7-1].A << "    " << endl;
 L49:
     file6 << "DISPLACEMENT PEAKSHIFT PARAMETER AND CODEWORD"
-        << setw(8) << setprecision(2) << params->GLB[10]
-    << setw(8) << setprecision(2) << params->AGLB[10] << endl
+        << setw(8) << setprecision(2) << params->GLB_[10-1]
+    << setw(8) << setprecision(2) << params->GLB_[10-1].A << endl
         << "TRANSPARENCY PEAKSHIFT PARAMETER AND CODEWORD"
-        << setw(8) << setprecision(2) << params->GLB[11]
-    << setw(8) << setprecision(2) << params->AGLB[11] << endl;
+        << setw(8) << setprecision(2) << params->GLB_[11-1]
+    << setw(8) << setprecision(2) << params->GLB_[11-1].A << endl;
     file6 << "SURFACE ROUGHNESS P PARAMETER AND CODEWORD"
-        << setw(9) << setprecision(4) << params->GLB[8]
-    << setw(9) << setprecision(4) << params->AGLB[8] << endl
+        << setw(9) << setprecision(4) << params->GLB_[8-1]
+    << setw(9) << setprecision(4) << params->GLB_[8-1].A << endl
         << "SURFACE ROUGHNESS Q PARAMETER AND CODEWORD"
-        << setw(9) << setprecision(4) << params->GLB[9]
-    << setw(9) << setprecision(4) << params->AGLB[9] << endl
+        << setw(9) << setprecision(4) << params->GLB_[9-1]
+    << setw(9) << setprecision(4) << params->GLB_[9-1].A << endl
         << "SURFACE ROUGHNESS R PARAMETER AND CODEWORD"
-        << setw(9) << setprecision(4) << params->GLB[12]
-    << setw(9) << setprecision(4) << params->AGLB[12] << endl
+        << setw(9) << setprecision(4) << params->GLB_[12-1]
+    << setw(9) << setprecision(4) << params->GLB_[12-1].A << endl
         << "SURFACE ROUGHNESS T PARAMETER AND CODEWORD"
-        << setw(9) << setprecision(4) << params->GLB[13]
-    << setw(9) << setprecision(4) << params->AGLB[13] << endl;
+        << setw(9) << setprecision(4) << params->GLB_[13-1]
+    << setw(9) << setprecision(4) << params->GLB_[13-1].A << endl;
     if(cntrls->JOBTYP > 2)goto L483;
     //-----if PATTERN CALCULATION ONLY FOR SYNCHROTRON X-RAY DATA goto 501
     if(cntrls->JOBTYP == 1 && cntrls->INSTRM == 2) goto L501;
@@ -10185,9 +10156,6 @@ L49:
         if (datax->NPTS > IDSZ)
         {
             file6 << "PROGRAM CAN HANDLE " << setw(5) << IDSZ << " POINTS" << endl
-                << setw(5) << datax->NPTS << " POINTS WERE INPUT" << endl
-                << "INCREASE IDSZ IN PARAMETER STATEMENT" << endl;
-            file7 << "PROGRAM CAN HANDLE " << setw(5) << IDSZ << " POINTS" << endl
                 << setw(5) << datax->NPTS << " POINTS WERE INPUT" << endl
                 << "INCREASE IDSZ IN PARAMETER STATEMENT" << endl;
             cout  << "PROGRAM CAN HANDLE " << setw(5) << IDSZ << " POINTS" << endl
@@ -10316,9 +10284,6 @@ L501:
             file6 << "PROGRAM CAN HANDLE " << setw(5) << IDSZ << "POINTS" << endl
                 << setw(5) << (datax->NPTS+IPTS) << " POINTS WERE INPUT" << endl
                 << "INCREASE IDSZ IN PARAMETER STATEMENT" << endl;
-            file7 << "PROGRAM CAN HANDLE " << setw(5) << IDSZ << "POINTS" << endl
-                << setw(5) << (datax->NPTS+IPTS) << " POINTS WERE INPUT" << endl
-                << "INCREASE IDSZ IN PARAMETER STATEMENT" << endl;
             DBWSException("TOO MANY DATA POINTS");
         }
         //     VAR(I) IS USED FOR TWO QUANTITIES, JUST TO SAVE SOME SPACE.
@@ -10410,9 +10375,6 @@ L601:
         file6 << "PROGRAM CAN HANDLE " << setw(5) << IDSZ << "POINTS" << endl
             << datax->NPTS+IPTS << " POINTS WERE INPUT" << endl
             << "INCREASE IDSZ IN PARAMETER STATEMENT" << endl;
-        file7 << "PROGRAM CAN HANDLE " << setw(5) << IDSZ << "POINTS" << endl
-            << datax->NPTS+IPTS << " POINTS WERE INPUT" << endl
-            << "INCREASE IDSZ IN PARAMETER STATEMENT" << endl;
         DBWSException("TOO MANY DATA POINTS");
     }
     I=0;
@@ -10443,9 +10405,6 @@ L483:
         file6 << "PROGRAM CAN HANDLE " << setw(5) << IDSZ << "POINTS" << endl
             << setw(5) << datax->NPTS+IPTS << " POINTS WERE INPUT" << endl
             << "INCREASE IDSZ IN PARAMETER STATEMENT" << endl;
-        file7 << "PROGRAM CAN HANDLE " << setw(5) << IDSZ << "POINTS" << endl
-            << setw(5) << datax->NPTS+IPTS << " POINTS WERE INPUT" << endl
-            << "INCREASE IDSZ IN PARAMETER STATEMENT" << endl;
         DBWSException("TOO MANY DATA POINTS");
     }
 L484:
@@ -10467,8 +10426,8 @@ L474:
     {
         TH=TH+g1->STEP;
         THX=TH/g1->BKPOS-1.0;
-        datax->BK[I]=params->GLB[2];
-        for (J=2; J <= 6; ++J) datax->BK[I]=datax->BK[I] + params->GLB[J+1] * pow(THX,J-1);
+        datax->BK[I]=params->GLB_[2-1];
+        for (J=2; J <= 6; ++J) datax->BK[I]=datax->BK[I] + params->GLB_[J+1-1] * pow(THX,J-1);
     }
     goto L477;
 L475:
@@ -10527,8 +10486,8 @@ L477:
     {
         // line 11.1
         getline(file5,s);
-        char_->PHSNM[K] = s.substr(0,50);
-        file6 << "PHASE " << setw(2) << K << endl << char_->PHSNM[K] << endl;
+        phases[K].PHSNM = s.substr(0,50);
+        file6 << "PHASE " << setw(2) << K << endl << phases[K].PHSNM << endl;
 
         // line 11.2
         getline(file5,s);
@@ -10578,9 +10537,9 @@ L477:
 
         // line 11.3
         getline(file5,s);
-        char_->SYMB[K] = s.substr(0,20);
+        phases[K].SYMB = s.substr(0,20);
 
-        SPG = " " + char_->SYMB[K];
+        SPG = " " + phases[K].SYMB;
         for (I=1; I <= 20; ++I)
         {
             //C convert lower case to upper case
@@ -10681,103 +10640,103 @@ L477:
         // params->PAR[K][21] introduced below. It is for the term cot**2 in the pv-5 FWHM !cp Aug 95
         // line 11-5, line 11-6, line 11-7, line 11-8 and line 11-9
         getline(file5,s);			// S  O_B (line 11-5)
-        stringstream(s.substr(0,8)) >> params->PAR[K][1];
-        stringstream(s.substr(8,8)) >> params->PAR[K][2];
+        phases[K-1].PAR_[1-1] = s.substr(0,8);
+        phases[K-1].PAR_[2-1] = s.substr(8,8);
 
         getline(file5,s);
-        stringstream(s.substr(0,8)) >> params->APAR[K][1];
-        stringstream(s.substr(8,8)) >> params->APAR[K][2];
+        stringstream(s.substr(0,8)) >> phases[K-1].PAR_[1-1].A;
+        stringstream(s.substr(8,8)) >> phases[K-1].PAR_[2-1].A;
 
         getline(file5,s);			// FWHM (line 11-6)
-        stringstream(s.substr(0,8)) >> params->PAR[K][3];
-        stringstream(s.substr(8,8)) >> params->PAR[K][4];
-        stringstream(s.substr(16,8)) >> params->PAR[K][5];
-        stringstream(s.substr(24,8)) >> params->PAR[K][21];
-        stringstream(s.substr(32,8)) >> params->PAR[K][20];
-        stringstream(s.substr(40,8)) >> params->PAR[K][15];
-        stringstream(s.substr(48,8)) >> params->PAR[K][16];
+        phases[K-1].PAR_[3-1] = s.substr(0,8);
+        phases[K-1].PAR_[4-1] = s.substr(8,8);
+        phases[K-1].PAR_[5-1] = s.substr(16,8);
+        phases[K-1].PAR_[21-1] = s.substr(24,8);
+        phases[K-1].PAR_[20-1] = s.substr(32,8);
+        phases[K-1].PAR_[15-1] = s.substr(40,8);
+        phases[K-1].PAR_[16-1] = s.substr(48,8);
 
         getline(file5,s);
-        stringstream(s.substr(0,8)) >> params->APAR[K][3];
-        stringstream(s.substr(8,8)) >> params->APAR[K][4];
-        stringstream(s.substr(16,8)) >> params->APAR[K][5];
-        stringstream(s.substr(24,8)) >> params->APAR[K][21];
-        stringstream(s.substr(32,8)) >> params->APAR[K][20];
-        stringstream(s.substr(40,8)) >> params->APAR[K][15];
-        stringstream(s.substr(48,8)) >> params->APAR[K][16];
+        stringstream(s.substr(0,8)) >> phases[K-1].PAR_[3-1].A;
+        stringstream(s.substr(8,8)) >> phases[K-1].PAR_[4-1].A;
+        stringstream(s.substr(16,8)) >> phases[K-1].PAR_[5-1].A;
+        stringstream(s.substr(24,8)) >> phases[K-1].PAR_[21-1].A;
+        stringstream(s.substr(32,8)) >> phases[K-1].PAR_[20-1].A;
+        stringstream(s.substr(40,8)) >> phases[K-1].PAR_[15-1].A;
+        stringstream(s.substr(48,8)) >> phases[K-1].PAR_[16-1].A;
 
         getline(file5,s);
-        stringstream(s.substr(0,8)) >> params->PAR[K][6];
-        stringstream(s.substr(8,8)) >> params->PAR[K][7];
-        stringstream(s.substr(16,8)) >> params->PAR[K][8];
-        stringstream(s.substr(24,8)) >> params->PAR[K][9];
-        stringstream(s.substr(32,8)) >> params->PAR[K][10];
-        stringstream(s.substr(40,8)) >> params->PAR[K][11];
+        phases[K-1].PAR_[6-1] = s.substr(0,8);
+        phases[K-1].PAR_[7-1] = s.substr(8,8);
+        phases[K-1].PAR_[8-1] = s.substr(16,8);
+        phases[K-1].PAR_[9-1] = s.substr(24,8);
+        phases[K-1].PAR_[10-1] = s.substr(32,8);
+        phases[K-1].PAR_[11-1] = s.substr(40,8);
 
         getline(file5,s);			// Unit cell (line 11-7)
-        stringstream(s.substr(0,8)) >> params->APAR[K][6];
-        stringstream(s.substr(8,8)) >> params->APAR[K][7];
-        stringstream(s.substr(16,8)) >> params->APAR[K][8];
-        stringstream(s.substr(24,8)) >> params->APAR[K][9];
-        stringstream(s.substr(32,8)) >> params->APAR[K][10];
-        stringstream(s.substr(40,8)) >> params->APAR[K][11];
+        stringstream(s.substr(0,8)) >> phases[K-1].PAR_[6-1].A;
+        stringstream(s.substr(8,8)) >> phases[K-1].PAR_[7-1].A;
+        stringstream(s.substr(16,8)) >> phases[K-1].PAR_[8-1].A;
+        stringstream(s.substr(24,8)) >> phases[K-1].PAR_[9-1].A;
+        stringstream(s.substr(32,8)) >> phases[K-1].PAR_[10-1].A;
+        stringstream(s.substr(40,8)) >> phases[K-1].PAR_[11-1].A;
 
         getline(file5,s);			// G1 G2 P (line 11-8)
-        stringstream(s.substr(0,8)) >> params->PAR[K][12];
-        stringstream(s.substr(8,8)) >> params->PAR[K][13];
-        stringstream(s.substr(16,8)) >> params->PAR[K][14];
+        phases[K-1].PAR_[12-1] = s.substr(0,8);
+        phases[K-1].PAR_[13-1] = s.substr(8,8);
+        phases[K-1].PAR_[14-1] = s.substr(16,8);
 
         getline(file5,s);
-        stringstream(s.substr(0,8)) >> params->APAR[K][12];
-        stringstream(s.substr(8,8)) >> params->APAR[K][13];
-        stringstream(s.substr(16,8)) >> params->APAR[K][14];
+        stringstream(s.substr(0,8)) >> phases[K-1].PAR_[12-1].A;
+        stringstream(s.substr(8,8)) >> phases[K-1].PAR_[13-1].A;
+        stringstream(s.substr(16,8)) >> phases[K-1].PAR_[14-1].A;
 
         getline(file5,s);			// NA NB NC (line 11-91)
-        stringstream(s.substr(0,8)) >> params->PAR[K][17];
-        stringstream(s.substr(8,8)) >> params->PAR[K][18];
-        stringstream(s.substr(16,8)) >> params->PAR[K][19];
+        phases[K-1].PAR_[17-1] = s.substr(0,8);
+        phases[K-1].PAR_[18-1] = s.substr(8,8);
+        phases[K-1].PAR_[19-1] = s.substr(16,8);
 
         getline(file5,s);
-        stringstream(s.substr(0,8)) >> params->APAR[K][17];
-        stringstream(s.substr(8,8)) >> params->APAR[K][18];
-        stringstream(s.substr(16,8)) >> params->APAR[K][19];
+        stringstream(s.substr(0,8)) >> phases[K-1].PAR_[17-1].A;
+        stringstream(s.substr(8,8)) >> phases[K-1].PAR_[18-1].A;
+        stringstream(s.substr(16,8)) >> phases[K-1].PAR_[19-1].A;
 
         getline(file5,s);			// NA NB NC HS (line 11-93)
-        stringstream(s.substr(0,8)) >> params->PAR[K][24];
-        stringstream(s.substr(8,8)) >> params->PAR[K][25];
-        stringstream(s.substr(16,8)) >> params->PAR[K][26];
+        phases[K-1].PAR_[24-1] = s.substr(0,8);
+        phases[K-1].PAR_[25-1] = s.substr(8,8);
+        phases[K-1].PAR_[26-1] = s.substr(16,8);
 
         getline(file5,s);
-        stringstream(s.substr(0,8)) >> params->APAR[K][24];
-        stringstream(s.substr(8,8)) >> params->APAR[K][25];
-        stringstream(s.substr(16,8)) >> params->APAR[K][26];
+        stringstream(s.substr(0,8)) >> phases[K-1].PAR_[24-1].A;
+        stringstream(s.substr(8,8)) >> phases[K-1].PAR_[25-1].A;
+        stringstream(s.substr(16,8)) >> phases[K-1].PAR_[26-1].A;
 
         getline(file5,s);			// s-PVII (line 11-95);
-        stringstream(s.substr(0,8)) >> params->PAR[K][27];
+        phases[K-1].PAR_[27-1] = s.substr(0,8);
 
         getline(file5,s);
-        stringstream(s.substr(0,8)) >> params->APAR[K][27];
+        stringstream(s.substr(0,8)) >> phases[K-1].PAR_[27-1].A;
 
         // checking for zeros if TCH-PV is being used
         if(cntrls->NPROF == _TCHZ)
         {
-            if(params->PAR[K][15] == 0)params->PAR[K][15]=1e-8;
-            if(params->PAR[K][16] == 0)params->PAR[K][16]=1e-8;
-            if(params->PAR[K][3] == params->PAR[K][4] && params->PAR[K][4] == params->PAR[K][5] && params->PAR[K][5] == params->PAR[K][20] && params->PAR[K][3] == 0) params->PAR[K][5]=1e-8;
+            if(phases[K-1].PAR_[15-1] == 0)phases[K-1].PAR_[15-1]=1e-8;
+            if(phases[K-1].PAR_[16-1] == 0)phases[K-1].PAR_[16-1]=1e-8;
+            if(phases[K-1].PAR_[3-1] == phases[K-1].PAR_[4-1] && phases[K-1].PAR_[4-1] == phases[K-1].PAR_[5-1] && phases[K-1].PAR_[5-1] == phases[K-1].PAR_[20-1] && phases[K-1].PAR_[3-1] == 0) phases[K-1].PAR_[5-1]=1e-8;
         }
         // checking for zeros in PV #5
         if(cntrls->NPROF == _pseudoVoigt)
         {
-            if(params->PAR[K][17] == 0)params->PAR[K][17]=1e-6;
+            if(phases[K-1].PAR_[17-1] == 0)phases[K-1].PAR_[17-1]=1e-6;
         }
-        //      if(int(params->APAR[K][20]/10) != 0 && params->PAR[K][20] == 0)params->PAR[K][20]=1e-9
+        //      if(int(phases[K-1].PAR_[20-1].APAR/10) != 0 && params->PAR[K][20] == 0)params->PAR[K][20]=1e-9
         // !cp Aug 95 introducing params->PAR[K][21]=ct
         // CHECKING FOR NON-REFINABLE PARAMETERS
         //CCC                        FOR  CT  IN TCHZ AND SPVII FUNCTIONS
         if(cntrls->NPROF == _TCHZ || cntrls->NPROF == _SplitPearsonVII)
         {
-            params->PAR[K][21]=0.0;
-            if(params->APAR[K][21] != 0.0)
+            phases[K-1].PAR_[21-1]=0.0;
+            if(phases[K-1].PAR_[21-1].A != 0.0)
             {
                 cout << "NON-REFINABLE PARAMETER TURNED ON (CT) WITH SPLIT PEARSON VII OR TCHZ PROFILE FUNCTION" << endl;
                 file6 << "NON-REFINABLE PARAMETER TURNED ON (CT) WITH SPLIT PEARSON VII OR TCHZ PROFILE FUNCTION" << endl;
@@ -10787,15 +10746,15 @@ L477:
         //CCC                             FOR  X,Y,Z IN NON-TCHZ FUNCTION
         if(cntrls->NPROF != _TCHZ)
         {
-            if(params->PAR[K][20] != 0 || params->PAR[K][16] != 0 || params->APAR[K][15] != 0)
+            if(phases[K-1].PAR_[20-1] != 0 || phases[K-1].PAR_[16-1] != 0 || phases[K-1].PAR_[15-1].A != 0)
             {
                 file6 << "     NON-REFINABLE PARAMETER RESET TO ZERO (Z,X,Y) FOR" << endl
                     << "     NON TCHZ PROFILE FUNCTION" << endl;
-                params->PAR[K][20]=0.0;
-                params->PAR[K][16]=0.0;
-                params->PAR[K][15]=0.0;
+                phases[K-1].PAR_[20-1]=0.0;
+                phases[K-1].PAR_[16-1]=0.0;
+                phases[K-1].PAR_[15-1]=0.0;
             }
-            if(params->APAR[K][20] != 0 || params->APAR[K][16] != 0 || params->APAR[K][15] != 0)
+            if(phases[K-1].PAR_[20-1].A != 0 || phases[K-1].PAR_[16-1].A != 0 || phases[K-1].PAR_[15-1].A != 0)
             {
                 cout << "NON-REFINABLE PARAMETER TURNED ON (Z,X,Y) WITH NOT TCHZ PROFILE FUNCTION" << endl;
                 file6 << "NON-REFINABLE PARAMETER TURNED ON (Z,X,Y) WITH NOT TCHZ PROFILE FUNCTION" << endl;
@@ -10807,12 +10766,12 @@ L477:
         {
             for (KKS=1; KKS <= 3; ++KKS)
             {
-                if(params->PAR[K][13+KKS] != 0.0)
+                if(phases[K-1].PAR_[13+KKS-1] != 0.0)
                 {
-                    params->PAR[K][13+KKS]=0.0;
+                    phases[K-1].PAR_[13+KKS-1]=0.0;
                     file6 << " RIET_ASYM X Y RESET TO ZERO FOR SPVII FUNCTION" << endl;
                 }
-                if(params->APAR[K][13+KKS] != 0.0)
+                if(phases[K-1].PAR_[13+KKS-1].A != 0.0)
                 {
                     cout << "NON-REFINEABLE PARAMETER TURNED ON (X,Y,R/RCF_ASYM)" << endl
                         << ", WITH SPLIT PEARSON VII PROFILE FUNCTION" << endl;
@@ -10823,12 +10782,12 @@ L477:
             }
             for (KKS=1; KKS <= 2; ++KKS)
             {
-                if ( params->PAR[K][19+KKS] != 0.0 )
+                if ( phases[K-1].PAR_[19+KKS-1] != 0.0 )
                 {
-                    params->PAR[K][19+KKS]=0.0;
+                    phases[K-1].PAR_[19+KKS-1]=0.0;
                     file6 << "CT,Z  RESET TO ZERO FOR SPVII FUNCTION" << endl;
                 }
-                if ( params->APAR[K][19+KKS] != 0.0 )
+                if ( phases[K-1].PAR_[19+KKS-1].A != 0.0 )
                 {
                     cout << "NON-REFINEABLE PARAMETER TURNED ON (CT,Z), WITH SPLIT PEARSON VII PROFILE FUNCTION" << endl;
                     file6 << "NON-REFINEABLE PARAMETER TURNED ON (CT,Z), WITH SPLIT PEARSON VII PROFILE FUNCTION" << endl;
@@ -10841,12 +10800,12 @@ L477:
         {
             for (KK=1; KK <= 4; ++KK)
             {
-                if ( params->PAR[K][23+KK] != 0.0 )
+                if ( phases[K-1].PAR_[23+KK-1] != 0.0 )
                 {
-                    params->PAR[K][23+KK]=0.0;
+                    phases[K-1].PAR_[23+KK-1]=0.0;
                     file6 << "NA NB NC (HIGH SIDE) AND PEARSON ASYMMETRY RESET TO ZERO FOR A, NON-SPLIT PEARSON VII FUNCTION" << endl;
                 }
-                if(params->PAR[K][23+KK] != 0.0)
+                if(phases[K-1].PAR_[23+KK-1] != 0.0)
                 {
                     cout << "NA NB NC (HIGH SIDE) AND PEARSON ASYMMETRY ONLY REFINABLE FOR A SPLIT PEARSON VII FUNCTION" << endl;
                     file6 << "NA NB NC (HIGH SIDE) AND PEARSON ASYMMETRY ONLY REFINABLE FOR A SPLIT PEARSON VII FUNCTION" << endl;
@@ -10854,73 +10813,75 @@ L477:
             }
         }
         //CCCCC END OF CHECKING NON-REFINABLE PARAMETERS
-        file6 << "OVERALL SCALE FACTOR=" << scientific << setw(12) << setprecision(6) << params->PAR[K][1] << fixed << endl
-            << "OVERALL TEMP. FACTOR=" << setw(12) << setprecision(5) << params->PAR[K][2] << endl
-            << "DIRECT CELL PARAMETERS="
-            << setw(9) << setprecision(4) << params->PAR[K][6]
-        << setw(9) << setprecision(4) << params->PAR[K][7]
-        << setw(9) << setprecision(4) << params->PAR[K][8]
-        << setw(9) << setprecision(4) << params->PAR[K][9]
-        << setw(9) << setprecision(4) << params->PAR[K][10]
-        << setw(9) << setprecision(4) << params->PAR[K][11] << endl
-            << "PREFERRED ORIENTATION PARAMETERS="
-            << setw(7) << setprecision(3) << params->PAR[K][12]
-        << setw(7) << setprecision(3) << params->PAR[K][13]
+        file6 << "OVERALL SCALE FACTOR=" << scientific << setw(12) << setprecision(6) << phases[K-1].PAR_[1-1] << fixed << endl
+            << "OVERALL TEMP. FACTOR=" << setw(12) << setprecision(5) << phases[K-1].PAR_[2-1] << endl;
+
+        file6 << "DIRECT CELL PARAMETERS:" << endl
+        << "a = " << setw(9) << setprecision(4) << phases[K-1].PAR_[6-1] << endl
+        << "b = " << setw(9) << setprecision(4) << phases[K-1].PAR_[7-1] << endl
+        << "c = " << setw(9) << setprecision(4) << phases[K-1].PAR_[8-1] << endl
+        << "α = " << setw(9) << setprecision(4) << phases[K-1].PAR_[9-1] << endl
+        << "β = " << setw(9) << setprecision(4) << phases[K-1].PAR_[10-1] << endl
+        << "γ = " << setw(9) << setprecision(4) << phases[K-1].PAR_[11-1] << endl;
+
+        file6 << "PREFERRED ORIENTATION PARAMETERS="
+            << setw(7) << setprecision(3) << phases[K-1].PAR_[12-1]
+        << setw(7) << setprecision(3) << phases[K-1].PAR_[13-1] << endl
         << "ASYMMETRY PARAMETER="
-            << setw(8) << setprecision(4) << params->PAR[K][14] << endl;
+            << setw(8) << setprecision(4) << phases[K-1].PAR_[14-1] << endl;
 
         //-----CHECK FOR SPLIT PEARSON PROFILE
         if (cntrls->NPROF == _SplitPearsonVII)
         {
             file6 << "LOW SIDE EXPONENT COEFFICIENTS="
-                << setw(12) << setprecision(4) << params->PAR[K][17]
-            << setw(12) << setprecision(4) << params->PAR[K][18]
-            << setw(12) << setprecision(4) << params->PAR[K][19]
+                << setw(12) << setprecision(4) << phases[K-1].PAR_[17-1]
+            << setw(12) << setprecision(4) << phases[K-1].PAR_[18-1]
+            << setw(12) << setprecision(4) << phases[K-1].PAR_[19-1]
             << "HIGH SIDE EXPONENT COEFFICIENTS="
-                << setw(12) << setprecision(4) << params->PAR[K][24]
-            << setw(12) << setprecision(4) << params->PAR[K][25]
-            << setw(12) << setprecision(4) << params->PAR[K][26]
+                << setw(12) << setprecision(4) << phases[K-1].PAR_[24-1]
+            << setw(12) << setprecision(4) << phases[K-1].PAR_[25-1]
+            << setw(12) << setprecision(4) << phases[K-1].PAR_[26-1] << endl
             << "SPLIT PEARSON VII ASYMMETRY PARAMETER="
-                << setw(8) << setprecision(4) << params->PAR[K][27] << endl;
+                << setw(8) << setprecision(4) << phases[K-1].PAR_[27-1] << endl;
         }
         else
         {
             //-----if NOT THE SPLIT PEARSON VII PROFILE
             file6 << "MIXING PARAMETERS = "
                 << scientific
-                << setw(10) << setprecision(3) << params->PAR[K][17] << " "
-                << setw(10) << setprecision(3) << params->PAR[K][18] << " "
-                << setw(10) << setprecision(3) << params->PAR[K][19] << fixed << endl;
+                << setw(10) << setprecision(3) << phases[K-1].PAR_[17-1] << " "
+                << setw(10) << setprecision(3) << phases[K-1].PAR_[18-1] << " "
+                << setw(10) << setprecision(3) << phases[K-1].PAR_[19-1] << fixed << endl;
         }
         file6 << "FWHM PARAMETERS (U,V,W,CT,Z,X,Y)="
-            << setw(9) << setprecision(4) << params->PAR[K][3]
-        << setw(9) << setprecision(4) << params->PAR[K][4]
-        << setw(9) << setprecision(4) << params->PAR[K][5]
-        << setw(9) << setprecision(4) << params->PAR[K][21]
-        << setw(9) << setprecision(4) << params->PAR[K][20]
-        << setw(9) << setprecision(4) << params->PAR[K][15]
-        << setw(9) << setprecision(4) << params->PAR[K][16] << endl;
-        cellx->A=params->PAR[K][6];
-        cellx->B=params->PAR[K][7];
-        cellx->C=params->PAR[K][8];
-        cellx->ALPHA=params->PAR[K][9];
-        cellx->BETA=params->PAR[K][10];
-        cellx->GAMMA=params->PAR[K][11];
+            << setw(9) << setprecision(4) << phases[K-1].PAR_[3-1]
+        << setw(9) << setprecision(4) << phases[K-1].PAR_[4-1]
+        << setw(9) << setprecision(4) << phases[K-1].PAR_[5-1]
+        << setw(9) << setprecision(4) << phases[K-1].PAR_[21-1]
+        << setw(9) << setprecision(4) << phases[K-1].PAR_[20-1]
+        << setw(9) << setprecision(4) << phases[K-1].PAR_[15-1]
+        << setw(9) << setprecision(4) << phases[K-1].PAR_[16-1] << endl;
+        cellx->A=phases[K-1].PAR_[6-1];
+        cellx->B=phases[K-1].PAR_[7-1];
+        cellx->C=phases[K-1].PAR_[8-1];
+        cellx->ALPHA=phases[K-1].PAR_[9-1];
+        cellx->BETA=phases[K-1].PAR_[10-1];
+        cellx->GAMMA=phases[K-1].PAR_[11-1];
         CELL2(K,LAMDAM);
         // ************************************** !cp ap 97 (from It code)
         if(cntrls->FONDO == 1 || cntrls->FONDO == 2)
         {
-            bkgscale->SCABKG[K] = volume->GCOM[K] * params->PAR[K][1];
+            bkgscale->SCABKG[K] = volume->GCOM[K] * phases[K-1].PAR_[1-1];
         }
         // ************************************************************
         file6 << "CELL VOLUME PHASE(" << setw(2) << K << " ) = " << setw(12) << setprecision(4) << volume->VOLI[K] << endl;
-        for (I=1; I <= 6; ++I) dc->SAVE[K][I]=params->PAR[K][I+5];
+        for (I=1; I <= 6; ++I) dc->SAVE[K][I]=phases[K-1].PAR_[I+5-1];
 
         // change to reci
-        for (I=1; I <= 3; ++I) params->PAR[K][I+5]=cellx->AL[I][I];			// a,b and c cell parameters
-        params->PAR[K][9]=cellx->AL[2][3];			// alpha cell
-        params->PAR[K][10]=cellx->AL[1][3];			// beta cell
-        params->PAR[K][11]=cellx->AL[1][2];			// gamma cell
+        for (I=1; I <= 3; ++I) phases[K-1].PAR_[I+5-1]=cellx->AL[I][I];			// a,b and c cell parameters
+        phases[K-1].PAR_[9-1]=cellx->AL[2][3];			// alpha cell
+        phases[K-1].PAR_[10-1]=cellx->AL[1][3];			// beta cell
+        phases[K-1].PAR_[11-1]=cellx->AL[1][2];			// gamma cell
         file6 << "***Coding of variables***" << endl
             << "ATOM                        X         Y         Z         B         So" << endl
             << "                          B11       B22       B33       B12       B13       B23" << endl;
@@ -10954,77 +10915,77 @@ L477:
             }
         }
         //-----PRINT CODEWORDS FOR PROFILE PARAMETERS
-        file6 << "OVERALL SCALE FACTOR=" << setw(8) << setprecision(2) << params->APAR[K][1] << endl
-            << "OVERALL TEMP. FACTOR=" << setw(8) << setprecision(2) << params->APAR[K][2] << endl
+        file6 << "OVERALL SCALE FACTOR=" << setw(8) << setprecision(2) << phases[K-1].PAR_[1-1].A << endl
+            << "OVERALL TEMP. FACTOR=" << setw(8) << setprecision(2) << phases[K-1].PAR_[2-1].A << endl
             << "DIRECT CELL PARAMETERS="
-            << setw(8) << setprecision(2) << params->APAR[K][6]
-        << setw(8) << setprecision(2) << params->APAR[K][7]
-        << setw(8) << setprecision(2) << params->APAR[K][8]
-        << setw(8) << setprecision(2) << params->APAR[K][9]
-        << setw(8) << setprecision(2) << params->APAR[K][10]
-        << setw(8) << setprecision(2) << params->APAR[K][11] << endl
+            << setw(8) << setprecision(2) << phases[K-1].PAR_[6-1].A
+        << setw(8) << setprecision(2) << phases[K-1].PAR_[7-1].A
+        << setw(8) << setprecision(2) << phases[K-1].PAR_[8-1].A
+        << setw(8) << setprecision(2) << phases[K-1].PAR_[9-1].A
+        << setw(8) << setprecision(2) << phases[K-1].PAR_[10-1].A
+        << setw(8) << setprecision(2) << phases[K-1].PAR_[11-1].A << endl
             << "PREFERRED ORIENTATION PARAMETERS="
-            << setw(8) << setprecision(2) << params->APAR[K][12]
-        << setw(8) << setprecision(2) << params->APAR[K][13] << endl
+            << setw(8) << setprecision(2) << phases[K-1].PAR_[12-1].A
+        << setw(8) << setprecision(2) << phases[K-1].PAR_[13-1].A << endl
             << "ASYMMETRY PARAMETER="
-            << setw(8) << setprecision(4) << params->APAR[K][14] << endl;
+            << setw(8) << setprecision(4) << phases[K-1].PAR_[14-1].A << endl;
 
         // !cp ap 97 (from It code)
-        if(cntrls->FONDO == 1 && (params->PAR[K][2] != 0.0 || params->APAR[K][2] != 0.0)) goto L88888;
-        if(cntrls->FONDO == 2 && params->PAR[K][2] == 0.0 && params->APAR[K][2] == 0.0) goto L88889;
+        if(cntrls->FONDO == 1 && (phases[K-1].PAR_[2-1] != 0.0 || phases[K-1].PAR_[2-1].A != 0.0)) goto L88888;
+        if(cntrls->FONDO == 2 && phases[K-1].PAR_[2-1] == 0.0 && phases[K-1].PAR_[2-1].A == 0.0) goto L88889;
         //-----CHECK FOR SPLIT PEARSON PROFILE
         if (cntrls->NPROF == _SplitPearsonVII)
         {
             file6 << "LOW SIDE EXPONENT COEFFICIENTS="
-                << setw(8) << setprecision(2) << params->APAR[K][17]
-            << setw(8) << setprecision(2) << params->APAR[K][18]
-            << setw(8) << setprecision(2) << params->APAR[K][19] << endl
+                << setw(8) << setprecision(2) << phases[K-1].PAR_[17-1].A
+            << setw(8) << setprecision(2) << phases[K-1].PAR_[18-1].A
+            << setw(8) << setprecision(2) << phases[K-1].PAR_[19-1].A << endl
                 << "HIGH SIDE EXPONENT COEFFICIENTS="
-                << setw(8) << setprecision(2) << params->APAR[K][24]
-            << setw(8) << setprecision(2) << params->APAR[K][25]
-            << setw(8) << setprecision(2) << params->APAR[K][26] << endl
+                << setw(8) << setprecision(2) << phases[K-1].PAR_[24-1].A
+            << setw(8) << setprecision(2) << phases[K-1].PAR_[25-1].A
+            << setw(8) << setprecision(2) << phases[K-1].PAR_[26-1].A << endl
                 << "SPLIT PEARSON VII ASSYMETRY PARAMETER="
-                << setw(8) << setprecision(2) << params->APAR[K][27] << endl;
+                << setw(8) << setprecision(2) << phases[K-1].PAR_[27-1].A << endl;
         }
         else
         {
             //-----if NOT THE SPLIT PEARSON VII PROFILE
             file6
                 << "MIXING PARAMETERS = "
-                << setw(10) << setprecision(3) << params->APAR[K][17]
-                << setw(10) << setprecision(3) << params->APAR[K][18]
-                << setw(10) << setprecision(3) << params->APAR[K][19] << endl;
+                << setw(10) << setprecision(3) << phases[K-1].PAR_[17-1].A
+                << setw(10) << setprecision(3) << phases[K-1].PAR_[18-1].A
+                << setw(10) << setprecision(3) << phases[K-1].PAR_[19-1].A << endl;
         }
         file6
             << "FWHM PARAMETERS (U,V,W,CT,Z,X,Y)="
-            << setw(8) << setprecision(2) << params->APAR[K][3]
-            << setw(8) << setprecision(2) << params->APAR[K][4]
-            << setw(8) << setprecision(2) << params->APAR[K][5]
-            << setw(8) << setprecision(2) << params->APAR[K][21]
-            << setw(8) << setprecision(2) << params->APAR[K][20]
-            << setw(8) << setprecision(2) << params->APAR[K][15]
-            << setw(8) << setprecision(2) << params->APAR[K][16] << endl;
+            << setw(8) << setprecision(2) << phases[K-1].PAR_[3-1].A
+            << setw(8) << setprecision(2) << phases[K-1].PAR_[4-1].A
+            << setw(8) << setprecision(2) << phases[K-1].PAR_[5-1].A
+            << setw(8) << setprecision(2) << phases[K-1].PAR_[21-1].A
+            << setw(8) << setprecision(2) << phases[K-1].PAR_[20-1].A
+            << setw(8) << setprecision(2) << phases[K-1].PAR_[15-1].A
+            << setw(8) << setprecision(2) << phases[K-1].PAR_[16-1].A << endl;
         for (I=1; I <= 27; ++I)
         {
-            X=params->APAR[K][I];
+            X=phases[K-1].PAR_[I-1].A;
             IYY=static_cast<int>(abs(X)/10.0);
-            params->LPAR[K][I]=IYY;
-            params->APAR[K][I]=(abs(X)-10.*static_cast<double>(IYY))*sign(X);
+            phases[K-1].PAR_[I-1].L=IYY;
+            phases[K-1].PAR_[I-1].A=(abs(X)-10.*static_cast<double>(IYY))*sign(X);
         }
         //L151:
         LOOKUP(K,jnk->NATOM[K],jnk->NSCAT,IXRAY,cntrls->JOBTYP);
         if(cntrls->FONDO == 1 || cntrls->FONDO == 2) FINDC(K,jnk->NSCAT);
-        g1->U=params->PAR[K][3];
-        g1->V=params->PAR[K][4];
-        g1->W=params->PAR[K][5];
-        g1->ZZZ = params->PAR[K][20];
-        g1->UC = params->PAR[K][21];
+        g1->U=phases[K-1].PAR_[3-1];
+        g1->V=phases[K-1].PAR_[4-1];
+        g1->W=phases[K-1].PAR_[5-1];
+        g1->ZZZ = phases[K-1].PAR_[20-1];
+        g1->UC = phases[K-1].PAR_[21-1];
         if (cntrls->NPROF == _TCHZ)
         {
-            g1->ULOR=params->PAR[K][15];
-            g1->VLOR=params->PAR[K][16];
+            g1->ULOR=phases[K-1].PAR_[15-1];
+            g1->VLOR=phases[K-1].PAR_[16-1];
         }
-        REFGEN(K,params->GLB[1],params->GLB[10],params->GLB[11],jnk->PREF,params->PAR[K][12]);
+        REFGEN(K,params->GLB_[1-1],params->GLB_[10-1],params->GLB_[11-1],jnk->PREF,phases[K-1].PAR_[12-1]);
         simoper->ISIMOP=0;
         RTMT(&cntrls->IPL1,&K);
         ICY=1;
@@ -11059,8 +11020,8 @@ L477:
             }
             else if (cntrls->NPROF == _SplitPearsonVII)
             {
-                refls->FWHM[IXX][1]=2.0*(refls->REFS[IXX][1])*params->PAR[K][27]/(1.0+params->PAR[K][27]);
-                refls->FWHM[IXX][2]=2.0*(refls->REFS[IXX][1])/(1.0+params->PAR[K][27]);
+                refls->FWHM[IXX][1]=2.0*(refls->REFS[IXX][1])*phases[K-1].PAR_[27-1]/(1.0+phases[K-1].PAR_[27-1]);
+                refls->FWHM[IXX][2]=2.0*(refls->REFS[IXX][1])/(1.0+phases[K-1].PAR_[27-1]);
                 if((IX-1 % 60) == 0) file6 << "NO.  CODE    H   K   L  MULT      HWL    HWH     FWHM   POSN    FACTOR" << endl;
                 file6 << setw(4) << IX
                     << setw(4) << IRC << "   "
@@ -11097,10 +11058,10 @@ L479:
     // FIND CODEWORDS FOR GLOBAL PARAMETERS: LGLB(I) & AGLB(I)
     for (I=1; I <= 20; ++I)
     {
-        X=params->AGLB[I];
+        X=params->GLB_[I-1].A;
         IYY=static_cast<int>(abs(X)/10.0);
-        params->LGLB[I]=IYY;
-        params->AGLB[I]=(abs(X)-10.*static_cast<double>(IYY))*sign(X);
+        params->GLB_[I-1].L=IYY;
+        params->GLB_[I-1].A=(abs(X)-10.*static_cast<double>(IYY))*sign(X);
     }
     qpainit();
     if (cntrls->JOBTYP > 2) return;
@@ -11110,10 +11071,10 @@ L479:
     for (I=1; I <= cntrls->MAXS; ++I)
     {
         LCOUNT = 0;
-        for (J=1; J <= 20; ++J) if ( I == params->LGLB[J] ) LCOUNT = LCOUNT + 1;
+        for (J=1; J <= 20; ++J) if ( I == params->GLB_[J-1].L ) LCOUNT = LCOUNT + 1;
         for (K=1; K <= cntrls->NPHASE; ++K)
         {
-            for (J=1; J <= 27; ++J) if ( I == params->LPAR[K][J] )  LCOUNT = LCOUNT + 1;
+            for (J=1; J <= 27; ++J) if ( I == phases[K-1].PAR_[J-1].L )  LCOUNT = LCOUNT + 1;
         }
         for (K=1; K <= NATOMS; ++K)
         {
@@ -11126,18 +11087,17 @@ L479:
     ISTOP=0;
     for (I=1; I <= cntrls->MAXS; ++I)
     {
-        for (J=1; J <= 20; ++J) if (I == params->LGLB[J]) goto L7200;
+        for (J=1; J <= 20; ++J) if (I == params->GLB_[J-1].L) goto L7200;
         //  HOLES IN PHASE PARAMETER
         for (K=1; K <= cntrls->NPHASE; ++K)
         {
-            for (J=1; J <= 27; ++J) if(I == params->LPAR[K][J]) goto L7200;
+            for (J=1; J <= 27; ++J) if(I == phases[K-1].PAR_[J-1].L) goto L7200;
         }
         // HOLES IN ATOMS PARAMETERS
         for (K=1; K <= NATOMS; ++K)
         {
             for (J=1; J <= 11; ++J) if(I == params->LP[K][J]) goto L7200;
         }
-        file7 << "     ***** HOLE IN THE MATRIX ******. ELEMENT " << setw(3) << I << " IN THE NORMAL MATRIX IS MISSING" << endl;
         file6 << "     ***** HOLE IN THE MATRIX ******. ELEMENT " << setw(3) << I << " IN THE NORMAL MATRIX IS MISSING" << endl;
         cout << "     ***** HOLE IN THE MATRIX ******. ELEMENT " << setw(3) << I << " IN THE NORMAL MATRIX IS MISSING" << endl;
         ISTOP = 1;
@@ -11163,7 +11123,6 @@ L88088:
     if (file4.is_open()) file4.close();
     if (file5.is_open()) file5.close();
     if (file6.is_open()) file6.close();
-    if (file7.is_open()) file7.close();
     if (file8o.is_open()) file8o.close(); //	close(8,status='DELETE');
     if (file8i.is_open()) file8i.close();
     DBWSException("");
@@ -11255,8 +11214,6 @@ int main(int argc, char *argv[])
                 app.file6name = string(argv[3]);
                 app.file6.open(app.file6name.data());
 
-                // unit 7 = r indexes
-                app.file7.open("unit7");
 
                 // unit 8 = scratch
                 app.file8name = "unit8";
@@ -11269,7 +11226,6 @@ int main(int argc, char *argv[])
                 if ( app.file4.is_open() ) app.file4.close();
                 if ( app.file5.is_open() ) app.file5.close();
                 if ( app.file6.is_open() ) app.file6.close();
-                if ( app.file7.is_open() ) app.file7.close();
                 if ( app.file8o.is_open() ) app.file8o.close();    //close(8,status='DELETE');
                 if ( app.file8i.is_open() ) app.file8i.close();
                 if ( app.file11.is_open() ) app.file11.close();
