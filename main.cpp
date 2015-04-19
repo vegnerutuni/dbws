@@ -207,9 +207,9 @@ public:
 class RTMTX
 {
 public:
-    int IVEC[99+1][192+1];
-    int MLTPHS[99+1];
-    int ICNTPHS[99+1];
+    //int IVEC[99+1][192+1];
+    //int MLTPHS[99+1];
+    //int ICNTPHS[99+1];
 };
 
 class SIZESTRAIN
@@ -1152,7 +1152,7 @@ void DBWS::COMPTON(int K, double STH, double* CISK)
     NK = phases[K].AtomCount;
     //-----IRL = NUMBER OF EQUIVALENT POSITION - ALSO THE IDENTITY
     //           AND if IT IS PRESENT THE SIMMETRY CENTRE
-    IRL = rtmtx->MLTPHS[K];
+    IRL = phases[K].MLTPHS;
 
     //-----CALCULATE IOF = ALL ATOMS OF THE K-1 PHASES
     IOF = 0;
@@ -1231,7 +1231,7 @@ void DBWS::DISORDER(int K, double STH, int IDERIV, double* SDK, double* DYC, int
     }
     //-----IRL = NUMBER OF EQUIVALENT POSITIONS- ALSO THE IDENTITY POSITION
     //           AND THE SIMMETRY CENTRE if PRESENT
-    IRL = rtmtx->MLTPHS[K];
+    IRL = phases[K].MLTPHS;
     //-----NK = NUMBER OF ATOMS IN THE K-TH PHASE
     NK  = phases[K].AtomCount;
     for (ICX = 1; ICX <= 2; ++ICX)
@@ -1583,9 +1583,9 @@ void DBWS::CALCUL(int NN)
     {
         for (IIPHAS=2; IIPHAS <= prfx->IPH; ++IIPHAS) IOF = IOF + phases[IIPHAS-1].AtomCount;
     }
-    IRL = rtmtx->MLTPHS[prfx->IPH];
+    IRL = phases[prfx->IPH].MLTPHS;
     N = phases[prfx->IPH].AtomCount;
-    ICENT = rtmtx->ICNTPHS[prfx->IPH];
+    ICENT = phases[prfx->IPH].ICNTPHS;
     //-----ZEROIZE THE DERIVATIVES OF THIS REFLECTION W.R.T. TO PARAMETERS
     NX=0;
     for (IIPHAS=1; IIPHAS <= cntrls->NPHASE; ++IIPHAS) NX = NX+phases[IIPHAS].AtomCount;
@@ -1764,12 +1764,12 @@ void DBWS::CALCUL(int NN)
         {
             for (J=1; J <= 3; ++J)
             {
-                IV=rtmtx->IVEC[prfx->IPH][IR] /32768 / static_cast<int>(pow(32,3-J));
+                IV=phases[prfx->IPH].IVEC[IR] /32768 / static_cast<int>(pow(32,3-J));
                 IV=(IV % 32);
                 SM[J][1]=IV/9-1;
                 SM[J][2]=((IV/3) % 3)-1;
                 SM[J][3]=(IV % 3)-1;
-                T[J] = static_cast<double>( ((rtmtx->IVEC[prfx->IPH][IR]/
+                T[J] = static_cast<double>( ((phases[prfx->IPH].IVEC[IR]/
                     static_cast<int>(pow(32,3-J))
                     ) % 32) - 16) / 12.0;
             }
@@ -4433,7 +4433,7 @@ void DBWS::RTMT(int* MULTX_, double Y_[][3+1], int* IPRT, int NCTR_[],  int* IPH
     multip->MLTPHASE=phases[*IPHASE].SYMB.MULTP;
     for (I=1; I <= phases[*IPHASE].SYMB.MULTP; ++I)
     {
-        rtmtx->IVEC[*IPHASE][I] = 0;
+        phases[*IPHASE].IVEC[I] = 0;
         for (K=1; K <= 3; ++K)
         {
             IX = static_cast<int>(Y_[I][K]*108.0+0.1);
@@ -4446,53 +4446,49 @@ void DBWS::RTMT(int* MULTX_, double Y_[][3+1], int* IPRT, int NCTR_[],  int* IPH
                 VCTR[K][1] = -1.0 * sign(IY);
                 VCTR[K][2] =  1.0 * sign(IY);
                 VCTR[K][3] =  0.0;
-                goto L300;
                 break;
             case 2:
                 VCTR[K][1] = 1.0 * sign(IY);
                 VCTR[K][2] = 0.0;
                 VCTR[K][3] = 0.0;
-                goto L300;
                 break;
             case 3:
                 VCTR[K][1] = 0.0;
                 VCTR[K][2] = 1.0 * sign(IY);
                 VCTR[K][3] = 0.00;
-                goto L300;
                 break;
             case 4:
-                goto L250;
+                VCTR[K][1] = 0.0;
+                VCTR[K][2] = 0.0;
+                VCTR[K][3] = 1.0 * sign(IY);
+                break;
+            default:
+                GOTOER();
                 break;
             }
-            GOTOER();
-
-
-
-L250:
-            VCTR[K][1] = 0.0;
-            VCTR[K][2] = 0.0;
-            VCTR[K][3] = 1.0 * sign(IY);
-L300:
-            rtmtx->IVEC[*IPHASE][I] = rtmtx->IVEC[*IPHASE][I]+(
-            9*(static_cast<int>(VCTR[K][1]+1.5))+
-            3*(static_cast<int>(VCTR[K][2]+1.5))+
-            static_cast<int>(VCTR[K][3]+1.5))*32768 * static_cast<int>(pow(32,3-K))+
-            (static_cast<int>(VCTR[K][4]*12.0+.5)+16) * static_cast<int>(pow(32,3-K));
+            phases[*IPHASE].IVEC[I] = phases[*IPHASE].IVEC[I]+(
+              9*(static_cast<int>(VCTR[K][1]+1.5))+
+              3*(static_cast<int>(VCTR[K][2]+1.5))+
+              static_cast<int>(VCTR[K][3]+1.5))*32768 * static_cast<int>(pow(32,3-K))+
+              (static_cast<int>(VCTR[K][4]*12.0+.5)+16) * static_cast<int>(pow(32,3-K));
         }
+        if ( *IPRT > 0 )
+        {
+            if(simoper->ISIMOP != 1)
+            {
+                if ( (I-1 % 15) == 0) file6 << "The operations of the space group are" << endl;
+                file6
+                    << " ("	<< setw(3) << setprecision(0) << VCTR[1][1]	<< setw(3) << setprecision(0) << VCTR[1][2]	<< setw(3) << setprecision(0) << VCTR[1][3]	<< " )   ( X )   ("	<< setw(6) << setprecision(3) << VCTR[1][4] << " )   ( X2 )" << endl
+                    << " ("	<< setw(3) << setprecision(0) << VCTR[2][1]	<< setw(3) << setprecision(0) << VCTR[2][2]	<< setw(3) << setprecision(0) << VCTR[2][3]	<< " ) * ( Y ) + (" << setw(6) << setprecision(3) << VCTR[2][4] << " ) = ( Y2 )" << endl
+                    << " ("	<< setw(3) << setprecision(0) << VCTR[3][1]	<< setw(3) << setprecision(0) << VCTR[3][2]	<< setw(3) << setprecision(0) << VCTR[3][3]	<< " )   ( Z )   (" << setw(6) << setprecision(3) << VCTR[3][4] << " )   ( Z2 )"
+                    << "          VEC(" << setw(3) << I << ") =" << setw(15) << phases[*IPHASE].IVEC[I] << endl << endl;
+            }
 
-        if ( *IPRT <= 0 ) goto L310;
-        if(simoper->ISIMOP == 1)goto L310;
-        if ( (I-1 % 15) == 0) file6 << "The operations of the space group are" << endl;
-        file6
-            << " ("	<< setw(3) << setprecision(0) << VCTR[1][1]	<< setw(3) << setprecision(0) << VCTR[1][2]	<< setw(3) << setprecision(0) << VCTR[1][3]	<< " )   ( X )   ("	<< setw(6) << setprecision(3) << VCTR[1][4] << " )   ( X2 )" << endl
-            << " ("	<< setw(3) << setprecision(0) << VCTR[2][1]	<< setw(3) << setprecision(0) << VCTR[2][2]	<< setw(3) << setprecision(0) << VCTR[2][3]	<< " ) * ( Y ) + (" << setw(6) << setprecision(3) << VCTR[2][4] << " ) = ( Y2 )" << endl
-            << " ("	<< setw(3) << setprecision(0) << VCTR[3][1]	<< setw(3) << setprecision(0) << VCTR[3][2]	<< setw(3) << setprecision(0) << VCTR[3][3]	<< " )   ( Z )   (" << setw(6) << setprecision(3) << VCTR[3][4] << " )   ( Z2 )"
-            << "          VEC(" << setw(3) << I << ") =" << setw(15) << rtmtx->IVEC[*IPHASE][I] << endl << endl;
-L310:;
+        }
     }
-    rtmtx->MLTPHS[*IPHASE]=phases[*IPHASE].SYMB.MULTP;
-    rtmtx->ICNTPHS[*IPHASE]=1;
-    if ( phases[*IPHASE].SYMB.NC == 0 ) rtmtx->ICNTPHS[*IPHASE]=2;
+    phases[*IPHASE].MLTPHS=phases[*IPHASE].SYMB.MULTP;
+    phases[*IPHASE].ICNTPHS=1;
+    if ( phases[*IPHASE].SYMB.NC == 0 ) phases[*IPHASE].ICNTPHS=2;
 }
 
 void DBWS::OP1(int* IPHASE, int NCTR_[])

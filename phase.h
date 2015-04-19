@@ -24,6 +24,11 @@ public:
 
     ParticleAbsorption SAQF;
     double WTIS;
+
+
+    int IVEC[192+1];         // RTMTX
+    int MLTPHS;         // RTMTX
+    int ICNTPHS;         // RTMTX
 };
 
 #endif // PHASE_H
