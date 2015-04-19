@@ -29,6 +29,8 @@ public:
     int IVEC[192+1];         // RTMTX
     int MLTPHS;         // RTMTX
     int ICNTPHS;         // RTMTX
+
+    double VOLI,GCOM;   // VOLUME
 };
 
 #endif // PHASE_H
