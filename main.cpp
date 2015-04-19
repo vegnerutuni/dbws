@@ -204,14 +204,6 @@ public:
     double AMORPHOUS[IDSZ+1];
 };
 
-class RTMTX
-{
-public:
-    //int IVEC[99+1][192+1];
-    //int MLTPHS[99+1];
-    //int ICNTPHS[99+1];
-};
-
 class SIZESTRAIN
 {
 public:
@@ -424,7 +416,6 @@ public:
     COEFF* coeff;
     BKGSCALE* bkgscale;
     DATAX* datax;
-    RTMTX* rtmtx;
     SIZESTRAIN* sizestrain;
     VOLUME* volume;
     G2* g2;
@@ -691,7 +682,6 @@ DBWS::DBWS(void)
     coeff = new COEFF();
     bkgscale = new BKGSCALE();
     datax = new DATAX();
-    rtmtx = new RTMTX();
     sizestrain = new SIZESTRAIN();
 
 
@@ -731,7 +721,6 @@ DBWS::~DBWS(void)
     delete coeff;
     delete bkgscale;
     delete datax;
-    delete rtmtx;
     delete sizestrain;
     delete volume;
     delete g2;
