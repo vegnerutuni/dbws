@@ -1,3 +1,30 @@
+/*
+
+
+RTMT   COMMON/BLNK1/N,NMAX,MULTX,Y(192,3),XLT,IXB,FILL(192)               blnk1_1*
+OPERTR COMMON/BLNK1/N(2),L,X(192),Y(192),Z(192),XLT,IXB,FILL2(192)        blnk1_2*
+SYMOPR COMMON/BLNK1/N(2),L,X(192),Y(192),Z(192),XLT,KXB,NCTR(192)         blnk1_3*
+CEL000 COMMON/BLNK1/N(2),L,X(192),Y(192),Z(192),XLT,IXB,FILL(192)         blnk1_4*
+OP1    COMMON/BLNK1/N(581),NCTR_(192)                                     blnk1_5*
+INPTR  COMMON/BLNK1/NJNK(22),FILL2(751)                                   blnk1_6
+
+
+RTMT   COMMON/BLNK1/N    ,NMAX ,MULTX,Y(192,1),Y(192,2),Y(192,3),XLT,IXB,FILL(192)
+OPERTR COMMON/BLNK1/N1   ,N2   ,L    ,X(192)  ,Y(192)  ,Z(192)  ,XLT,IXB,FILL2(192)
+SYMOPR COMMON/BLNK1/N1   ,N2   ,L    ,X(192)  ,Y(192)  ,Z(192)  ,XLT,KXB,NCTR(192)
+CEL000 COMMON/BLNK1/N1   ,N2   ,L    ,X(192)  ,Y(192)  ,Z(192)  ,XLT,IXB,FILL(192)
+OP1    COMMON/BLNK1/N1   ,N2   ,N3   ,N(192)  ,N(192)  ,N(192)  ,N  ,  N,NCTR_(192)
+INPTR  COMMON/BLNK1/NJNK1,NJNK2,NJNK3,NJNK(22-3),FILL2(751)
+
+
+RTMT   COMMON/BLNK1/            MULTX,Y(192,1),Y(192,2),Y(192,3)
+OPERTR COMMON/BLNK1/           ,L    ,X(192)  ,Y(192)  ,Z(192)  ,    IXB,FILL2(192)
+SYMOPR COMMON/BLNK1/           ,L    ,X(192)  ,Y(192)  ,Z(192)  ,XLT,KXB,NCTR(192)
+CEL000 COMMON/BLNK1/           ,L    ,X(192)  ,Y(192)  ,Z(192)  ,
+OP1    COMMON/BLNK1/                                                     NCTR_(192)
+
+
+*/
 #include <iostream>
 #include <iomanip>
 #include <fstream>
@@ -79,14 +106,15 @@ public:
     int FONDO;
     int IAS,IASYM;
     double SW;
-    int IBGD,IDATA,ISPHASE,I2D94;
+    int IBGD,IDATA,I2D94;
+
+    int ISPHASE; // Internal Standard Phase
 };
 
 class PARAMS
 {
 public:
-    Parameter GLB_[20];
-    //Parameter PAR_[99][30];
+    Parameter GLB_[20];  // GLOBAL PARAMETERS
 
     double XL[NATS][11 +1];
     int LP[NATS][11 +1];
@@ -111,9 +139,6 @@ public:
     double AHIGH[100+1];
     double POS[100+1];
     double BCK[100+1];
-    int NATOM[99+1];
-    int NMOL[99+1];
-    double PREF[99+1][3+1];
     int NBCKGD;
     int NEXCRG;
     int NSCAT; //nscatx
@@ -126,13 +151,6 @@ public:
     int ILOC;
 };
 
-class CHAR
-{
-public:
-    //string SYMB[99+1];
-    string TITLE;
-    //string PHSNM[99+1];
-};
 
 class COEFC
 {
@@ -206,52 +224,7 @@ public:
     int NSIZESTRAIN;
 };
 
-class CONVERT
-{
-public:
-    int ICNVT;
-};
 
-
-
-class SPGCOM
-{
-public:
-    ofstream* outputfile;
-
-    int NSPGRP;
-    int NAXIS;
-    int NCONT[10+1];
-    int NC;
-    int NPOL;
-    int MULTP; // multpommon
-
-    void SPGP(string SPG);
-private:
-    void GOTOER(void);
-
-    // TODO: talvez mudar LAU para ca
-    /*
-    // Laue classes
-    const string LAU[14] = {
-        "1BAR",			// Triclini
-        "2/M",			// Monoclinic
-        "MMM",			// Orthorhombic
-        "4/M",			// Tetragonal
-        "4/MMM",		// "
-        "3BAR   R",		// Trigonal, romboedric
-        "3BAR M R",		// Trigonal
-        "3BAR",			// Trigonal
-        "3BAR M 1",		// Trigonal
-        "3BAR 1 M",
-        "6/M",			// Hexagonal
-        "6/MMM",		// Hexagonal
-        "M3",			// Cubico
-        "M3M"			// Cubico
-    };
-    */
-
-};
 
 class VOLUME
 {
@@ -292,17 +265,6 @@ public:
     double BKPOL[IDSZ+1];
 };
 
-class BLNK1
-{
-public:
-    int N,NMAX;
-    int MULTX; // L
-    double Y[192+1][3+1];			//  X[192+1],Y[192+1],Z[192+1];
-    double XLT;
-    int IXB;   // kxb
-    int NCTR[192+1];
-};
-
 class MULTIP
 {
 public:
@@ -310,8 +272,8 @@ public:
     int MLTPHASE;
     double XMLTP[99+1];
     int MURT[NATS+1];
-    double SAQF[99+1];
-    double WTIS[99+1];
+    //double SAQF[99+1];
+    //double WTIS[99+1];
 };
 
 class SIMOPER
@@ -446,9 +408,9 @@ public:
     void run(void);
 
 public:
+    string title;
 
     Phase phases[99+1];
-
 
     DC* dc;
     REFLS* refls;
@@ -458,21 +420,17 @@ public:
     PARAC* parac;
     JNK* jnk;
     ALLP* allp;
-    CHAR* char_;
     COEFC* coefc;
     COEFF* coeff;
     BKGSCALE* bkgscale;
     DATAX* datax;
     RTMTX* rtmtx;
     SIZESTRAIN* sizestrain;
-    CONVERT* convert;
-    SPGCOM* spgcom;
     VOLUME* volume;
     G2* g2;
     F1* f1;
     G3* g3;
     FONDI* fondi;
-    BLNK1* blnk1;
     MULTIP* multip;
     SIMOPER* simoper;
     HKLCTL* hklctl;
@@ -542,22 +500,21 @@ public:
     void OUTSCR(int I, double R2, double R3, double X);
     void OUTPTR(int ICYCLE);
     void ITER(void);
-    void CEL000(void);
-    void OPERTR(int* I, int* L2);
-    void SYMOPR(void);
-    void RTMT(int* IPRT, int* IPHASE);
-    void OP1(int* IPHASE);
+    void CEL000(int* MULTX_, double Y_[][3+1]);
+    void OPERTR(int* MULTX_, double Y_[][3+1], int* IPHASE, int* I, int* L2);
+    void SYMOPR(int* MULTX_, double Y_[][3+1], double* XLT_, int* IXB_, int NCTR_[], int* IPHASE);
+    void RTMT(int* MULTX_, double Y_[][3+1], int* IPRT, int NCTR_[], int* IPHASE);
+    void OP1(int* IPHASE, int NCTR_[]);
     void LOOKUP(int K, int N, int NSCAT, int IXRAY, int JOB);
     void CELL2(int NPHASE, double LAMDAM);
-    double MULT(int IH, int IK, int IL, int KXIS);
+    double MULT(int IPHASE, int IH, int IK, int IL, int KXIS);
     void REWRIT(int ISCALE, int IDIF);
     void size(int K);
     void WRITE94(int ISCALE, int IDIF);
     void EXPUT(void);
-    void REFGEN(int IPHASE, double ZERO, double DIS, double TRANS, double PREF[][3+1], double PREFOR);
+    void REFGEN(int IPHASE, double ZERO, double DIS, double TRANS, double PREFOR, int NCTR_[]);
     void FINDC(int K, int NSCAT);
     void ABSORP(double MU, double SW, double TH, double* ABC);
-    void conv94(void);
     void GSASREAD(void);
     void PHILIPSREAD(void);
     void qpainit(void);
@@ -717,981 +674,6 @@ void  COEFF::COEF(int* J, int* K)
     }
 }
 
-void SPGCOM::SPGP(string SPG)
-{
-    //
-    //                             THIS SR INTERPRETS THE SPACE GROUP SYMBOL
-    //                           AND GENERATES OPERATORS WHICH SYNSPGRPOPR USES TO
-    //                           GENERATE THE FULL SET OF EQUIVALENT
-    //                           POSITIONS AND OP1 AND SMTRY2 USE TO GENERATE
-    //                           THE FULL SET OF EQUIVALENT INDICES.
-
-    const int NDAT[7+1] = { 0,3,1,2,0,2,1,3};
-    const string CHR = "  CBAPFIRMND123456-/H.";
-    int I,J,K,M,M1,M2,M3,N,LD,IJ,KJ,MJ,IX,IN1,IN2,NI4,NI5,NI6,NK4,NK5,NK6,NM4,
-        NM5,NM6,NCI,NCK,NCM,LOD,NIJ,NXC,NYC,NZC,NJX,ICO4,ICO5,ICO6,KCO4,KCO5,KCO6,
-        MCO4,MCO5,IKO4,IKO5,IKO6,MCO6,LOD1;
-    int L[4+1][4+1];
-    int ICO[6+1][15+1];
-
-
-    for (I=0; I <= 6; ++I)
-    {
-        for (J=0; J <= 15; ++J)
-        {
-            ICO[I][J]=0;
-        }
-    }
-    for (I=0; I <= 4; ++I)
-    {
-        for (J=0; J <= 4; ++J)
-        {
-            L[I][J]=0;
-        }
-    }
-    M2 = 0;
-    K = 1;
-    M = 1;
-    NSPGRP = 0;
-    NAXIS = 0;
-    N = 0;
-
-
-    for (J=1; J <= 20; ++J)
-    {
-        for (I=1; I <= 21; ++I)
-        {
-            if ( SPG[J] == CHR[I] ) goto L101;
-        }
-        goto L110;
-        L101:
-        if ( K+M+I == 3 ) goto L110;
-        if ( I == 1 ) goto L108;
-        L[M][K] = I;
-        N = 0;
-        M = M+1;
-        if ( M-4 <= 0 ) goto L110; else goto L108;
-        L108:
-        if ( N == 1 ) goto L110;
-        N = 1;
-        M = 1;
-        K = K+1;
-        if ( K > 4 ) goto L200;
-        L110:;
-    }
-
-    L200:
-    if ( K <= 2 ) goto L500;
-    //DB 3
-    //     PRINT 3,N,M,K,J,L
-    //   3 FORMAT (*0N =*I3*  M =*I3*  K =*I3*  J =*I3/
-    //    1  * L =*4I4/(4X4I4))
-    if ( L[1][1] > 8 ) goto L500;
-    J = 1;
-    I = L[1][1]-1;
-    switch (I) {
-    case 1:
-        goto L203;
-        break;
-    case 2:
-        goto L202;
-        break;
-    case 3:
-        goto L201;
-        break;
-    case 4:
-        goto L119;
-        break;
-    case 5:
-        goto L204;
-        break;
-    case 6:
-        goto L205;
-        break;
-    case 7:
-        goto L206;
-        break;
-    }
-    GOTOER();
-    L201:
-    NCONT[J] = 576;
-    goto L209;
-    L202:
-    NCONT[J] = 516;
-    goto L209;
-    L203:
-    NCONT[J] = 68;
-    goto L209;
-    L204:
-    NCONT[J] = 576;
-    J = J+1;
-    goto L202;
-    L205:
-    NCONT[J] = 580;
-    goto L209;
-    L207:
-    K = K-1;
-    NSPGRP = K+3;
-    goto L210;
-    L206:
-    if ( L[1][3] == 8  || L[1][4] == 8 ) goto L207;
-    NCONT[J] = 8192;
-    if ( L[1][K-1] == 20 ) K=K-1;
-    NSPGRP = K+5;
-    J = J+1;
-    goto L210;
-    L209:
-    J = J+1;
-    L119:
-    if ( K-4 < 0 )
-    {
-        goto L120;
-    }
-    else if ( K-4 == 0)
-    {
-        goto L130;
-    }
-    else
-    {
-        goto L140;
-    }
-    L120:
-    if ( L[1][2] == 18 ) goto L121;
-    if ( L[1][2] == 17 ) goto L122;
-    if ( L[1][2] == 14 ) goto L123;
-    if ( L[1][2] == 15 ) goto L124;
-    if ( L[1][2] == 12 ) goto L125;
-    NSPGRP = 2;
-    NAXIS = 2;
-    goto L210;
-    L121:
-    if ( L[2][2] == 17 ) goto L122;
-    if ( L[2][2] == 14 ) goto L123;
-    if ( L[2][2] == 15 ) goto L124;
-    if ( L[2][2] == 12 ) goto L125;
-    goto L500;
-    L122:
-    NSPGRP = 11;
-    goto L210;
-    L123:
-    NSPGRP = 8;
-    goto L210;
-    L124:
-    NSPGRP = 4;
-    goto L210;
-    L125:
-    NSPGRP = 1;
-    goto L210;
-    L130:
-    if ( L[1][3] != 14 ) goto L500;
-    NSPGRP = 13;
-    goto L210;
-    L140:
-    if ( L[1][3] == 14 ) goto L151;
-    if ( L[1][2] == 18 ) goto L152;
-    if ( L[1][2] == 17 ) goto L153;
-    if ( L[1][2] == 14 ) goto L154;
-    if ( L[1][2] == 15 ) goto L155;
-    if ( L[1][2] == 12 ) goto L141;
-    if ( L[1][3] == 12 ) goto L142;
-    if ( L[1][4] == 12 ) goto L500;
-    NSPGRP = 3;
-    goto L210;
-    L141:
-    if ( L[1][3] == 12 ) goto L143;
-    if ( L[1][4] != 12 ) goto L500;
-    NSPGRP = 2;
-    NAXIS = 2;
-    goto L210;
-    L142:
-    if ( L[1][4] != 12 ) goto L500;
-    NSPGRP = 2;
-    NAXIS = 1;
-    goto L210;
-    L143:
-    if ( L[1][4] == 12 ) goto L500;
-    NSPGRP = 2;
-    NAXIS = 3;
-    goto L210;
-    L151:
-    NSPGRP = 14;
-    goto L210;
-    L152:
-    if ( L[2][2] == 17 ) goto L153;
-    if ( L[2][2] == 14 ) goto L154;
-    if ( L[2][2] == 15 ) goto L155;
-    goto L500;
-    L153:
-    NSPGRP = 12;
-    goto L210;
-    L154:
-    if ( L[1][3] == 12 ) goto L156;
-    if ( L[1][4] != 12 ) goto L500;
-    NSPGRP = 9;
-    goto L210;
-    L155:
-    NSPGRP = 5;
-    goto L210;
-    L156:
-    if ( L[1][4] == 12 ) goto L123;
-    NSPGRP = 10;
-    L210:
-    K = K-1;
-
-    //DB 2
-    //     PRINT 4,K,NSPGRP,NAXIS,J,NCONT
-    //   4 FORMAT ('0K =',I3,'  NSPGRP =',2I4,'  J=',I3/' NCONT =',10I4)
-    N = 1;
-    for (M=2; M <= K; ++M)
-    {
-        if ( L[1][M] == 0 ) goto L500;
-        L218:
-        I = abs(L[1][M]-5);
-        L219:
-        if ( I <= 0 || I > 15 ) goto L500;
-        switch (I) {
-        case 1:
-            goto L220;  // A
-            break;
-        case 2:
-            goto L220;  // B
-            break;
-        case 3:
-            goto L220;  // C
-            break;
-        case 4:
-            goto L220;  // M
-            break;
-        case 5:
-            goto L220;  // N
-            break;
-        case 6:
-            goto L245;  // D
-            break;
-        case 7:
-            goto L250;  // 1
-            break;
-        case 8:
-            goto L255;  // 2
-            break;
-        case 9:
-            goto L260;  // 3
-            break;
-        case 10:
-            goto L265;  // 4
-            break;
-        case 11:
-            goto L500;  // 5
-            break;
-        case 12:
-            goto L270;  // 6
-            break;
-        case 13:
-            goto L275;  // -
-            break;
-        case 14:
-            goto L300;  // /
-            break;
-        case 15:
-            goto L300;
-            break;
-        }
-        GOTOER();
-        //        H
-        L220:
-        switch (M) {
-        case 1:
-            goto L500;
-            break;
-        case 2:
-            goto L221;
-            break;
-        case 3:
-            goto L222;
-            break;
-        case 4:
-            goto L223;
-            break;
-        }
-        GOTOER();
-        L221:
-        if ( L[1][3] == 14 ) goto L2230;
-        if ( L[1][2] == 15 ) goto L2230;
-        if ( L[1][2] == 17 ) goto L2230;
-        if ( K == 2 ) goto L2220;
-        L2210:
-        ICO[1][N] = 2;
-        ICO[2][N] = 0;
-        ICO[3][N] = 0;
-        ICO[4][N] = 4;
-        if ( I == 2 || I == 5 ) ICO[5][N] = 1;
-        if ( I == 3 || I == 5 ) ICO[6][N] = 1;
-        L2211:
-        N = N+1;
-        if ( L[1][2] != 15 ) goto L300;
-        ICO[1][N] = ICO[2][N-1];
-        ICO[2][N] = ICO[1][N-1];
-        ICO[3][N] = ICO[3][N-1];
-        ICO[4][N] = ICO[5][N-1];
-        ICO[5][N] = ICO[4][N-1];
-        ICO[6][N] = ICO[6][N-1];
-        N= N+1;
-        goto L300;
-        L222:
-        if ( L[1][2] == 14 || L[1][2] == 17 ) goto L225;
-        if ( L[1][2] == 15 ) goto L2210;
-        L2220:
-        ICO[1][N] = 0;
-        ICO[2][N] = 2;
-        ICO[3][N] = 0;
-        ICO[5][N] = 4;
-        if ( I == 1 || I == 5 ) ICO[4][N] = 1;
-        if ( I == 3 || I == 5 ) ICO[6][N] = 1;
-        N = N+1;
-        goto L300;
-        L223:
-        if ( L[1][3] == 14 || L[1][2] == 15 ) goto L224;
-        if ( L[1][2] == 14 || L[1][2] == 17 ) goto L224;
-        L2230:
-        ICO[1][N] = 0;
-        ICO[2][N] = 0;
-        ICO[3][N] = 2;
-        ICO[6][N] = 4;
-        if ( I == 1 || I == 5 ) ICO[4][N] = 1;
-        if ( I == 2 || I == 5 ) ICO[5][N] = 1;
-        N = N+1;
-        if ( M == 2 && L[1][2] == 15 && I == 5 ) ICO[4][N-3]=1;
-        if ( M !=  2 || L[1][2] != 17) goto L300;
-        if ( L[1][3] == 2 ) ICO[6][N-1]=1;
-        if ( L[1][4] == 2 ) ICO[6][N-1]= (ICO[6][N-1]+1) % 2;
-        goto L300;
-        L224:
-        ICO[1][N] = 1;
-        ICO[2][N] = 1;
-        ICO[3][N] = 0;
-        ICO[4][N] = 4;
-        ICO[5][N] = 4;
-        if ( I == 3 || I == 5 ) ICO[6][N] = 1;
-        if ( NSPGRP == 7 && I == 3 ) goto L2240;
-        if ( I != 5 ) goto L226;
-        L2240:
-        ICO[4][N] = 5;
-        ICO[5][N] = 5;
-        N = N+1;
-        goto L300;
-        L225:
-        if ( NSPGRP == 7 ) goto L224;
-        ICO[1][N] = 3;
-        ICO[2][N] = 3;
-        ICO[3][N] = 0;
-        ICO[4][N] = 4;
-        ICO[5][N] = 4;
-        if ( I == 3 ) ICO[6][N] = 1;
-        L226:
-        N = N+1;
-        goto L300;
-        L245:
-        //    D TYPE MIRROR
-        switch (M) {
-        case 1:
-            goto L500;
-            break;
-        case 2:
-            goto L246;
-            break;
-        case 3:
-            goto L247;
-            break;
-        case 4:
-            goto L248;
-            break;
-        }
-        GOTOER();
-        L246:
-        if ( K == 2 ) goto L247;
-        ICO[1][N] = 2;
-        ICO[2][N] = 0;
-        ICO[3][N] = 0;
-        ICO[4][N] = 6;
-        ICO[5][N] = 6;
-        ICO[6][N] = 6;
-        N = N+1;
-        goto L300;
-        L247:
-        ICO[1][N] = 0;
-        ICO[2][N] = 2;
-        ICO[3][N] = 0;
-        ICO[4][N] = 6;
-        ICO[5][N] = 6;
-        ICO[6][N] = 6;
-        N = N+1;
-        goto L300;
-        L248:
-        if ( L[1][2] == 15 || L[1][3] == 14 ) goto L249;
-        ICO[1][N] = 0;
-        ICO[2][N] = 0;
-        ICO[3][N] = 2;
-        ICO[4][N] = 6;
-        ICO[5][N] = 6;
-        ICO[6][N] = 6;
-        N = N+1;
-        goto L300;
-        L249:
-        ICO[1][N] = 1;
-        ICO[2][N] = 1;
-        ICO[3][N] = 0;
-        ICO[4][N] = 6;
-        ICO[5][N] = 6;
-        ICO[6][N] = 6;
-        if (L[1][3] != 13) goto L226;
-        ICO[4][N] = 0;
-        ICO[5][N] = 1;
-        N = N+1;
-        goto L300;
-        L250:
-        //    1 FOLD ROTATION
-        if ( L[2][M] != 3 ) goto L300;
-        ICO[1][N] = 2;
-        ICO[2][N] = 2;
-        ICO[3][N] = 2;
-        ICO[4][N] = 4;
-        ICO[5][N] = 4;
-        ICO[6][N] = 4;
-        N = N+1;
-        goto L300;
-        L255:
-        switch (M) {
-        case 1:
-            goto L500;
-            break;
-        case 2:
-            goto L256;
-            break;
-        case 3:
-            goto L257;
-            break;
-        case 4:
-            goto L258;
-            break;
-        }
-        GOTOER();
-        //    2 FOLD ROTATION
-        L256:
-        if ( K == 2 ) goto L2571;
-        L2561:
-        ICO[1][N] = 0;
-        ICO[2][N] = 2;
-        ICO[3][N] = 2;
-        ICO[4][N] = 0;
-        ICO[5][N] = 4;
-        ICO[6][N] = 4;
-        if ( abs(L[2][M]-13) == 1 ) ICO[4][N] = 1;
-        L2560:
-        N = N+1;
-        for (I=2; I <= 4; ++I)
-        {
-            if ( L[I][M] == 19 ) goto L2563;
-        }
-        goto L300;
-        L2563:
-        if ( L[I+1][M] <= 1 ) goto L500;
-        I = abs(L[I+1][M]-5);
-        goto L219;
-        L257:
-        if ( L[1][2] == 14 || L[1][2] == 17 ) goto L259;
-        L2571:
-        ICO[1][N] = 2;
-        ICO[2][N] = 0;
-        ICO[3][N] = 2;
-        ICO[4][N] = 4;
-        ICO[5][N] = 0;
-        ICO[6][N] = 4;
-        if ( L[2][M] == 12 ) ICO[5][N]=1;
-        if ( L[1][2] == 15 ) goto L2211;
-        goto L2560;
-        L258:
-        if ( L[1][2] >= 14   ) goto L2595;
-        if ( L[1][3] == 14 ) goto L259;
-        L2581:
-        ICO[1][N] = 2;
-        ICO[2][N] = 2;
-        ICO[3][N] = 0;
-        ICO[4][N] = 4;
-        ICO[5][N] = 4;
-        ICO[6][N] = 0;
-        if ( abs(L[2][M]-13) == 1 ) ICO[6][N] = 1;
-        if ( L[2][M] == 16 ) ICO[6][N] = 1;
-        goto L2560;
-        L259:
-        if ( L[1][3] == 8 || L[1][4] == 8 ) goto L2595;
-        ICO[1][N] = 1;
-        ICO[2][N] = 1;
-        ICO[3][N] = 2;
-        ICO[4][N] = 0;
-        ICO[5][N] = 0;
-        ICO[6][N] = 4;
-        goto L2560;
-        L2595:
-        if ( L[1][2] == 15)goto L259;
-        ICO[1][N] = 3;
-        ICO[2][N] = 3;
-        ICO[3][N] = 2;
-        ICO[4][N] = 4;
-        ICO[5][N] = 4;
-        ICO[6][N] = 4;
-        goto L2560;
-        //    3 FOLD ROTATION
-        L260:
-        switch (M) {
-        case 1:
-            goto L500;
-            break;
-        case 2:
-            goto L261;
-            break;
-        case 3:
-            goto L262;
-            break;
-        case 4:
-            goto L500;
-            break;
-        }
-        GOTOER();
-        L261:
-        if ( L[1][1] == 8 && J == 1 ) goto L262;
-        IX = 0;
-        if ( L[2][M] == 12 ) goto L2611;
-        if ( L[2][M] == 13 ) goto L2612;
-        L2610:
-        NCONT[J] = 8196;
-        goto L2613;
-        L2611:
-        NCONT[J] = 8200;
-        if ( L[1][4] != 13 ) goto L2613;
-        J = J+1;
-        NCONT[J] = 2321;
-        if ( L[1][2] == 14 ) NCONT[J]=4403;
-        L[1][3] = 12;
-        L[1][4] = 12;
-        goto L2613;
-        L2612:
-        NCONT[J] = 8204;
-        if ( L[1][4] != 13 ) goto L2613;
-        J = J+1;
-        NCONT[J] = 4369;
-        if ( L[1][2] == 14 ) NCONT[J]=2355;
-        L[1][3] = 12;
-        L[1][4] = 12;
-        L2613:
-        J = J+1;
-        if ( IX-1 < 0 )
-        {
-            goto L250;
-        } else if ( IX-1 == 0)
-        {
-            goto L2581;
-        }
-        else
-        {
-            goto L2230;
-        }
-        //    CUBIC OR RHOMBOHEDERAL
-        L262:
-        NCONT[J] = 16384;
-        if (L[2][M] != 3 ) goto L2620;
-        J = J+1;
-        NCONT[J] = 290;
-        L2620:
-        J = J+1;
-        if ( N == 1 ) goto L300;
-        I = N-1;
-        IN1 = N;
-        IN2 = N+1;
-        ICO[1][IN1] = ICO[3][I];
-        ICO[2][IN1] = ICO[1][I];
-        ICO[3][IN1] = ICO[2][I];
-        ICO[4][IN1] = ICO[6][I];
-        ICO[5][IN1] = ICO[4][I];
-        ICO[6][IN1] = ICO[5][I];
-        ICO[1][IN2] = ICO[2][I];
-        ICO[2][IN2] = ICO[3][I];
-        ICO[3][IN2] = ICO[1][I];
-        ICO[4][IN2] = ICO[5][I];
-        ICO[5][IN2] = ICO[6][I];
-        //L263:
-        ICO[6][IN2] = ICO[4][I];
-        N = IN2+1;
-        goto L300;
-        L265:
-        if ( M != 2 ) goto L500;
-        ICO[1][N] = 3;
-        ICO[2][N] = 1;
-        ICO[3][N] = 0;
-        ICO[4][N] = 4;
-        ICO[5][N] = 4;
-        ICO[6][N] = 0;
-        if ( L[2][2] == 12 ) ICO[6][N] = 2;
-        if ( L[2][2] == 13 ) ICO[6][N] = 1;
-        if ( L[2][2] == 14 ) ICO[6][N] = 3;
-        if ( L[2][2] ==  3 ) ICO[3][N] = 2;
-        N = N+1;
-        if ( L[2][2] == 3 && L[1][3] == 14 && L[1][4] == 11 ) goto L266;
-        if ( L[1][3] == 14 ) goto L2561;
-        if ( K > 2 || L[1][1] != 7 ) goto L2581;
-        if ( L[2][2]+L[3][2] != 12 ) goto L2581;
-        L[2][2] = 0;
-        ICO[5][N-1] = 1;
-        goto L2581;
-        L266:
-        if ( L[1][1] != 7 || L[1][2] != 15 ) goto L500;
-        NCONT[J] = 16384;
-        NCONT[J+1] = 356;
-        NCONT[J+2] = 834;
-        NCONT[J+3] = 1177;
-        J = J+3;
-        goto L410;
-        L270:
-        if ( M != 2 ) goto L500;
-        IX = 1;
-        if ( L[2][2] == 12 ) goto L2611;
-        if ( L[2][2] == 13 ) goto L2612;
-        if ( L[2][2] == 14 ) goto L2610;
-        if ( L[2][2] == 15 ) goto L2611;
-        if ( L[2][2] == 16 ) goto L2612;
-        if ( L[2][2] ==  3 ) goto L271;
-        goto L2610;
-        L271:
-        IX = 2;
-        goto L2610;
-        L275:
-        if ( M != 2 ) goto L500;
-        L[1][2] = L[2][2];
-        L[2][2] = 3;
-        goto L218;
-        L300:;
-    }
-    N = N-1;
-    IJ = J;
-    if ( N > 0 ) goto L301;
-    J = J-1;
-    goto L410;
-    L301:
-    for (I=1; I <= N; ++I)
-    {
-        NCONT[J] = ICO[1][I]+16*ICO[2][I]+128*ICO[3][I]+4*(ICO[4][I] % 4) +64*(ICO[5][I] % 4)+512*(ICO[6][I] % 4);
-        J = J+1;
-    }
-    L306:
-    J = J-1;
-    //DB 4
-    //     PRINT 5,J,IJ,N,NSPGRP,NAXIS,NCONT
-    //    1 ,ICO
-    //   5 FORMAT ('0J =',I3,'  IJ =',I3,'  N =',I3,'  NSP =',2I5/
-    //    1 ' NCONT =',10I4/' ICO =',6I3/(6X6I3))
-    //L310:
-    for (I=IJ; I <= J; ++I)
-    {
-        NCI = I-IJ+1;
-        ICO4 = ICO[4][NCI] % 4;
-        ICO5 = ICO[5][NCI] % 4;
-        ICO6 = ICO[6][NCI] % 4;
-        NI4 = NDAT[ICO4+4];
-        NI5 = NDAT[ICO5+4];
-        NI6 = NDAT[ICO6+4];
-        KJ = I+1;
-        if ( (NCONT[I] & 307)-290 == 0) goto L315; else goto L320;
-        L315:
-        if ( (NCONT[I] & 7884) == 0 ) goto L318; else goto L316;
-        //   A CENTER IS PRESENT, NOT AT 0,0,0
-        L316:;
-        *outputfile << endl << " A 1-bar site is present, But NOT at 0,0,0" << endl;
-        goto L320;
-        //   A CENTER AT 0,0,0 IS PRESENT
-        L318:;
-        L320:;
-        if ( KJ > J ) goto L400;
-        for (K=KJ; K <= J; ++K)
-        {
-            NCK = K-IJ+1;
-            KCO4 = ICO[4][NCK] % 4;
-            KCO5 = ICO[5][NCK] % 4;
-            KCO6 = ICO[6][NCK] % 4;
-            NK4 = NDAT[KCO4+4];
-            NK5 = NDAT[KCO5+4];
-            NK6 = NDAT[KCO6+4];
-            NXC = NI4+NK4 % 4;
-            NYC = NI5+NK5 % 4;
-            NZC = NI6+NK6 % 4;
-            MJ = K+1;
-            LOD = (NCONT[K] ^ NCONT[I]) & 307;
-            if ( LOD != 290 ) goto L330;
-            //   A CENTER IS GENERATED
-            if ( NXC+NYC+NZC == 0 ) goto L330;
-            if ( L[1][2] == 15 && I == IJ+1 ) goto L324;
-            L321:
-            if ( NXC == 0 ) goto L322;
-            if ( ICO[4][NCI] == 4 ) NCONT[I] = NCONT[I]+NDAT[NXC]*4;
-            if ( ICO[4][NCK] == 4 ) NCONT[K] = NCONT[K]+NDAT[NXC]*4;
-            L322:
-            if ( NYC == 0 ) goto L323;
-            if ( ICO[5][NCI] == 4 ) NCONT[I] = NCONT[I]+NDAT[NYC]*64;
-            if ( ICO[5][NCK] == 4 ) NCONT[K] = NCONT[K]+NDAT[NYC]*64;
-            L323:
-            if ( NZC == 0 ) goto L325;
-            if ( ICO[6][NCI] == 4 ) NCONT[I] = NCONT[I]+NDAT[NZC]*512;
-            if ( ICO[6][NCK] == 4 ) NCONT[K] = NCONT[K]+NDAT[NZC]*512;
-            goto L325;
-            L324:
-            L[1][2] = 30;
-            NIJ = ICO[6][1];
-            NIJ = NDAT[NIJ+4];
-            NJX = NIJ+NXC % 4;
-            NCONT[IJ] = (NCONT[IJ] & 2035)+NDAT[NJX+4]*4;
-            NCONT[IJ] = (NCONT[IJ] & 1855)+NDAT[NIJ+4]*64;
-            goto L321;
-            L325:
-            ICO[4][NCI] = 0;
-            ICO[4][NCK] = 0;
-            ICO[5][NCK] = 0;
-            ICO[5][NCI] = 0;
-            ICO[6][NCI] = 0;
-            ICO[6][NCK] = 0;
-            L330:
-            ICO4 = (NCONT[I]/4) % 4;
-            IKO4 = (NCONT[K]/4) % 4;
-            ICO5 = (NCONT[I]/64) % 4;
-            IKO5 = (NCONT[K]/64) % 4;
-            ICO6 = (NCONT[I]/512) % 4;
-            IKO6 = (NCONT[K]/512) % 4;
-            NI4 = NDAT[ICO4+4];
-            NK4 = NDAT[IKO4+4];
-            NI5 = NDAT[ICO5+4];
-            NK5 = NDAT[IKO5+4];
-            NI6 = NDAT[ICO6+4];
-            NK6 = NDAT[IKO6+4];
-            if ( MJ > J ) goto L390;
-            for (M=MJ; M <= J; ++M)
-            {
-                NCM = M-IJ+1;
-                MCO4 = ICO[4][NCM] % 4;
-                MCO5 = ICO[5][NCM] % 4;
-                MCO6 = ICO[6][NCM] % 4;
-                NM4 = NDAT[MCO4+4];
-                NM5 = NDAT[MCO5+4];
-                NM6 = NDAT[MCO6+4];
-                LOD1 = (LOD ^ NCONT[M]) & 307;
-                NXC = NI4+NK4+NM4 % 4;
-                NYC = NI5+NK5+NM5 % 4;
-                NZC = NI6+NK6+NM6 % 4;
-                if ( LOD1 != 290 ) goto L350;
-                if  ( L[1][2] == 11 ) goto L334;
-                if ( NXC+NYC+NZC == 0 ) goto L380;
-                if ( IJ == 1 ) goto L331;
-                if(NXC +NYC  == 0 )goto L333;
-                if ( L[1][3] == 14 ) goto L331;
-                if ( L[1][2] == 15 ) goto L331;
-                if ( L[1][2] == 14 ) goto L331;
-                if ( L[1][2] == 17 ) goto L331;
-                if ( L[1][2]+L[1][3]+L[1][4] < 18 && L[1][2] != 9 ) goto L331;
-                NXC = (NCONT[1]/2+NXC) % 4;
-                NYC = (NCONT[1]/32+NYC) % 4;
-                NZC = (NCONT[1]/256+NZC) % 4;
-                L331:
-                if ( NXC == 0 ) goto L332;
-                if ( ICO[4][NCI] == 4 ) NCONT[I] = NCONT[I]+NDAT[NXC]*4;
-                if ( ICO[4][NCK] == 4 ) NCONT[K] = NCONT[K]+NDAT[NXC]*4;
-                if ( ICO[4][NCM] == 4 ) NCONT[M] = NCONT[M]+NDAT[NXC]*4;
-                L332:
-                if ( NYC == 0 ) goto L333;
-                if ( ICO[5][NCI] == 4 ) NCONT[I] = NCONT[I]+NDAT[NYC]*64;
-                if ( ICO[5][NCK] == 4 ) NCONT[K] = NCONT[K]+NDAT[NYC]*64;
-                if ( ICO[5][NCM] == 4 ) NCONT[M] = NCONT[M]+NDAT[NYC]*64;
-                L333:
-                if ( NZC == 0 ) goto L335;
-                if ( ICO[6][NCI] == 4 ) NCONT[I] = NCONT[I]+NDAT[NZC]*512;
-                if ( ICO[6][NCK] == 4 ) NCONT[K] = NCONT[K]+NDAT[NZC]*512;
-                if ( ICO[6][NCM] == 4 ) NCONT[M] = NCONT[M]+NDAT[NZC]*512;
-                goto L335;
-                L334:
-                NCONT[I] = (NCONT[I] & 2035);
-                NCONT[K] = (NCONT[K] & 1855);
-                NCONT[M] = (NCONT[M] & 511);
-                L335:
-                ICO[4][NCI] = 0;
-                ICO[5][NCI] = 0;
-                ICO[6][NCI] = 0;
-                ICO[4][NCK] = 0;
-                ICO[5][NCK] = 0;
-                ICO[6][NCK] = 0;
-                ICO[4][NCM] = 0;
-                ICO[5][NCM] = 0;
-                ICO[6][NCM] = 0;
-                goto L380;
-                L350:
-                if ( LOD1 != 0 ) goto L380;
-                //DB 3
-                //     PRINT 9,LOD1,NXC,NYC,NZC,NI4,NK4,NI5,NK5,NI6,NK6
-                //   9 FORMAT (* LOD1 = *O10* NXC =*I4* NYC =*I4* NZC =*I4/
-                //    1 * NI4 =*I3* NK4 =*I3* NI5 =*I3* NK5 =*I3* NI6 =*I3* NK6 =*I3)
-                if ( NXC+NYC+NZC == 0 ) goto L359;
-                if ( L[1][2] == 30 ) goto L3500;
-                if ( L[1][2] == 15 ) goto L355;
-                if ( L[1][2] == 17 ) goto L359;
-                if ( L[1][2] == 13 ) goto L351;
-                if ( L[1][3] == 13 ) goto L352;
-                if ( L[1][4] == 13 ) goto L353;
-                goto L500;
-                L3500:
-                if ( NXC == 0 ) goto L359;
-                if ( L[4][2] == 4 ) goto L359;
-                if ( NXC == NK4 ) goto L359;
-                NCONT[K] = NCONT[K] ^ (NDAT[NXC]*4);
-                if ( L[1][4] == 13 && L[2][4] == 0 ) goto L3580;
-                goto L359;
-                L351:
-                NYC = (NK5+NM5) % 4;
-                NZC = (NK6+NM6) % 4;
-                if ( L[1][3] == 13 ) goto L354;
-                if ( L[1][3] == 14 ) goto L354;
-                if ( L[1][4] == 13 ) goto L354;
-                M2 = I+1;
-                //L3511:
-                if(L[2][2] == 12 && (L[1][3] == 9  || L[1][4] == 9))  goto L360;
-                if ( ICO[5][NCK] == 4 ) NCONT[K] = NCONT[K]+NDAT[NYC]*64;
-                if ( ICO[5][NCM] == 4 ) NCONT[M] = NCONT[M]+NDAT[NYC]*64;
-                //L3510:
-                if ( NZC <= 0 ) goto L360;
-                if ( ICO[6][NCK] == 4 ) NCONT[K] = NCONT[K]+NDAT[NZC]*512;
-                if ( ICO[6][NCM] == 4 ) NCONT[M] = NCONT[M]+NDAT[NZC]*512;
-                goto L360;
-                L352:
-                NXC = (NI4+NM4) % 4;
-                NZC = (NI6+NM6) % 4;
-                M2 = K+1;
-                if(L[2][3] == 12  && (L[1][2] == 9  ||  L[1][4] == 9)) goto L360;
-                if ( NXC <= 0 ) goto L3520;
-                if ( ICO[4][NCI] == 4 ) NCONT[I] = NCONT[I]+NDAT[NXC]*4;
-                if ( ICO[4][NCM] == 4 ) NCONT[M] = NCONT[M]+NDAT[NXC]*4;
-                L3520:
-                if ( NZC <= 0 ) goto L360;
-                if ( ICO[6][NCI] == 4 ) NCONT[I] = NCONT[I]+NDAT[NZC]*512;
-                if ( ICO[6][NCM] == 4 ) NCONT[M] = NCONT[M]+NDAT[NZC]*512;
-                goto L360;
-                L353:
-                NXC = (NI4+NK4) % 4;
-                NYC = (NI5+NK5) % 4;
-                if(L[2][4] == 12  &&  ( L[1][2] == 9 || L[1][3] == 9)) goto L359;
-                if ( NXC <= 0 ) goto L3530;
-                if ( ICO[4][NCI] == 4 ) NCONT[I] = NCONT[I]+NDAT[NXC]*4;
-                if ( ICO[4][NCK] == 4 ) NCONT[K] = NCONT[K]+NDAT[NXC]*4;
-                L3530:
-                if ( NYC <= 0 ) goto L359;
-                if ( ICO[5][NCI] == 4 ) NCONT[I] = NCONT[I]+NDAT[NYC]*64;
-                if ( ICO[5][NCK] == 4 ) NCONT[K] = NCONT[K]+NDAT[NYC]*64;
-                goto L359;
-                L354:
-                if ( NYC <= 0 ) goto L3540;
-                if ( abs(L[2][2]-13) == 1 ) NCONT[I]=NCONT[I]+NDAT[NYC]*64;
-                L3540:
-                if ( NZC <= 0 ) goto L3541;
-                if ( ICO[6][NCK] == 4 ) NCONT[K] = NCONT[K]+NDAT[NZC]*512;
-                L3541:
-                if ( NXC <= 0 ) goto L359;
-                if ( L[1][4] == 0 || L[1][3] == 14 ) goto L359;
-                if ( L[2][4] != 12 ) NCONT[K]=NCONT[K]+NDAT[NXC]*4;
-                goto L359;
-                L355:
-                L[1][2] = 30;
-                if ( L[1][3] == 14 ) goto L370;
-                if ( L[1][3] == 13 && L[2][3] == 12 ) goto L3561;
-                if ( L[1][1] ==  7 && L[2][2] == 12 ) goto L357;
-                if ( L[1][1] ==  7 && L[2][2] == 14 ) goto L357;
-                if ( L[1][1] ==  6 && L[2][2] == 12 ) goto L358;
-                if ( L[1][1] ==  6 && L[2][2] == 14 ) goto L358;
-                if ( L[1][1] ==  7 && L[1][3] == 13 ) goto L3581;
-                if ( (NCONT[I] % 1024) == 19 ) goto L350;
-                if ( NXC+NYC > 0 ) goto L356;
-                if ( NZC != NM6 ) goto L359;
-                if ( NZC <= 0 ) goto L359;
-                NCONT[K] = NCONT[K]+NDAT[NZC]*512;
-                goto L359;
-                L356:
-                if ( L[3][2] == 10 || L[4][2] == 10 ) goto L359;
-                if ( L[1][3] != 10 ) goto L359;
-                L3561:
-                if ( L[2][2] == 3 ) goto L3560;
-                NCONT[I] = NCONT[I] ^ 68;
-                goto L3580;
-                L3560:
-                if ( L[1][4] == 2 ) NCONT[K]= NCONT[K] ^ 512;
-                goto L359;
-                L357:
-                NCONT[I] = NCONT[I]+64;
-                if ( L[3][2] != 19 ) NCONT[I+1] = NCONT[I+1]-512;
-                if ( L[1][4] == 11 && L[3][2] == 19 )NCONT[I] = NCONT[I]+588;
-                goto L3580;
-                L358:
-                NCONT[I] = NCONT[I]+136;
-                L3580:
-                if ( L[1][3] != 13 ) goto L359;
-                L3581:
-                M2 = K+1;
-                goto L360;
-                L359:
-                M2 = M+1;
-                L360:
-                if ( M2 > J ) goto L306;
-                //DB 2
-                //     PRINT 6,M2,I,J,K,M
-                //   6 FORMAT (*0M2 =*I3*  I =*I3*  J =*I3* K =*I3*  M =*I3)
-                for (M1=M2; M1 <= J; ++M1)
-                {
-                    NCONT[M1-1] = NCONT[M1];
-                    for (M3=1; M3 <= 6; ++M3) ICO[M3][M1-1] = ICO[M3][M1];
-                }
-                goto L306;
-                L370:
-                if ( L[1][4] > 12 ) goto L371;
-                M2 = I+1;
-                goto L360;
-                L371:
-                L[1][2] = 13;
-                if ( L[2][2] == 12 && L[1][1] == 5 ) NCONT[I] = NCONT[I]+200;
-                if ( L[2][2] == 12 && L[1][1] == 6 ) NCONT[I] = NCONT[I]+136;
-                if ( L[2][2] == 12 && L[1][1] == 7 ) NCONT[I] = NCONT[I]+652;
-                if ( L[2][2] == 13 )                 NCONT[I] = NCONT[I]+68;
-                if ( L[2][2] == 14 )                 NCONT[I] = NCONT[I]+140;
-                goto L359;
-                L380:;
-            }
-            L390:;
-        }
-        L400:;
-    }
-    LD = 0;
-    for (I=1; I <= J; ++I) LD = (LD ^ NCONT[I]) & 307;
-    if ( LD != 0 ) goto L410;
-    NCONT[J-1] = NCONT[J];
-    J = J-1;
-    L410:
-    NCONT[J+1] = 0;
-    //DB 1
-    //     PRINT 4,K,NSPGRP,NAXIS,J,NCONT
-    L450:
-    return;
-    L500:
-    *outputfile << " Did YOU enter the space group correctly?" << endl
-        << "  ERRORS of some sort were detected." << endl
-        << "  The card was read as:" << SPG << endl;
-    NAXIS = 4;
-    goto L450;
-}
-
-void SPGCOM::GOTOER(void)
-{
-    *outputfile << "subroutine gotoer was called" << endl;
-    throw DBWSException("subroutine gotoer was called");
-}
 
 
 
@@ -1705,24 +687,19 @@ DBWS::DBWS(void)
     parac = new PARAC();
     jnk = new JNK();
     allp = new ALLP();
-    char_ = new CHAR();
     coefc = new COEFC();
     coeff = new COEFF();
     bkgscale = new BKGSCALE();
     datax = new DATAX();
     rtmtx = new RTMTX();
     sizestrain = new SIZESTRAIN();
-    convert = new CONVERT();
 
-    spgcom = new SPGCOM();
-    spgcom->outputfile = &file6;
 
     volume = new VOLUME();
     g2 = new G2();
     f1 = new F1();
     g3 = new G3();
     fondi = new FONDI();
-    blnk1 = new BLNK1();
     multip = new MULTIP();
     simoper = new SIMOPER();
     hklctl = new HKLCTL();
@@ -1750,21 +727,17 @@ DBWS::~DBWS(void)
     delete parac;
     delete jnk;
     delete allp;
-    delete char_;
     delete coefc;
     delete coeff;
     delete bkgscale;
     delete datax;
     delete rtmtx;
     delete sizestrain;
-    delete convert;
-    delete spgcom;
     delete volume;
     delete g2;
     delete f1;
     delete g3;
     delete fondi;
-    delete blnk1;
     delete multip;
     delete simoper;
     delete hklctl;
@@ -1789,7 +762,7 @@ void DBWS::run(void)
         INPTR();
         // Canton et all code starts here !cp may 03 97
         //-----OPEN,if NECESSARY, FILE CONTAINING AMORPHOUS SCATTERING
-        if (params->GLB_[20-1] != 0.0 || params->GLB_[20-1].A != 0.0 ) inpam();
+        if (params->GLB_[20-1] != 0.0 || params->GLB_[20-1].codeword != 0.0 ) inpam();
         // Canton et all code stops here
 
         ITER();
@@ -2054,7 +1027,7 @@ void DBWS::ASSIGN_(void)
     if (cntrls->IASYM == 0)
     {
         // THE FOLLOWING TEST IS REALLY ONLY VALID FOR THE SINGLE PHASE CASE
-        if(refls->REFS[ KRR[1][I] ][2] >= g1->RLIM && phases[1-1].PAR_[14-1].L != 0)
+        if(refls->REFS[ KRR[1][I] ][2] >= g1->RLIM && phases[1-1].PAR[13].L != 0)
         {
             file6 << "ASYMMETRY PARAMETER USAGE INVALID" << endl;
             DBWSException("ASYMMETRY PARAMETER USAGE INVALID");
@@ -2062,7 +1035,7 @@ void DBWS::ASSIGN_(void)
     }
     else
     {
-        if(refls->REFS[ KRR[1][I] ][2] >= (90.0-g1->RLIM) && phases[1-1].PAR_[14-1].L != 0)
+        if(refls->REFS[ KRR[1][I] ][2] >= (90.0-g1->RLIM) && phases[1-1].PAR[13].L != 0)
         {
             file6 << "ASYMMETRY PARAMETER USAGE INVALID" << endl;
             DBWSException("ASYMMETRY PARAMETER USAGE INVALID");
@@ -2070,7 +1043,7 @@ void DBWS::ASSIGN_(void)
     }
     for (I=1; I <= cntrls->NPHASE; ++I)
     {
-        if(phases[I-1].PAR_[11] == 0.0 && phases[I-1].PAR_[12] == 0.0 && phases[I-1].PAR_[13-1].L != 0)
+        if(phases[I-1].PAR[11] == 0.0 && phases[I-1].PAR[12] == 0.0 && phases[I-1].PAR[12].L != 0)
         {
             file6 << "PREFERRED ORIENTATION USAGE INVALID" << endl;
             DBWSException("PREFERRED ORIENTATION USAGE INVALID");
@@ -2176,7 +1149,7 @@ void DBWS::COMPTON(int K, double STH, double* CISK)
     double CSP[2 +1];
 
     //-----NK = ATOMS IN THE ASSIMETRIC UNIT OF K-TH PHASE
-    NK = jnk->NATOM[K];
+    NK = phases[K].AtomCount;
     //-----IRL = NUMBER OF EQUIVALENT POSITION - ALSO THE IDENTITY
     //           AND if IT IS PRESENT THE SIMMETRY CENTRE
     IRL = rtmtx->MLTPHS[K];
@@ -2185,7 +1158,7 @@ void DBWS::COMPTON(int K, double STH, double* CISK)
     IOF = 0;
     if (K > 1)
     {
-        for (I = 2; I <= K; ++I) IOF = IOF + jnk->NATOM[I-1];
+        for (I = 2; I <= K; ++I) IOF = IOF + phases[I-1].AtomCount;
     }
     for (ICX = 1; ICX <= 2; ++ICX)
     {
@@ -2249,7 +1222,7 @@ void DBWS::DISORDER(int K, double STH, int IDERIV, double* SDK, double* DYC, int
     IOF = 0;
     if (K > 1)
     {
-        for (I = 2; I <= K; ++I) IOF = IOF + jnk->NATOM[I-1];
+        for (I = 2; I <= K; ++I) IOF = IOF + phases[I-1].AtomCount;
     }
     for (I=1; I <= NATS; ++I)
     {
@@ -2260,7 +1233,7 @@ void DBWS::DISORDER(int K, double STH, int IDERIV, double* SDK, double* DYC, int
     //           AND THE SIMMETRY CENTRE if PRESENT
     IRL = rtmtx->MLTPHS[K];
     //-----NK = NUMBER OF ATOMS IN THE K-TH PHASE
-    NK  = jnk->NATOM[K];
+    NK  = phases[K].AtomCount;
     for (ICX = 1; ICX <= 2; ++ICX)
     {
         STHL2[ICX] = pow(( STH / g1->LAMDA[ICX] ) , 2);
@@ -2308,11 +1281,11 @@ void DBWS::DISORDER(int K, double STH, int IDERIV, double* SDK, double* DYC, int
                 atfat->FI2[ICX] += params->XL[I+IOF][5] * (pow(FI,2)+pow(coeff->DFPP[NI],2));
             }
             atfat->FI2[ICX] += static_cast<double>(IRL);
-            DIS[ICX] = ( 1.0 - exp(-phases[K-1].PAR_[1]*2.0*STHL2[ICX]) ) * atfat->FI2[ICX];
-            LK =phases[K-1].PAR_[2-1].L;
+            DIS[ICX] = ( 1.0 - exp(-phases[K-1].PAR[1]*2.0*STHL2[ICX]) ) * atfat->FI2[ICX];
+            LK =phases[K-1].PAR[1].L;
             if(LK != 0 && IDERIV == 2)
             {
-                DER[ICX] = 2.0 * STHL2[ICX] * atfat->FI2[ICX] * exp(-phases[K-1].PAR_[1]*2.0*STHL2[ICX]);
+                DER[ICX] = 2.0 * STHL2[ICX] * atfat->FI2[ICX] * exp(-phases[K-1].PAR[1]*2.0*STHL2[ICX]);
             }
             else
             {
@@ -2342,7 +1315,7 @@ void DBWS::DISORDER(int K, double STH, int IDERIV, double* SDK, double* DYC, int
     //                   params->PAR[K][2] IN THE K-TH PHASE
     if(FONDO == 2)
     {
-        LK =phases[K-1].PAR_[2-1].L;				// TODO: Coloquei talez esteja incorreto, verificar depois de retirar os gotos
+        LK =phases[K-1].PAR[1].L;				// TODO: Coloquei talez esteja incorreto, verificar depois de retirar os gotos
         if(LK != 0 && IDERIV == 2)
         {
             *DYC = params->RATIO[1] * DER[1] + params->RATIO[2] * DER[2];
@@ -2373,7 +1346,7 @@ void DBWS::SMTRY2(int* IPHASE)
     int NCL[48+1];
     int IPH[48+1];
 
-    if ( spgcom->NC > 0 ) goto L14;
+    if ( phases[*IPHASE].SYMB.NC > 0 ) goto L14;
     if ( hklctl->IHKL[1][1] < 0 )
     {
         goto L11;
@@ -2488,8 +1461,8 @@ L81:
             //L87:
             LA = LD[1][L]*hklctl->IHKL[1][1]+LD[2][L]*hklctl->IHKL[2][1]+LD[3][L]*hklctl->IHKL[3][1];
             hklctl->AZ[L] = static_cast<double>(LA)/12.0;
-            if ( spgcom->NC != 0 ) goto L89;
-            if ( spgcom->NSPGRP < 12 ) goto L89;
+            if ( phases[*IPHASE].SYMB.NC != 0 ) goto L89;
+            if ( phases[*IPHASE].SYMB.NSPGRP < 12 ) goto L89;
             if ( hklctl->NC1[I][1][*IPHASE] > 0 ) goto L89;
             if ( (hklctl->NC1[I][2][*IPHASE] % 2) == 1 ) goto L89;
             if ( IPH[L] <= 0 ) goto L680;
@@ -2497,7 +1470,7 @@ L89:
             for (M=2; M <= L; ++M)
             {
                 if ( IPH[M-1] == IPH[L] ) goto L690;
-                if ( spgcom->NC != 0 ) goto L90;
+                if ( phases[*IPHASE].SYMB.NC != 0 ) goto L90;
                 if ( IPH[M-1] == -IPH[L] ) goto L690;
 L90:;
             }
@@ -2560,7 +1533,7 @@ L900:
     }
 L1000:
     hklctl->IER = 0;
-    if ( spgcom->NC != 0 ) goto L1001;
+    if ( phases[*IPHASE].SYMB.NC != 0 ) goto L1001;
     for (M=2; M <= hklctl->ICHKL[*IPHASE]; ++M)
     {
         if ( IPH[M] > 0 ) goto L1003;
@@ -2608,14 +1581,14 @@ void DBWS::CALCUL(int NN)
     IOF = 0;
     if ( prfx->IPH > 1 )
     {
-        for (IIPHAS=2; IIPHAS <= prfx->IPH; ++IIPHAS) IOF = IOF + jnk->NATOM[IIPHAS-1];
+        for (IIPHAS=2; IIPHAS <= prfx->IPH; ++IIPHAS) IOF = IOF + phases[IIPHAS-1].AtomCount;
     }
     IRL = rtmtx->MLTPHS[prfx->IPH];
-    N = jnk->NATOM[prfx->IPH];
+    N = phases[prfx->IPH].AtomCount;
     ICENT = rtmtx->ICNTPHS[prfx->IPH];
     //-----ZEROIZE THE DERIVATIVES OF THIS REFLECTION W.R.T. TO PARAMETERS
     NX=0;
-    for (IIPHAS=1; IIPHAS <= cntrls->NPHASE; ++IIPHAS) NX = NX+jnk->NATOM[IIPHAS];
+    for (IIPHAS=1; IIPHAS <= cntrls->NPHASE; ++IIPHAS) NX = NX+phases[IIPHAS].AtomCount;
     for (I=1; I <= MSZ; ++I) DERIV[I]=0.0;
     for (I=1; I <= NX; ++I)
     {
@@ -2629,31 +1602,31 @@ void DBWS::CALCUL(int NN)
     DV=0.0;
     AV=0.0;
     BV=0.0;
-    PAC = phases[prfx->IPH-1].PAR_[11] != 0.0  ||  phases[prfx->IPH-1].PAR_[12-1].L != 0  ||
-          phases[prfx->IPH-1].PAR_[12] != 0.0  ||  phases[prfx->IPH-1].PAR_[13-1].L != 0;
-    for (I=1; I <= 3; ++I) AL[I][I]=phases[prfx->IPH-1].PAR_[I+5-1];
-    AL[3][2]=phases[prfx->IPH-1].PAR_[8];
+    PAC = phases[prfx->IPH-1].PAR[11] != 0.0  ||  phases[prfx->IPH-1].PAR[11].L != 0  ||
+          phases[prfx->IPH-1].PAR[12] != 0.0  ||  phases[prfx->IPH-1].PAR[12].L != 0;
+    for (I=1; I <= 3; ++I) AL[I][I]=phases[prfx->IPH-1].PAR[I+5-1];
+    AL[3][2]=phases[prfx->IPH-1].PAR[8];
     AL[2][3]=AL[3][2];
-    AL[3][1]=phases[prfx->IPH-1].PAR_[9];
+    AL[3][1]=phases[prfx->IPH-1].PAR[9];
     AL[1][3]=AL[3][1];
-    AL[2][1]=phases[prfx->IPH-1].PAR_[10];
+    AL[2][1]=phases[prfx->IPH-1].PAR[10];
     AL[1][2]=AL[2][1];
-    AH=phases[prfx->IPH-1].PAR_[2];
-    BH=phases[prfx->IPH-1].PAR_[3];
-    CH=phases[prfx->IPH-1].PAR_[4];
-    DH=phases[prfx->IPH-1].PAR_[19];
-    if (cntrls->NPROF == _pseudoVoigt) EH=phases[prfx->IPH-1].PAR_[20];
+    AH=phases[prfx->IPH-1].PAR[2];
+    BH=phases[prfx->IPH-1].PAR[3];
+    CH=phases[prfx->IPH-1].PAR[4];
+    DH=phases[prfx->IPH-1].PAR[19];
+    if (cntrls->NPROF == _pseudoVoigt) EH=phases[prfx->IPH-1].PAR[20];
     if (cntrls->NPROF == _TCHZ)
     {
-        AH2=phases[prfx->IPH-1].PAR_[14];
-        BH2=phases[prfx->IPH-1].PAR_[15];
+        AH2=phases[prfx->IPH-1].PAR[14];
+        BH2=phases[prfx->IPH-1].PAR[15];
     }
-    B1=phases[prfx->IPH-1].PAR_[11];
-    B2=phases[prfx->IPH-1].PAR_[12];
+    B1=phases[prfx->IPH-1].PAR[11];
+    B2=phases[prfx->IPH-1].PAR[12];
     NM=(NN % NOV)+1;
     ICX=(refls->IREFS[NN]/(256*256*256)) % 8;
     SLABDA=g1->LAMDA[ICX]*g1->LAMDA[ICX]/4.0;
-    N=jnk->NATOM[prfx->IPH];
+    N=phases[prfx->IPH].AtomCount;
     refls->FMGNTD[NN]=0.0;
     PAKNN=0.0;
     PRECOR=1.0;
@@ -2675,7 +1648,7 @@ void DBWS::CALCUL(int NN)
         TT = 0.0;
         for (I=1; I <= 3; ++I)
         {
-            for (J=I; J <= 3; ++J) TT = TT + jnk->PREF[prfx->IPH][I]*AL[I][J] * jnk->PREF[prfx->IPH][J];             // GSAS DP2
+            for (J=I; J <= 3; ++J) TT = TT + phases[prfx->IPH].PREF[I]*AL[I][J] * phases[prfx->IPH].PREF[J];             // GSAS DP2
         }
         SMTRY2(&prfx->IPH);
         PRECOR = 0.0;
@@ -2686,7 +1659,7 @@ void DBWS::CALCUL(int NN)
             PAK = 0.0;
             for (I=1; I <= 3; ++I)
             {
-                for (J=I; J <= 3; ++J) PAK = jnk->PREF[prfx->IPH][I]*AL[I][J]*static_cast<double>(hklctl->IHKL[J][IJ])+PAK;     // GSAS CA
+                for (J=I; J <= 3; ++J) PAK = phases[prfx->IPH].PREF[I]*AL[I][J]*static_cast<double>(hklctl->IHKL[J][IJ])+PAK;     // GSAS CA
             }
             PAK = PAK*PAK/(TT*SS);
             PAKNN = pow((PI/2.0),2);
@@ -2714,7 +1687,7 @@ void DBWS::CALCUL(int NN)
     //L13:
     //SINTL[NM] = sqrt(SS);
     SSNN = 0.25*SS;
-    TAV = exp(-2.0*phases[prfx->IPH-1].PAR_[1]*SSNN)*PRECOR;
+    TAV = exp(-2.0*phases[prfx->IPH-1].PAR[1]*SSNN)*PRECOR;
     SINTH = SLABDA*SS;
     COSTH = 1.0-SINTH;
     TANTH = sqrt(SINTH/COSTH);
@@ -2908,7 +1881,7 @@ L22:;
     }
     //-----CALCULATE DERIVATIVES
     //-----Preferred Orientation Derivatives
-    K = phases[prfx->IPH-1].PAR_[12-1].L;
+    K = phases[prfx->IPH-1].PAR[11].L;
     if ( K != 0 )
     {
         DERIV[K] = DERIV[K]+FNN*DPRECOR;
@@ -2918,7 +1891,7 @@ L22:;
     //////////////////////////////////////////////////////////
     // TODO: remover este isso. Aideia é dividir a rotina INPTR em duas e fazer estes teste por lá
 
-    K = phases[prfx->IPH-1].PAR_[13-1].L;
+    K = phases[prfx->IPH-1].PAR[12].L;
     if (cntrls->IPREF == 0)
     {
         if(K != 0) DERIV[K]=DERIV[K]+(1.0-PREXP)*FNN/PRECOR;
@@ -3011,10 +1984,10 @@ L22:;
         if (K != 0) DERIV[K] = DERIV[K] + SRD*FNN/SR;
     }
     //----Overall Temperature and Scale Factor
-    K=phases[prfx->IPH-1].PAR_[2-1].L;
+    K=phases[prfx->IPH-1].PAR[1].L;
     if(K != 0) DERIV[K]=DERIV[K]-2.0*SSNN*FNN;
-    K=phases[prfx->IPH-1].PAR_[1-1].L;
-    if(K != 0) DERIV[K]=DERIV[K]+FNN/phases[prfx->IPH-1].PAR_[1-1];
+    K=phases[prfx->IPH-1].PAR[0].L;
+    if(K != 0) DERIV[K]=DERIV[K]+FNN/phases[prfx->IPH-1].PAR[0];
     SINTH=FNN*PI*SLABDA/(sqrt(SINTH*COSTH)*BB);
     SS=FNN/prfx->TL;
     X=TANTH*TANTH;
@@ -3022,13 +1995,13 @@ L22:;
     if (cntrls->NPROF == _SplitPearsonVII || cntrls->NPROF == _TCHZ) goto L9212;
     for (J=3; J <= 5; ++J)
     {
-        K=phases[prfx->IPH-1].PAR_[J-1].L;
+        K=phases[prfx->IPH-1].PAR[J-1].L;
         if(K == 0) goto L78;
         DERIV[K]=X*SS+DERIV[K];
 L78:
         X=X/TANTH;
     }
-    K=phases[prfx->IPH-1].PAR_[21-1].L;
+    K=phases[prfx->IPH-1].PAR[20].L;
     if(K == 0) goto L9212;
     // for cot^2 case                                    !cp nov 29 96
     DERIV[K]=SS/(TANTH*TANTH)+DERIV[K];
@@ -3048,7 +2021,7 @@ L9212:
         }
         for (J=3; J <= 5; ++J)
         {
-            K=phases[prfx->IPH-1].PAR_[J-1].L;
+            K=phases[prfx->IPH-1].PAR[J-1].L;
             if(K == 0) goto L780;
             DERIV[K]=DERIV[K]+X*SS*((DA3*prfx->DELT/(1.0+DA1*prfx->DELT))-(1.0/prfx->TL));
 L780:
@@ -3067,35 +2040,35 @@ L780:
         DHDHL = 0.2/pow(prfx->TL,4.0)*(2.69269*pow(TLG,4.0)+ 4.85686*pow(TLG,3.0)*TLL +13.41489*TLG*TLG*TLL*TLL + 0.31368*TLG*pow(TLL,3.0)+5.*pow(TLL,4.0));
         for (J=3; J <= 5; ++J)
         {
-            K=phases[prfx->IPH-1].PAR_[J-1].L;
+            K=phases[prfx->IPH-1].PAR[J-1].L;
             if(K == 0)goto L9078;
             DERIV[K]=DHDHG*X*SS+DERIV[K];
 L9078:
             X=X/TANTH;
         }
-        K=phases[prfx->IPH-1].PAR_[20-1].L;
+        K=phases[prfx->IPH-1].PAR[19].L;
         if  (K != 0) DERIV[K]=DHDHG*SS/COSTH+DERIV[K];
-        K = phases[prfx->IPH-1].PAR_[15-1].L;
+        K = phases[prfx->IPH-1].PAR[14].L;
         if (K == 0) goto L9213;
         DERIV[K] = 2.0*FNN*DHDHL*TANTH+DERIV[K];
 L9213:
-        K = phases[prfx->IPH-1].PAR_[16-1].L;
+        K = phases[prfx->IPH-1].PAR[15].L;
         if (K == 0) goto L9214;
         DERIV[K] = 2.0*FNN*DHDHL/sqrt(COSTH) + DERIV[K];
 L9214:;
     }
     //-----Profile Shape Derivatives
-    K = phases[prfx->IPH-1].PAR_[17-1].L;
+    K = phases[prfx->IPH-1].PAR[16].L;
     if(K != 0 && (cntrls->NPROF == _pseudoVoigt || cntrls->NPROF == _PearsonVII)) DERIV[K]=DERIV[K]+ FNN;
-    K = phases[prfx->IPH-1].PAR_[18-1].L;
+    K = phases[prfx->IPH-1].PAR[17].L;
     if(K != 0 && cntrls->NPROF == _pseudoVoigt) DERIV[K]=DERIV[K]+ FNN * refls->REFS[NN][2];
     if(K != 0 && cntrls->NPROF == _PearsonVII) DERIV[K]=DERIV[K]+ FNN / refls->REFS[NN][2];
-    K = phases[prfx->IPH-1].PAR_[19-1].L;
+    K = phases[prfx->IPH-1].PAR[18].L;
     if(K != 0 && cntrls->NPROF == _PearsonVII)DERIV[K]=DERIV[K]+FNN/refls->REFS[NN][2] /refls->REFS[NN][2];
     //-----Split Pearson VII Shape Derivative
     if (cntrls->NPROF == _SplitPearsonVII)
     {
-        K = phases[prfx->IPH-1].PAR_[17-1].L;
+        K = phases[prfx->IPH-1].PAR[16].L;
         if (K != 0.0)
         {
             if (prfx->DELTA < 0.0)
@@ -3107,7 +2080,7 @@ L9214:;
                 DERIV[K] = DERIV[K]+FNN*spvii->DA6L;
             }
         }
-        K = phases[prfx->IPH-1].PAR_[18-1].L;
+        K = phases[prfx->IPH-1].PAR[17].L;
         if (K != 0.0)
         {
             if (prfx->DELTA < 0.0)
@@ -3119,7 +2092,7 @@ L9214:;
                 DERIV[K] = DERIV[K]+FNN*spvii->DA6L/refls->REFS[NN][2];
             }
         }
-        K = phases[prfx->IPH-1].PAR_[19-1].L;
+        K = phases[prfx->IPH-1].PAR[18].L;
         if (K != 0.0)
         {
             if (prfx->DELTA < 0.0)
@@ -3131,7 +2104,7 @@ L9214:;
                 DERIV[K] = DERIV[K]+FNN*spvii->DA6L/refls->REFS[NN][2]/refls->REFS[NN][2];
             }
         }
-        K = phases[prfx->IPH-1].PAR_[24-1].L;
+        K = phases[prfx->IPH-1].PAR[23].L;
         if (K != 0.0)
         {
             if (prfx->DELTA < 0.0)
@@ -3143,7 +2116,7 @@ L9214:;
                 DERIV[K] = DERIV[K]+FNN*(-log(1.0+spvii->DA1H*prfx->DELT/BB)+spvii->DA7H*prfx->DELT/BB/(1.0+spvii->DA1H*prfx->DELT/BB));
             }
         }
-        K = phases[prfx->IPH-1].PAR_[25-1].L;
+        K = phases[prfx->IPH-1].PAR[24].L;
         if (K != 0.0)
         {
             if (prfx->DELTA < 0.0)
@@ -3155,7 +2128,7 @@ L9214:;
                 DERIV[K] = DERIV[K]+FNN*(-log(1.0+spvii->DA1H*prfx->DELT/BB)+spvii->DA7H*prfx->DELT/BB/(1.0+spvii->DA1H*prfx->DELT/BB))/refls->REFS[NN][2];
             }
         }
-        K = phases[prfx->IPH-1].PAR_[26-1].L;
+        K = phases[prfx->IPH-1].PAR[25].L;
         if (K != 0.0)
         {
             if (prfx->DELTA < 0.0)
@@ -3169,7 +2142,7 @@ L9214:;
         }
     }
     //-----Split Pearson VII Asymmetry Derivative
-    K = phases[prfx->IPH-1].PAR_[27-1].L;
+    K = phases[prfx->IPH-1].PAR[26].L;
     if (prfx->DELTA < 0.0)
     {
         DA1 = spvii->DA1L;
@@ -3196,7 +2169,7 @@ L9214:;
     //c-----Lattice Parameter Derivatives
     for (J=1; J <= 6; ++J)
     {
-        K=phases[prfx->IPH-1].PAR_[J+5-1].L;
+        K=phases[prfx->IPH-1].PAR[J+5-1].L;
         if(K == 0) goto L79;
         if(J < 4) X=HNN[J]*HNN[J];
         if(J == 4) X=HNN[2]*HNN[3];
@@ -3206,7 +2179,7 @@ L9214:;
 L79:;
     }
     //-Asymmetry Derivative.  Test for asymmetry model included !cp may 97
-    K=phases[prfx->IPH-1].PAR_[14-1].L;
+    K=phases[prfx->IPH-1].PAR[13].L;
     if((K != 0) && VERT)
     {
         if (cntrls->IASYM == 0)
@@ -3462,14 +2435,14 @@ void DBWS::SUMMAT(int IPM, double CSK[], double DISK[], double DYCDD[], double I
         //TANTH=tan(g3->TH*3.14159265359/360.0);
         prfx->DELT=prfx->DELTA*prfx->DELTA;
         prfx->TL=refls->REFS[I][1];
-        if (cntrls->NPROF == _pseudoVoigt) prfx->GAM1 = phases[prfx->IPH-1].PAR_[17-1] + phases[prfx->IPH-1].PAR_[18-1] * refls->REFS[I][2];
-        if (cntrls->NPROF == _PearsonVII) prfx->GAM1 = phases[prfx->IPH-1].PAR_[17-1] + phases[prfx->IPH-1].PAR_[18-1] / refls->REFS[I][2] + phases[prfx->IPH-1].PAR_[19-1]/refls->REFS[I][2]/refls->REFS[I][2];
+        if (cntrls->NPROF == _pseudoVoigt) prfx->GAM1 = phases[prfx->IPH-1].PAR[16] + phases[prfx->IPH-1].PAR[17] * refls->REFS[I][2];
+        if (cntrls->NPROF == _PearsonVII) prfx->GAM1 = phases[prfx->IPH-1].PAR[16] + phases[prfx->IPH-1].PAR[17] / refls->REFS[I][2] + phases[prfx->IPH-1].PAR[18]/refls->REFS[I][2]/refls->REFS[I][2];
         if (cntrls->NPROF == _PearsonVII) PRSVII(prfx->GAM1);
         if (cntrls->NPROF == _SplitPearsonVII)
         {
-            spvii->RL=phases[prfx->IPH-1].PAR_[17-1]+(phases[prfx->IPH-1].PAR_[18-1]+phases[prfx->IPH-1].PAR_[19-1]/refls->REFS[I][2])/refls->REFS[I][2];
-            spvii->RH=phases[prfx->IPH-1].PAR_[24-1]+(phases[prfx->IPH-1].PAR_[25-1]+phases[prfx->IPH-1].PAR_[26-1]/refls->REFS[I][2])/refls->REFS[I][2];
-            mspvii(phases[prfx->IPH-1].PAR_[27-1],prfx->TL);
+            spvii->RL=phases[prfx->IPH-1].PAR[16]+(phases[prfx->IPH-1].PAR[17]+phases[prfx->IPH-1].PAR[18]/refls->REFS[I][2])/refls->REFS[I][2];
+            spvii->RH=phases[prfx->IPH-1].PAR[23]+(phases[prfx->IPH-1].PAR[24]+phases[prfx->IPH-1].PAR[25]/refls->REFS[I][2])/refls->REFS[I][2];
+            mspvii(phases[prfx->IPH-1].PAR[26],prfx->TL);
         }
         if(cntrls->NPROF == _TCHZ)
         {
@@ -3486,7 +2459,7 @@ void DBWS::SUMMAT(int IPM, double CSK[], double DISK[], double DYCDD[], double I
             if (cntrls->IASYM == 0)
             {
                 YX=prfx->DELT*sign(prfx->DELTA);
-                Z=1.0-phases[prfx->IPH-1].PAR_[14-1]*YX/g4->TANN[J];
+                Z=1.0-phases[prfx->IPH-1].PAR[13]*YX/g4->TANN[J];
                 if ( Z <= 0.0 ) Z=0.0001;
             }
             else
@@ -3494,7 +2467,7 @@ void DBWS::SUMMAT(int IPM, double CSK[], double DISK[], double DYCDD[], double I
                 YX=sign(prfx->DELTA)*prfx->DELTA/(2*prfx->TL);
                 TANNJ=g4->TANN[J];
                 if (TANNJ >= 1.0) TANNJ=tan(atan(TANNJ)-3.14159265359/2);
-                Z=(phases[prfx->IPH-1].PAR_[14-1]/TANNJ) * (2.0*(prfx->DELTA/(2*prfx->TL))*exp(-YX));
+                Z=(phases[prfx->IPH-1].PAR[13]/TANNJ) * (2.0*(prfx->DELTA/(2*prfx->TL))*exp(-YX));
                 Z=1+Z;
                 if ( Z <= 0.0 ) Z=0.0001;
             }
@@ -3507,11 +2480,11 @@ void DBWS::SUMMAT(int IPM, double CSK[], double DISK[], double DYCDD[], double I
         PRTEMP = PROFIL(cntrls->NPROF,prfx->DELT/BB);
         if (cntrls->NPROF == _SplitPearsonVII)
         {
-            OMEGA = refls->REFS[I][3]*Z*PRTEMP*phases[prfx->IPH-1].PAR_[1-1];
+            OMEGA = refls->REFS[I][3]*Z*PRTEMP*phases[prfx->IPH-1].PAR[0];
         }
         else
         {
-            OMEGA = refls->REFS[I][3]*Z*PRTEMP*phases[prfx->IPH-1].PAR_[1-1]/prfx->TL;
+            OMEGA = refls->REFS[I][3]*Z*PRTEMP*phases[prfx->IPH-1].PAR[0]/prfx->TL;
         }
         YCALC = YCALC+OMEGA*refls->FMGNTD[I];
         if ( cntrls->JOBTYP > 2 ) goto L33;
@@ -3522,27 +2495,27 @@ void DBWS::SUMMAT(int IPM, double CSK[], double DISK[], double DYCDD[], double I
             //-----Broadening Coeficients Derivatives
             if(cntrls->NPROF != _SplitPearsonVII)
             {
-                for (M=3; M <= 5; ++M) if(phases[prfx->IPH-1].PAR_[M-1].L == K) DER=X/prfx->TL/2.0;
+                for (M=3; M <= 5; ++M) if(phases[prfx->IPH-1].PAR[M-1].L == K) DER=X/prfx->TL/2.0;
             }
-            if (phases[prfx->IPH-1].PAR_[20-1].L == K) DER=X/prfx->TL/2.0;
+            if (phases[prfx->IPH-1].PAR[19].L == K) DER=X/prfx->TL/2.0;
             X1=0.0;
             //-----Asymmetry Derivative
             if (VERT)
             {
                 if (cntrls->IASYM == 0)
                 {
-                    X1=phases[prfx->IPH-1].PAR_[14-1]*sign(prfx->DELTA)*BB/g4->TANN[J]/Z;
+                    X1=phases[prfx->IPH-1].PAR[13]*sign(prfx->DELTA)*BB/g4->TANN[J]/Z;
                 }
                 else
                 {
-                    X1=-phases[prfx->IPH-1].PAR_[14-1]*exp(-YX)*(prfx->TL/(2*prfx->DELTA)-sign(prfx->DELTA)*1.0/4)/TANNJ/Z;
+                    X1=-phases[prfx->IPH-1].PAR[13]*exp(-YX)*(prfx->TL/(2*prfx->DELTA)-sign(prfx->DELTA)*1.0/4)/TANNJ/Z;
                 }
             }
             //-----Zero, Displacement, and Transparancy Derivative
             if ( params->GLB_[1-1].L == K ) DER=prfx->DELTA*(prfx->PRFDER+X1);
             if ( params->GLB_[10-1].L == K ) DER=prfx->DELTA*(prfx->PRFDER+X1);
             if ( params->GLB_[11-1].L == K ) DER=prfx->DELTA*(prfx->PRFDER+X1);
-            if ( (phases[prfx->IPH-1].PAR_[14-1].L == K)  &&  VERT )
+            if ( (phases[prfx->IPH-1].PAR[13].L == K)  &&  VERT )
             {
                 if ( cntrls->IASYM == 0 )
                 {
@@ -3557,44 +2530,44 @@ void DBWS::SUMMAT(int IPM, double CSK[], double DISK[], double DYCDD[], double I
             //-----Pseudo-Voigt Shape Derivatives
             if(cntrls->NPROF == _pseudoVoigt)
             {
-                KRP1=phases[prfx->IPH-1].PAR_[17-1].L;
+                KRP1=phases[prfx->IPH-1].PAR[16].L;
                 if (K == KRP1) DER=(0.636619772/(1.0+4.0*prfx->DELT/BB)-0.939437279*exp(-2.772588722*prfx->DELT/BB))/PRTEMP;
-                KRP1=phases[prfx->IPH-1].PAR_[18-1].L;
+                KRP1=phases[prfx->IPH-1].PAR[17].L;
                 if (K == KRP1) DER=(0.636619772/(1.0+4.0*prfx->DELT/BB)-0.939437279*exp(-2.772588722*prfx->DELT/BB))/PRTEMP;
             }
             //-----Pearson VII Shape Derivatives
             if (cntrls->NPROF == _PearsonVII)
             {
-                KRP1=phases[prfx->IPH-1].PAR_[17-1].L;
+                KRP1=phases[prfx->IPH-1].PAR[16].L;
                 if(K == KRP1) DER=-log(1.0+pvii->TF9*prfx->DELT/BB)+pvii->TF4*(prfx->DELT/BB)/(1.0+pvii->TF9*prfx->DELT/BB)+pvii->TF8;
-                KRP1=phases[prfx->IPH-1].PAR_[18-1].L;
+                KRP1=phases[prfx->IPH-1].PAR[17].L;
                 if(K == KRP1)   DER=-log(1.0+pvii->TF9*prfx->DELT/BB)+pvii->TF4*(prfx->DELT/BB)/(1.0+pvii->TF9*prfx->DELT/BB)+pvii->TF8;
-                KRP1=phases[prfx->IPH-1].PAR_[19-1].L;
+                KRP1=phases[prfx->IPH-1].PAR[18].L;
                 if(K == KRP1) DER=-log(1.0+pvii->TF9*prfx->DELT/BB)+pvii->TF4*(prfx->DELT/BB)/(1.0+pvii->TF9*prfx->DELT/BB)+pvii->TF8;
             }
             //-----Lattice Parameter Derivatives
 L8:
-            for (M=6; M <= 11; ++M) if(phases[prfx->IPH-1].PAR_[M-1].L == K) DER=(prfx->PRFDER+X1)*prfx->DELTA;
+            for (M=6; M <= 11; ++M) if(phases[prfx->IPH-1].PAR[M-1].L == K) DER=(prfx->PRFDER+X1)*prfx->DELTA;
             DERIV[K]=g4->DERSTO[J][K]*DER*OMEGA+DERIV[K];
             //L3:;
         }
         //----TCHZ Profile Derivatives
         if(cntrls->NPROF == _TCHZ)
         {
-            OMEGA8 = Z*phases[prfx->IPH-1].PAR_[1-1]*refls->REFS[I][3]/prfx->TL;
+            OMEGA8 = Z*phases[prfx->IPH-1].PAR[0]*refls->REFS[I][3]/prfx->TL;
             for (K = 1; K <= cntrls->MAXS; ++K)
             {
                 for (M=3; M <= 5; ++M)
                 {
-                    if (phases[prfx->IPH-1].PAR_[M-1].L != K) goto L1001;
+                    if (phases[prfx->IPH-1].PAR[M-1].L != K) goto L1001;
                     DERIV[K] = DERIV[K]+ OMEGA8*g4->DERSTO[J][K]/2.0*(0.939437279*exp(-2.772588722*prfx->DELT/BB) - 0.636619772/(1.0+4.0*prfx->DELT/BB)) * (1.36603*TLR/prfx->TL-0.95438*TLR*TLR/prfx->TL+0.33348 * pow(TLR,3.0)/prfx->TL);
 L1001:;
                 }
-                if (phases[prfx->IPH-1].PAR_[20-1].L == K) DERIV[K] = DERIV[K]+ OMEGA8*g4->DERSTO[J][K]/2.0*(0.939437279*exp(-2.772588722*prfx->DELT/BB) - 0.636619772/(1.0+4.0*prfx->DELT/BB)) * (1.36603*TLR/prfx->TL-0.95438*TLR*TLR/prfx->TL+0.33348*pow(TLR,3.0)/prfx->TL);
-                if (phases[prfx->IPH-1].PAR_[15-1].L != K) goto L1002;
+                if (phases[prfx->IPH-1].PAR[19].L == K) DERIV[K] = DERIV[K]+ OMEGA8*g4->DERSTO[J][K]/2.0*(0.939437279*exp(-2.772588722*prfx->DELT/BB) - 0.636619772/(1.0+4.0*prfx->DELT/BB)) * (1.36603*TLR/prfx->TL-0.95438*TLR*TLR/prfx->TL+0.33348*pow(TLR,3.0)/prfx->TL);
+                if (phases[prfx->IPH-1].PAR[14].L != K) goto L1002;
                 DERIV[K] = DERIV[K]+ OMEGA8*(0.939437279*exp(-2.772588722*prfx->DELT/BB) -0.636619772/(1.0+4.0*prfx->DELT/BB)) *((1.36603*TLR/prfx->TL-0.95438*TLR*TLR/prfx->TL+0.33348*pow(TLR,3.0)/prfx->TL)* g4->DERSTO[J][K]/2.0 - refls->FMGNTD[I]*g4->TANN[J]*(1.36603/prfx->TL-0.95438*TLR/prfx->TL+0.33348*TLR*TLR/prfx->TL));
 L1002:
-                if (phases[prfx->IPH-1].PAR_[16-1].L != K) goto L1003;
+                if (phases[prfx->IPH-1].PAR[15].L != K) goto L1003;
                 DERIV[K] = DERIV[K]+ OMEGA8*(0.939437279*exp(-2.772588722*prfx->DELT/BB) -0.636619772/(1.0+4.0*prfx->DELT/BB)) *((1.36603*TLR/prfx->TL-0.95438*TLR*TLR/prfx->TL+0.33348*pow(TLR,3.0)/prfx->TL)* g4->DERSTO[J][K]/2.0 - refls->FMGNTD[I]*sqrt(1+g4->TANN[J]*g4->TANN[J])*(1.36603/prfx->TL-0.95438*TLR/prfx->TL+0.33348*TLR*TLR/prfx->TL));
 L1003:;
             }
@@ -3618,8 +2591,8 @@ L11:
     if (cntrls->JOBTYP > 2) goto L20;
     for (K = 1; K <= cntrls->NPHASE; ++K)
     {
-        LK1  = phases[K-1].PAR_[1-1].L;
-        LK2  = phases[K-1].PAR_[2-1].L;
+        LK1  = phases[K-1].PAR[0].L;
+        LK2  = phases[K-1].PAR[1].L;
         //
         //-----UPDATING GLOBAL SCALE DERIVATE FOR BKG CONTRIBUTE
         //
@@ -3642,9 +2615,9 @@ L11:
             IOF = 0;
             if(K > 1)
             {
-                for (I = 2; I <= K; ++I) IOF = IOF + jnk->NATOM[I-1];
+                for (I = 2; I <= K; ++I) IOF = IOF + phases[I-1].AtomCount;
             }
-            for (I = 1; I <= jnk->NATOM[K]; ++I)
+            for (I = 1; I <= phases[K].AtomCount; ++I)
             {
                 IISO=params->LP[I+IOF][4];
                 if(IISO != 0) DERIV[IISO] = DERIV[IISO] + ISODER[I+IOF];
@@ -3879,16 +2852,16 @@ void DBWS::DIRECT(double SM[][6+1], double V[], int* IPH)
 
     for (J=1; J <= 6; ++J)
     {
-        V[J]=phases[*IPH-1].PAR_[J+5-1];
-        K=phases[*IPH-1].PAR_[J+5-1].L;
-        X=phases[*IPH-1].PAR_[J+5-1].A;
+        V[J]=phases[*IPH-1].PAR[J+5-1];
+        K=phases[*IPH-1].PAR[J+5-1].L;
+        X=phases[*IPH-1].PAR[J+5-1].codeword;
         if(K == 0)X=0.0;
         for (L=J; L <= 6; ++L)
         {
-            M=phases[*IPH-1].PAR_[L+5-1].L;
+            M=phases[*IPH-1].PAR[L+5-1].L;
             SM[L][J]=0.0;
             if((M == 0) || (K == 0))goto L1;
-            SM[L][J]=f1->RJAC[M][K]*X*phases[*IPH-1].PAR_[L+5-1].A;
+            SM[L][J]=f1->RJAC[M][K]*X*phases[*IPH-1].PAR[L+5-1].codeword;
             L1:
             SM[J][L]=SM[L][J];
         }
@@ -3980,9 +2953,9 @@ void DBWS::OUTPTR(int ICYCLE)
             IOF=0;
             if (IP > 1)
             {
-                for (IIPHAS=2; IIPHAS <= IP; ++IIPHAS) IOF = IOF + jnk->NATOM[IIPHAS-1];
+                for (IIPHAS=2; IIPHAS <= IP; ++IIPHAS) IOF = IOF + phases[IIPHAS-1].AtomCount;
             }
-            N=jnk->NATOM[IP];
+            N=phases[IP].AtomCount;
             for (I=1; I <= N; ++I)
             {
                 for (J=1; J <= 5; ++J)
@@ -4024,19 +2997,19 @@ void DBWS::OUTPTR(int ICYCLE)
             }
             for (J=1; J <= 27; ++J)
             {
-                KM=phases[IP-1].PAR_[J-1].L;
-                if (KM != 0) DUMMY[KM] = phases[IP-1].PAR_[J-1];
+                KM=phases[IP-1].PAR[J-1].L;
+                if (KM != 0) DUMMY[KM] = phases[IP-1].PAR[J-1];
             }
             DIRECT(dircv->DCSM,dircv->DCV,&IP);
             for (I=1; I <= 6; ++I)
             {
-                KM = phases[IP-1].PAR_[I+5-1].L;
+                KM = phases[IP-1].PAR[I+5-1].L;
                 MATCH = 0;
                 if (KM != 0)
                 {
                     if (I >= 4)
                     {
-                        for (MMM=1; MMM <= 3; ++MMM) if (KM == phases[IP-1].PAR_[MMM+5-1].L) MATCH=1;
+                        for (MMM=1; MMM <= 3; ++MMM) if (KM == phases[IP-1].PAR[MMM+5-1].L) MATCH=1;
                     }
                     if (MATCH == 0) DUMMY[KM] = dc->SAVE[IP][I];
                 }
@@ -4071,13 +3044,13 @@ L6019:;
         IOF=0;
         if (IP > 1)
         {
-            for (IIPHAS=2; IIPHAS <= IP; ++IIPHAS) IOF = IOF + jnk->NATOM[IIPHAS-1];
+            for (IIPHAS=2; IIPHAS <= IP; ++IIPHAS) IOF = IOF + phases[IIPHAS-1].AtomCount;
         }
         file6
-            << "PHASE " << setw(2) << IP << ": " << setw(50) << phases[IP].PHSNM << endl
+            << "PHASE " << setw(2) << IP << ": " << setw(50) << phases[IP].name << endl
             << "NEW PARAMETERS, SHIFTS, AND STANDARD DEVIATIONS=" << endl << endl
             << "ATOM     X        DX       SX        Y        DY       SY        Z        DZ       SZ        B      DB     SB      So       DSo      SSo" << endl;
-        N=jnk->NATOM[IP];
+        N=phases[IP].AtomCount;
         multip->TMASSA[IP]=0.0;
         STMASSA[IP]=0.0;
         for (I=1; I <= N; ++I)
@@ -4208,28 +3181,28 @@ L8:;
             if ( J == 12 )
             {
                 allp->ILOC = allp->ILOC + 1;
-                allp->FINAL[allp->ILOC][1] = jnk->PREF[IP][1];
-                allp->FINAL[allp->ILOC][2] = jnk->PREF[IP][2];
+                allp->FINAL[allp->ILOC][1] = phases[IP].PREF[1];
+                allp->FINAL[allp->ILOC][2] = phases[IP].PREF[2];
                 allp->ILOC = allp->ILOC + 1;
-                allp->FINAL[allp->ILOC][1] = jnk->PREF[IP][3];
+                allp->FINAL[allp->ILOC][1] = phases[IP].PREF[3];
             }
             allp->ILOC = allp->ILOC + 1;
             if ( J == 6 ) ILOC1 = allp->ILOC;
-            KM = phases[IP-1].PAR_[J-1].L;
+            KM = phases[IP-1].PAR[J-1].L;
             if ( KM == 0 )
             {
                 SY[J] = 0.0;
                 SZ[J] = 0.0;
-                allp->FINAL[allp->ILOC][1] = phases[IP-1].PAR_[J-1];
+                allp->FINAL[allp->ILOC][1] = phases[IP-1].PAR[J-1];
             }
             else
             {
                 SZ[J] = sqrt(abs(f1->RJAC[KM][KM]));
-                SY[J] = f1->VX[KM]*phases[IP-1].PAR_[J-1].A*params->RELAX[3];
-                DUMMY[KM] = phases[IP-1].PAR_[J-1];
-                phases[IP-1].PAR_[J-1] = phases[IP-1].PAR_[J-1]+SY[J];
+                SY[J] = f1->VX[KM]*phases[IP-1].PAR[J-1].codeword*params->RELAX[3];
+                DUMMY[KM] = phases[IP-1].PAR[J-1];
+                phases[IP-1].PAR[J-1] = phases[IP-1].PAR[J-1]+SY[J];
                 DUMMY[KM+MSZ] = SY[J];
-                allp->FINAL[allp->ILOC][1] = phases[IP-1].PAR_[J-1];
+                allp->FINAL[allp->ILOC][1] = phases[IP-1].PAR[J-1];
                 allp->FINAL[allp->ILOC][2] = SZ[J];
             }
         }
@@ -4239,14 +3212,14 @@ L8:;
         for (I=1; I <= 6; ++I)
         {
             allp->ILOC = allp->ILOC + 1;
-            KM = phases[IP-1].PAR_[I+5-1].L;
+            KM = phases[IP-1].PAR[I+5-1].L;
             MATCH=0;
             SY[I+5]=dircv->DCV[I]-dc->SAVE[IP][I];
             if (KM != 0)
             {
                 if (I >= 4)
                 {
-                    for (MMM=1; MMM <= 3; ++MMM) if (KM == phases[IP-1].PAR_[MMM+5-1].L) MATCH=1;
+                    for (MMM=1; MMM <= 3; ++MMM) if (KM == phases[IP-1].PAR[MMM+5-1].L) MATCH=1;
                 }
                 if (MATCH == 0)
                 {
@@ -4269,11 +3242,11 @@ L8:;
                     SRATIODCV=(dircv->DCV[1]*dircv->DCSM[3][3]+dircv->DCV[3]*dircv->DCSM[1][1])/(dircv->DCV[3] * dircv->DCV[3]);
                     file6
                         << "OVERALL SCALE FACTOR=" << scientific
-                        << setw(9) << setprecision(3) << phases[IP-1].PAR_[1-1]
+                        << setw(9) << setprecision(3) << phases[IP-1].PAR[0]
                         << setw(9) << setprecision(3) << SY[1]
                         << setw(9) << setprecision(3) << SZ[1] << endl << fixed
                         << "OVERALL TEMP. FACTOR="
-                        << setw(9) << setprecision(4) << phases[IP-1].PAR_[2-1]
+                        << setw(9) << setprecision(4) << phases[IP-1].PAR[1]
                         << setw(9) << setprecision(4) << SY[2]
                         << setw(9) << setprecision(4) << SZ[2] << endl
                         << "CELL PARAMETERS="
@@ -4298,25 +3271,25 @@ L8:;
                         << "            c/a= "  << setw(11) << setprecision(6) << RATIODCV << "  +/-" << setw(11) << setprecision(6) << SRATIODCV << endl << endl
                         << "PREFERRED ORIENTATION PARAMETERS="
                         << " "
-                        << setw(8) << setprecision(5) << phases[IP-1].PAR_[12-1]
+                        << setw(8) << setprecision(5) << phases[IP-1].PAR[11]
                         << setw(8) << setprecision(5) << SY[12]
                         << setw(8) << setprecision(5) << SZ[12]
                         << " "
-                        << setw(8) << setprecision(5) << phases[IP-1].PAR_[13-1]
+                        << setw(8) << setprecision(5) << phases[IP-1].PAR[12]
                         << setw(8) << setprecision(5) << SY[13]
                         << setw(8) << setprecision(5) << SZ[13] << endl
                         << "ASYMMETRY PARAMETER="
                         << " "
-                        << setw(8) << setprecision(4) << phases[IP-1].PAR_[14-1]
+                        << setw(8) << setprecision(4) << phases[IP-1].PAR[13]
                         << setw(8) << setprecision(4) << SY[14]
                         << setw(8) << setprecision(4) << SZ[14] << endl
                         << "LORENTZIAN HALF WIDTH PARAMS (X AND Y) "
                         << " "
-                        << setw(8) << setprecision(5) << phases[IP-1].PAR_[15-1]
+                        << setw(8) << setprecision(5) << phases[IP-1].PAR[14]
                         << setw(8) << setprecision(5) << SY[15]
                         << setw(8) << setprecision(5) << SZ[15] << endl
                         << " "
-                        << setw(8) << setprecision(5) << phases[IP-1].PAR_[16-1]
+                        << setw(8) << setprecision(5) << phases[IP-1].PAR[15]
                         << setw(8) << setprecision(5) << SY[16]
                         << setw(8) << setprecision(5) << SZ[16] << endl;
                     goto L1032;
@@ -4324,11 +3297,11 @@ L8:;
             }
         }
         file6 << "OVERALL SCALE FACTOR=" << scientific
-            << setw(9) << setprecision(3) << phases[IP-1].PAR_[1-1]
+            << setw(9) << setprecision(3) << phases[IP-1].PAR[0]
         << setw(9) << setprecision(3) << SY[1]
         << setw(9) << setprecision(3) << SZ[1] << fixed << endl
             << "OVERALL TEMP. FACTOR="
-            << setw(9) << setprecision(4) << phases[IP-1].PAR_[2-1]
+            << setw(9) << setprecision(4) << phases[IP-1].PAR[1]
         << setw(9) << setprecision(4) << SY[2]
         << setw(9) << setprecision(4) << SZ[2] << endl
             << "CELL PARAMETERS=" << endl
@@ -4379,23 +3352,23 @@ L8:;
         << setw(8) << setprecision(5) << dircv->DCSM[6][6] << endl
             << endl
             << " "
-            << setw(8) << setprecision(5) << phases[IP-1].PAR_[12-1]
+            << setw(8) << setprecision(5) << phases[IP-1].PAR[11]
         << setw(8) << setprecision(5) << SY[12]
         << setw(8) << setprecision(5) << SZ[12] << endl
             << " "
-            << setw(8) << setprecision(5) << phases[IP-1].PAR_[13-1]
+            << setw(8) << setprecision(5) << phases[IP-1].PAR[12]
         << setw(8) << setprecision(5) << SY[13]
         << setw(8) << setprecision(5) << SZ[13] << endl
             << " "
-            << setw(8) << setprecision(5) << phases[IP-1].PAR_[14-1]
+            << setw(8) << setprecision(5) << phases[IP-1].PAR[13]
         << setw(8) << setprecision(5) << SY[14]
         << setw(8) << setprecision(5) << SZ[14] << endl
             << " "
-            << setw(8) << setprecision(5) << phases[IP-1].PAR_[15-1]
+            << setw(8) << setprecision(5) << phases[IP-1].PAR[14]
         << setw(8) << setprecision(5) << SY[15]
         << setw(8) << setprecision(5) << SZ[15] << endl
             << " "
-            << setw(8) << setprecision(5) << phases[IP-1].PAR_[16-1]
+            << setw(8) << setprecision(5) << phases[IP-1].PAR[15]
         << setw(8) << setprecision(5) << SY[16]
         << setw(8) << setprecision(5) << SZ[16] << endl;
 L1032:
@@ -4405,34 +3378,34 @@ L1032:
             file6 << "LOW SIDE EXPONENT PARAMETERS (NA, NB, NC)=" << endl
                 //<< scientific
                 << " "
-                << setw(10) << setprecision(4) << phases[IP-1].PAR_[17-1]
+                << setw(10) << setprecision(4) << phases[IP-1].PAR[16]
                 << setw(10) << setprecision(4) << SY[17]
                 << setw(10) << setprecision(4) << SZ[17] << endl
                 << " "
-                << setw(10) << setprecision(4) << phases[IP-1].PAR_[18-1]
+                << setw(10) << setprecision(4) << phases[IP-1].PAR[17]
                 << setw(10) << setprecision(4) << SY[18]
                 << setw(10) << setprecision(4) << SZ[18] << endl
                 << " "
-                << setw(10) << setprecision(4) << phases[IP-1].PAR_[19-1]
+                << setw(10) << setprecision(4) << phases[IP-1].PAR[18]
                 << setw(10) << setprecision(4) << SY[19]
                 << setw(10) << setprecision(4) << SZ[19] << endl
                 << "HIGH SIDE EXPONENT PARAMETERS (NA, NB, NC)=" << endl
                 << " "
-                << setw(10) << setprecision(4) << phases[IP-1].PAR_[24-1]
+                << setw(10) << setprecision(4) << phases[IP-1].PAR[23]
                 << setw(10) << setprecision(4) << SY[24]
                 << setw(10) << setprecision(4) << SZ[24] << endl
                 << " "
-                << setw(10) << setprecision(4) << phases[IP-1].PAR_[25-1]
+                << setw(10) << setprecision(4) << phases[IP-1].PAR[24]
                 << setw(10) << setprecision(4) << SY[25]
                 << setw(10) << setprecision(4) << SZ[25] << endl
                 << " "
-                << setw(10) << setprecision(4) << phases[IP-1].PAR_[26-1]
+                << setw(10) << setprecision(4) << phases[IP-1].PAR[25]
                 << setw(10) << setprecision(4) << SY[26]
                 << setw(10) << setprecision(4) << SZ[26] << endl
                 << fixed
                 << "SPLIT PEARSON VII ASSYMETRY PARAMETER="
                 << " "
-                << setw(10) << setprecision(6) << phases[IP-1].PAR_[27-1]
+                << setw(10) << setprecision(6) << phases[IP-1].PAR[26]
                 << setw(10) << setprecision(6) << SY[27]
                 << setw(10) << setprecision(6) << SZ[27] << endl;
         }
@@ -4442,37 +3415,37 @@ L1032:
             file6 << "MIXING PARAMETERS" << endl
                 << "NA= "
                 //<< scientific
-                << setw(10) << setprecision(3) << phases[IP-1].PAR_[17-1]
+                << setw(10) << setprecision(3) << phases[IP-1].PAR[16]
                 << setw(10) << setprecision(3) << SY[17]
                 << setw(10) << setprecision(3) << SZ[17] << endl
                 << "NB= "
-                << setw(10) << setprecision(3) << phases[IP-1].PAR_[18-1]
+                << setw(10) << setprecision(3) << phases[IP-1].PAR[17]
                 << setw(10) << setprecision(3) << SY[18]
                 << setw(10) << setprecision(3) << SZ[18] << endl
                 << "NC= "
-                << setw(10) << setprecision(3) << phases[IP-1].PAR_[19-1]
+                << setw(10) << setprecision(3) << phases[IP-1].PAR[18]
                 << setw(10) << setprecision(3) << SY[19]
                 << setw(10) << setprecision(3) << SZ[19] << fixed << endl;
         }
         file6 << "FWHM PARAMETERS=" << endl
             << "U = "
-            << setw(10) << setprecision(6) << phases[IP-1].PAR_[3-1]
+            << setw(10) << setprecision(6) << phases[IP-1].PAR[2]
             << setw(10) << setprecision(6) << SY[3]
             << setw(10) << setprecision(6) << SZ[3] << endl
             << "V = "
-            << setw(10) << setprecision(6) << phases[IP-1].PAR_[4-1]
+            << setw(10) << setprecision(6) << phases[IP-1].PAR[3]
             << setw(10) << setprecision(6) << SY[4]
             << setw(10) << setprecision(6) << SZ[4] << endl
             << "W = "
-            << setw(10) << setprecision(6) << phases[IP-1].PAR_[5-1]
+            << setw(10) << setprecision(6) << phases[IP-1].PAR[4]
             << setw(10) << setprecision(6) << SY[5]
             << setw(10) << setprecision(6) << SZ[5] << endl
             << "CT= "
-            << setw(10) << setprecision(6) << phases[IP-1].PAR_[21-1]
+            << setw(10) << setprecision(6) << phases[IP-1].PAR[20]
             << setw(10) << setprecision(6) << SY[21]
             << setw(10) << setprecision(6) << SZ[21] << endl
             << "Z = "
-            << setw(10) << setprecision(6) << phases[IP-1].PAR_[20-1]
+            << setw(10) << setprecision(6) << phases[IP-1].PAR[19]
             << setw(10) << setprecision(6) << SY[20]
             << setw(10) << setprecision(6) << SZ[20] << endl;
 
@@ -4504,8 +3477,8 @@ L1032:
         ARG3 = VOSQ*(2 * cos(dircv->DCV[6]) * sin(dircv->DCV[6]) - 2*sin(dircv->DCV[6]) *cos(dircv->DCV[4]) *cos(dircv->DCV[5])) * dircv->DCSM[6][6];
         DVOL[IP] = sqrt(pow((VOL[IP] * dircv->DCSM[1][1] / dircv->DCV[1]),2) + pow((VOL[IP] * dircv->DCSM[2][2] / dircv->DCV[2]),2) + pow((VOL[IP] * dircv->DCSM[3][3] / dircv->DCV[3]),2) + pow(ARG1,2) + pow(ARG2,2) + pow(ARG3,2));
         // standard deviations are calculed below                      !cp nov 96
-        W[IP] = phases[IP-1].PAR_[1-1] * multip->TMASSA[IP] * VOL[IP]/multip->SAQF[IP];
-        DW[IP] = (SZ[1]/phases[IP-1].PAR_[1-1]) + (DVOL[IP]/VOL[IP]) + (STMASSA[IP]/multip->TMASSA[IP])/multip->SAQF[IP];
+        W[IP] = phases[IP-1].PAR[0] * multip->TMASSA[IP] * VOL[IP]/phases[IP].NMOL;
+        DW[IP] = (SZ[1]/phases[IP-1].PAR[0]) + (DVOL[IP]/VOL[IP]) + (STMASSA[IP]/multip->TMASSA[IP])/phases[IP].SAQF;
         //   end of std
         file6 << "Volume= "
             << setw(9) << setprecision(3) << VOL[IP]
@@ -4541,7 +3514,7 @@ L1032:
     for (I = 1; I <= cntrls->NPHASE; ++I)
     {
         if (IINNMOL == 1) goto L2713;
-        if (jnk->NMOL[I] == 0) IINNMOL=1;
+        if (phases[I].NMOL == 0) IINNMOL=1;
 L2713:;
     }
     if (IINNMOL == 1)
@@ -4564,7 +3537,7 @@ L2713:;
         FT = 0.0000000;
         for (I = 1; I <= cntrls->NPHASE; ++I)
         {
-            FRP[I] = XMASS[I] * jnk->NMOL[I] / multip->TMASSA[I];
+            FRP[I] = XMASS[I] * phases[I].NMOL / multip->TMASSA[I];
             FT = FT + FRP[I];
         }
         for (I = 1; I <= cntrls->NPHASE; ++I)
@@ -4587,13 +3560,13 @@ L2713:;
     if (cntrls->ISPHASE != 0)
     {
         file6 << "Considering Amorphous Content:" << endl;
-        SFIS=multip->WTIS[cntrls->ISPHASE]/XMASS[cntrls->ISPHASE];
+        SFIS=phases[cntrls->ISPHASE].WTIS/XMASS[cntrls->ISPHASE];
         if(SFIS > 1.0)
         {
             file6 << "PROBLEM:Amount of Internal Standard (Phase #"
                 << setw(2) << cntrls->ISPHASE
                 << ") is less than the specified "
-                << setw(6) << setprecision(2) << multip->WTIS[cntrls->ISPHASE]
+                << setw(6) << setprecision(2) << phases[cntrls->ISPHASE].WTIS
             << "%." << endl
                 << "Amorphous content not computed. Check ISWT in line 11.2 for this phase" << endl;
             goto L2720;
@@ -4619,7 +3592,7 @@ L2720:
         goto L19;
 L20:
         SZ[J]=sqrt(abs(f1->RJAC[KM][KM]));
-        SY[J]=f1->VX[KM]*params->GLB_[J-1].A*params->RELAX[4];
+        SY[J]=f1->VX[KM]*params->GLB_[J-1].codeword*params->RELAX[4];
         DUMMY[KM] = params->GLB_[J-1];
         params->GLB_[J-1]=params->GLB_[J-1]+SY[J];
         DUMMY[KM+MSZ]  = SY[J];
@@ -4809,7 +3782,7 @@ L30:
                     IOF = 0;
                     if(K > 1)
                     {
-                        for (I = 2; I <= K; ++I) IOF = IOF + jnk->NATOM[I-1];
+                        for (I = 2; I <= K; ++I) IOF = IOF + phases[I-1].AtomCount;
                     }
                     for (I=1; I <= NATS; ++I) DERISO[I]=0;
                     DISORDER(K,STH,IDERIV,&SDK,&DYC,cntrls->FONDO,DERISO);
@@ -4819,7 +3792,7 @@ L30:
                     //     UPDATING DERIVATE OF ISOTROPIC THERMAL FACTORS
                     if(cntrls->FONDO == 1)
                     {
-                        for (I=1; I <= jnk->NATOM[K]; ++I) ISODER[IOF+I]= ISODER[IOF+I]+bkgscale->SCABKG[K]*FPOL*DERISO[IOF+I];
+                        for (I=1; I <= phases[K].AtomCount; ++I) ISODER[IOF+I]= ISODER[IOF+I]+bkgscale->SCABKG[K]*FPOL*DERISO[IOF+I];
                     }
                     //     UPDATING DERIVATE OF OVERALL THERMAL FACTOR
                     if(cntrls->FONDO == 2) DYCDD[K]=DYC*bkgscale->SCABKG[K]*FPOL;
@@ -4920,31 +3893,31 @@ L38:
 L37:;
 }
 
-void DBWS::CEL000(void)
+void DBWS::CEL000(int* MULTX_, double Y_[][3+1])
 {
     //
     //                             THIS SR IS USED TO FORCE A POINT XYZ TO
     //                           LIE IN THE UNIT CELL AT 000.
     //
 
-    blnk1->Y[blnk1->MULTX-1][1] = fmod(blnk1->Y[blnk1->MULTX-1][1]+8.0,1.0);
-    if ( blnk1->Y[blnk1->MULTX-1][1]-0.99999 < 0 ) goto L2; else goto L1;
+    Y_[*MULTX_-1][1] = fmod(Y_[*MULTX_-1][1]+8.0,1.0);
+    if ( Y_[*MULTX_-1][1]-0.99999 < 0 ) goto L2; else goto L1;
 L1:
-    blnk1->Y[blnk1->MULTX-1][1] = 0.0;
+    Y_[*MULTX_-1][1] = 0.0;
 L2:
-    blnk1->Y[blnk1->MULTX-1][2] = fmod(blnk1->Y[blnk1->MULTX-1][2]+8.0,1.0);
-    if ( blnk1->Y[blnk1->MULTX-1][2]-0.99999 < 0 ) goto L4; else goto L3;
+    Y_[*MULTX_-1][2] = fmod(Y_[*MULTX_-1][2]+8.0,1.0);
+    if ( Y_[*MULTX_-1][2]-0.99999 < 0 ) goto L4; else goto L3;
 L3:
-    blnk1->Y[blnk1->MULTX-1][2] = 0.0;
+    Y_[*MULTX_-1][2] = 0.0;
 L4:
-    blnk1->Y[blnk1->MULTX-1][3] = fmod(blnk1->Y[blnk1->MULTX-1][3]+8.0,1.0);
-    if ( blnk1->Y[blnk1->MULTX-1][3]-0.99999 < 0 ) goto L6; else goto L5;
+    Y_[*MULTX_-1][3] = fmod(Y_[*MULTX_-1][3]+8.0,1.0);
+    if ( Y_[*MULTX_-1][3]-0.99999 < 0 ) goto L6; else goto L5;
 L5:
-    blnk1->Y[blnk1->MULTX-1][3] = 0.0;
+    Y_[*MULTX_-1][3] = 0.0;
 L6:;
 }
 
-void DBWS::OPERTR(int* I, int* L2)
+void DBWS::OPERTR(int* MULTX_, double Y_[][3+1], int* IPHASE, int* I, int* L2)
 {
     //
     //                             THIS SR GENERATES THE SYMMETRY EQUIVALENT
@@ -4953,14 +3926,14 @@ void DBWS::OPERTR(int* I, int* L2)
 
     int I1,I2,I3,I4,I5,I6,I7,I8;
 
-    I1 = (spgcom->NCONT[*I] % 4)+1;
-    I2 = ((spgcom->NCONT[*I]/4) % 4)+1;
-    I3 = ((spgcom->NCONT[*I]/16) % 4)+1;
-    I4 = ((spgcom->NCONT[*I]/64) % 4)+1;
-    I5 = ((spgcom->NCONT[*I]/256) % 2);
-    I6 = ((spgcom->NCONT[*I]/512) % 4)+1;
-    I7 = ((spgcom->NCONT[*I]/2048) % 4)+1;
-    I8 = spgcom->NCONT[*I]/8192+1;
+    I1 = (phases[*IPHASE].SYMB.NCONT[*I] % 4)+1;
+    I2 = ((phases[*IPHASE].SYMB.NCONT[*I]/4) % 4)+1;
+    I3 = ((phases[*IPHASE].SYMB.NCONT[*I]/16) % 4)+1;
+    I4 = ((phases[*IPHASE].SYMB.NCONT[*I]/64) % 4)+1;
+    I5 = ((phases[*IPHASE].SYMB.NCONT[*I]/256) % 2);
+    I6 = ((phases[*IPHASE].SYMB.NCONT[*I]/512) % 4)+1;
+    I7 = ((phases[*IPHASE].SYMB.NCONT[*I]/2048) % 4)+1;
+    I8 = phases[*IPHASE].SYMB.NCONT[*I]/8192+1;
     switch (I8) {
     case 1:
         goto L100;
@@ -4990,16 +3963,16 @@ L100:
     }
     GOTOER();
 L101:
-    blnk1->Y[blnk1->MULTX][1] = blnk1->Y[*L2][1];
+    Y_[*MULTX_][1] = Y_[*L2][1];
     goto L105;
 L102:
-    blnk1->Y[blnk1->MULTX][1] = blnk1->Y[*L2][2];
+    Y_[*MULTX_][1] = Y_[*L2][2];
     goto L105;
 L103:
-    blnk1->Y[blnk1->MULTX][1] = -blnk1->Y[*L2][1];
+    Y_[*MULTX_][1] = -Y_[*L2][1];
     goto L105;
 L104:
-    blnk1->Y[blnk1->MULTX][1] = -blnk1->Y[*L2][2];
+    Y_[*MULTX_][1] = -Y_[*L2][2];
 L105:
     switch (I2) {
     case 1:
@@ -5017,11 +3990,11 @@ L105:
     }
     GOTOER();
 L106:
-    blnk1->Y[blnk1->MULTX][1] = blnk1->Y[blnk1->MULTX][1]+0.25;
+    Y_[*MULTX_][1] = Y_[*MULTX_][1]+0.25;
 L107:
-    blnk1->Y[blnk1->MULTX][1] = blnk1->Y[blnk1->MULTX][1]+0.25;
+    Y_[*MULTX_][1] = Y_[*MULTX_][1]+0.25;
 L108:
-    blnk1->Y[blnk1->MULTX][1] = blnk1->Y[blnk1->MULTX][1]+0.25;
+    Y_[*MULTX_][1] = Y_[*MULTX_][1]+0.25;
 L110:
     switch (I3) {
     case 1:
@@ -5039,16 +4012,16 @@ L110:
     }
     GOTOER();
 L111:
-    blnk1->Y[blnk1->MULTX][2] = blnk1->Y[*L2][2];
+    Y_[*MULTX_][2] = Y_[*L2][2];
     goto L115;
 L112:
-    blnk1->Y[blnk1->MULTX][2] = blnk1->Y[*L2][1];
+    Y_[*MULTX_][2] = Y_[*L2][1];
     goto L115;
 L113:
-    blnk1->Y[blnk1->MULTX][2] = -blnk1->Y[*L2][2];
+    Y_[*MULTX_][2] = -Y_[*L2][2];
     goto L115;
 L114:
-    blnk1->Y[blnk1->MULTX][2] = -blnk1->Y[*L2][1];
+    Y_[*MULTX_][2] = -Y_[*L2][1];
 L115:
     switch (I4) {
     case 1:
@@ -5066,13 +4039,13 @@ L115:
     }
     GOTOER();
 L116:
-    blnk1->Y[blnk1->MULTX][2] = blnk1->Y[blnk1->MULTX][2]+0.25;
+    Y_[*MULTX_][2] = Y_[*MULTX_][2]+0.25;
 L117:
-    blnk1->Y[blnk1->MULTX][2] = blnk1->Y[blnk1->MULTX][2]+0.25;
+    Y_[*MULTX_][2] = Y_[*MULTX_][2]+0.25;
 L118:
-    blnk1->Y[blnk1->MULTX][2] = blnk1->Y[blnk1->MULTX][2]+0.25;
+    Y_[*MULTX_][2] = Y_[*MULTX_][2]+0.25;
 L120:
-    blnk1->Y[blnk1->MULTX][3] = blnk1->Y[*L2][3] * static_cast<double>(1-2*I5);
+    Y_[*MULTX_][3] = Y_[*L2][3] * static_cast<double>(1-2*I5);
     switch (I6) {
     case 1:
         goto L125;
@@ -5089,11 +4062,11 @@ L120:
     }
     GOTOER();
 L121:
-    blnk1->Y[blnk1->MULTX][3] = blnk1->Y[blnk1->MULTX][3]+0.25;
+    Y_[*MULTX_][3] = Y_[*MULTX_][3]+0.25;
 L122:
-    blnk1->Y[blnk1->MULTX][3] = blnk1->Y[blnk1->MULTX][3]+0.25;
+    Y_[*MULTX_][3] = Y_[*MULTX_][3]+0.25;
 L123:
-    blnk1->Y[blnk1->MULTX][3] = blnk1->Y[blnk1->MULTX][3]+0.25;
+    Y_[*MULTX_][3] = Y_[*MULTX_][3]+0.25;
 L125:
     switch (I7) {
     case 1:
@@ -5108,38 +4081,38 @@ L125:
     }
     GOTOER();
 L126:
-    blnk1->Y[blnk1->MULTX][3] = blnk1->Y[blnk1->MULTX][3]+0.333333333;
+    Y_[*MULTX_][3] = Y_[*MULTX_][3]+0.333333333;
 L127:
-    blnk1->Y[blnk1->MULTX][3] = blnk1->Y[blnk1->MULTX][3]+0.333333333;
+    Y_[*MULTX_][3] = Y_[*MULTX_][3]+0.333333333;
 L130:
-    blnk1->MULTX = blnk1->MULTX+1;
-    CEL000();
+    *MULTX_ = *MULTX_+1;
+    CEL000(MULTX_,Y_);
     return;
 L200:
-    blnk1->Y[blnk1->MULTX][1] = -blnk1->Y[*L2][2];
-    blnk1->Y[blnk1->MULTX][2] = blnk1->Y[*L2][1]-blnk1->Y[*L2][2];
-    blnk1->Y[blnk1->MULTX][3] = blnk1->Y[*L2][3]+0.333333333 * static_cast<double>(I2-2);
-    blnk1->MULTX = blnk1->MULTX+1;
-    CEL000();
-    blnk1->Y[blnk1->MULTX][1] = -blnk1->Y[blnk1->MULTX-1][2];
-    blnk1->Y[blnk1->MULTX][2] = -blnk1->Y[*L2][1];
-    blnk1->Y[blnk1->MULTX][3] = blnk1->Y[*L2][3]-0.333333333 * static_cast<double>(I2-2);
+    Y_[*MULTX_][1] = -Y_[*L2][2];
+    Y_[*MULTX_][2] = Y_[*L2][1]-Y_[*L2][2];
+    Y_[*MULTX_][3] = Y_[*L2][3]+0.333333333 * static_cast<double>(I2-2);
+    *MULTX_ = *MULTX_+1;
+    CEL000(MULTX_,Y_);
+    Y_[*MULTX_][1] = -Y_[*MULTX_-1][2];
+    Y_[*MULTX_][2] = -Y_[*L2][1];
+    Y_[*MULTX_][3] = Y_[*L2][3]-0.333333333 * static_cast<double>(I2-2);
     goto L130;
 L300:
     I1 = *L2;
 L301:
-    blnk1->Y[blnk1->MULTX][1] = blnk1->Y[I1][3];
-    blnk1->Y[blnk1->MULTX][2] = blnk1->Y[I1][1];
-    blnk1->Y[blnk1->MULTX][3] = blnk1->Y[I1][2];
+    Y_[*MULTX_][1] = Y_[I1][3];
+    Y_[*MULTX_][2] = Y_[I1][1];
+    Y_[*MULTX_][3] = Y_[I1][2];
     if ( I1-*L2 <= 0 ) goto L302; else goto L130;
 L302:
-    I1 = blnk1->MULTX;
-    blnk1->MULTX = blnk1->MULTX+1;
-    CEL000();
+    I1 = *MULTX_;
+    *MULTX_ = *MULTX_+1;
+    CEL000(MULTX_,Y_);
     goto L301;
 }
 
-void DBWS::SYMOPR(void)
+void DBWS::SYMOPR(int* MULTX_, double Y_[][3+1], double* XLT_, int* IXB_, int NCTR_[], int* IPHASE)
 {
     //
     //                             THIS SR TAKES A POINT XYZ, DETERMINES THE
@@ -5152,289 +4125,294 @@ void DBWS::SYMOPR(void)
     double X3;
 
     ISCK = 0;
+
 L103:
-    blnk1->MULTX = 2;
+    *MULTX_ = 2;
     ISRH = 0;
-    blnk1->IXB = 0;
-    blnk1->XLT = 1.0;
+    *IXB_ = 0;
+    *XLT_ = 1.0;
     J = 1;
-    CEL000();
+    CEL000(MULTX_,Y_);
     L1=J;
     for (I=1; I <= 8; ++I)
     {
         IOP = 0;
-        if ( spgcom->NCONT[I] == 0 ) goto L104;
-        //L1:
+        if ( phases[*IPHASE].SYMB.NCONT[I] == 0 ) goto L104;
         for (L2=J; L2 <= L1; ++L2)
         {
-            L3=blnk1->MULTX-1;
-            if ( spgcom->NCONT[I]-8192 == 0 ) goto L5; else goto L4;
-L5:
-            blnk1->Y[blnk1->MULTX][1]=blnk1->Y[L2][1]+1.0/3.0;
-            blnk1->Y[blnk1->MULTX][2]=blnk1->Y[L2][2]+2.0/3.0;
-            blnk1->Y[blnk1->MULTX][3]=blnk1->Y[L2][3]+2.0/3.0;
-            blnk1->Y[blnk1->MULTX+1][1]=blnk1->Y[L2][1]+2.0/3.0;
-            blnk1->Y[blnk1->MULTX+1][2]=blnk1->Y[L2][2]+1.0/3.0;
-            blnk1->Y[blnk1->MULTX+1][3]=blnk1->Y[L2][3]+1.0/3.0;
-            blnk1->MULTX=blnk1->MULTX+1;
-            CEL000();
-            blnk1->MULTX=blnk1->MULTX+1;
-            CEL000();
-            goto L6;
-L4:
-            OPERTR(&I,&L2);
-L6:
-            L5=blnk1->MULTX;
-            L6=spgcom->NCONT[I];
-            //L7:
-            blnk1->MULTX = L3+1;
-L8:
-            L4 = 1;
-            if ( abs(blnk1->Y[blnk1->MULTX][1]-blnk1->Y[L4][1])-0.0001 <= 0 ) goto L2; else goto L90;
-L2:
-            if ( abs(blnk1->Y[blnk1->MULTX][2]-blnk1->Y[L4][2])-0.0001 <= 0 ) goto L3; else goto L90;
-L3:
-            if ( abs(blnk1->Y[blnk1->MULTX][3]-blnk1->Y[L4][3])-0.0001 <= 0 ) goto L91; else goto L90;
-L91:
-            if ( blnk1->NCTR[blnk1->MULTX]-8192 < 0)
+            L3=*MULTX_-1;
+            if ( phases[*IPHASE].SYMB.NCONT[I]-8192 == 0 )
             {
-                goto L92;
-            }
-            else if ( blnk1->NCTR[blnk1->MULTX]-8192 == 0)
-            {
-                goto L94;
+                Y_[*MULTX_][1]=Y_[L2][1]+1.0/3.0;
+                Y_[*MULTX_][2]=Y_[L2][2]+2.0/3.0;
+                Y_[*MULTX_][3]=Y_[L2][3]+2.0/3.0;
+                Y_[*MULTX_+1][1]=Y_[L2][1]+2.0/3.0;
+                Y_[*MULTX_+1][2]=Y_[L2][2]+1.0/3.0;
+                Y_[*MULTX_+1][3]=Y_[L2][3]+1.0/3.0;
+                *MULTX_ = *MULTX_+1;
+                CEL000(MULTX_,Y_);
+                *MULTX_ = *MULTX_+1;
+                CEL000(MULTX_,Y_);
             }
             else
             {
-                goto L93;
+                OPERTR(MULTX_,Y_,IPHASE,&I,&L2);
             }
+            L5=*MULTX_;
+            L6=phases[*IPHASE].SYMB.NCONT[I];
+            *MULTX_ = L3+1;
+L8:
+            L4 = 1;
+            if ( abs(Y_[*MULTX_][1]-Y_[L4][1])-0.0001 <= 0 )
+            {
+                if ( abs(Y_[*MULTX_][2]-Y_[L4][2])-0.0001 <= 0 )
+                {
+                    if ( abs(Y_[*MULTX_][3]-Y_[L4][3])-0.0001 <= 0 )
+                    {
+                        if ( NCTR_[*MULTX_]-8192 < 0)
+                        {
+                            goto L92;
+                        }
+                        else if ( NCTR_[*MULTX_]-8192 == 0)
+                        {
+                            *IXB_ |= 2916928;
+                            *XLT_ = *XLT_/3.0;
+                            goto L99;
+                        }
+                        else
+                        {
+                            if ( (NCTR_[*MULTX_] % 16384) == 0 )
+                            {
+                                *IXB_ |= 17924240;
+                                *XLT_ = *XLT_/3.0;
+                                goto L99;
+                            }
+                            ISRH = 1;
+                            if ( (307 & (NCTR_[*MULTX_]-phases[*IPHASE].SYMB.NCONT[I])) == 0 )
+                            {
+                                goto L92;
+                            }
+                            goto L90;
+                        }
+                    }
+                    else
+                    {
+                        goto L90;
+                    }
+                }
+                else
+                {
+                    goto L90;
+                }
+            }
+            else
+            {
+                goto L90;
+            }
+
+
+
 L92:
-            KX = (blnk1->NCTR[blnk1->MULTX] % 4)+1;
-            KY = ((blnk1->NCTR[blnk1->MULTX]/16) % 4)+1;
-            KZ = (blnk1->NCTR[blnk1->MULTX]/256) % 2;
-            if ( IOP == 0 ) blnk1->XLT=blnk1->XLT/2.0;
+            KX = (NCTR_[*MULTX_] % 4)+1;
+            KY = ((NCTR_[*MULTX_]/16) % 4)+1;
+            KZ = (NCTR_[*MULTX_]/256) % 2;
+            if ( IOP == 0 ) *XLT_=*XLT_/2.0;
             IOP = 1;
             switch (KX) {
             case 1:
-                goto L920;
+                switch (KY) {
+                case 1:
+                    if ( KZ == 0 )
+                    {
+                        file6 << "THE SYMMETRY OPERATOR " << NCTR_[*MULTX_] << " IS WRONG" << endl;
+                        DBWSException("7701");
+                    }
+                    *IXB_ |= 2621450;
+                    goto L90;
+                    break;
+                case 2:
+                    file6 << "THE SYMMETRY OPERATOR " << NCTR_[*MULTX_] << " IS WRONG" << endl;
+                    DBWSException("7701");
+                    break;
+                case 3:
+                    if ( KZ == 0 ) *IXB_ |= 2228292;
+                    if ( KZ == 1 ) *IXB_ |= 655432;
+                    goto L90;
+                    break;
+                case 4:
+                    file6 << "THE SYMMETRY OPERATOR " << NCTR_[*MULTX_] << " IS WRONG" << endl;
+                    DBWSException("7701");
+                    break;
+                }
+                GOTOER();
                 break;
             case 2:
-                goto L930;
+                *IXB_ |= 32768;
+                switch (KY) {
+                case 1:
+                    file6 << "THE SYMMETRY OPERATOR " << NCTR_[*MULTX_] << " IS WRONG" << endl;
+                    DBWSException("7701");
+                    break;
+                case 2:
+                    if ( KZ == 0 ) *IXB_ |= 4194464;
+                    if ( KZ == 1 ) *IXB_ |= 12583048;
+                    goto L90;
+                    break;
+                case 3:
+                    file6 << "THE SYMMETRY OPERATOR " << NCTR_[*MULTX_] << " IS WRONG" << endl;
+                    DBWSException("7701");
+                    break;
+                case 4:
+                    *IXB_ |= 2753088;
+                    if ( KZ == 1 ) *IXB_ |= 8;
+                    goto L90;
+                    break;
+                }
+                GOTOER();
                 break;
-
             case 3:
-                goto L940;
+                *IXB_ |= 512;
+                switch (KY) {
+                case 1:
+                    *IXB_ |= 131072;
+                    if ( KZ == 1 )
+                    {
+                        *IXB_ |= 2097152;
+                        *IXB_ |= 8;
+                        goto L90;
+                    }
+                    *IXB_ |= 525312;
+                    goto L90;
+                    break;
+                case 2:
+                    file6 << "THE SYMMETRY OPERATOR " << NCTR_[*MULTX_] << " IS WRONG" << endl;
+                    DBWSException("7701");
+                    break;
+                case 3:
+                    *IXB_ |= 64;
+                    if ( KZ == 1 )
+                    {
+                        *IXB_ |= 8;
+                        goto L90;
+                    }
+                    *IXB_ |= 2623488;
+                    goto L90;
+                    break;
+                case 4:
+                    file6 << "THE SYMMETRY OPERATOR " << NCTR_[*MULTX_] << " IS WRONG" << endl;
+                    DBWSException("7701");
+                    break;
+                }
+                GOTOER();
                 break;
-
             case 4:
-                goto L950;
+                *IXB_ |= 32768;
+                switch (KY) {
+                case 1:
+                    file6 << "THE SYMMETRY OPERATOR " << NCTR_[*MULTX_] << " IS WRONG" << endl;
+                    DBWSException("7701");
+                    break;
+                case 2:
+                    *IXB_ |= 2753088;
+                    if ( KZ == 1 ) *IXB_ |= 8;
+                    goto L90;
+                    break;
+                case 3:
+                    file6 << "THE SYMMETRY OPERATOR " << NCTR_[*MULTX_] << " IS WRONG" << endl;
+                    DBWSException("7701");
+                    break;
+                case 4:
+                    if ( KZ == 0 ) *IXB_ |= 8388864;
+                    if ( KZ == 1 ) *IXB_ |= 4194568;
+                    goto L90;
+                    break;
+                }
+                GOTOER();
                 break;
             }
             GOTOER();
-L920:
-            switch (KY) {
-            case 1:
-                goto L921;
-                break;
-            case 2:
-                goto L1000;
-                break;
 
-            case 3:
-                goto L922;
-                break;
 
-            case 4:
-                goto L1000;
-                break;
-            }
-            GOTOER();
-L921:
-            if ( KZ == 0 ) goto L1000;
-            blnk1->IXB |= 2621450;
-            goto L90;
-L922:
-            if ( KZ == 0 ) blnk1->IXB |= 2228292;
-            if ( KZ == 1 ) blnk1->IXB |= 655432;
-            goto L90;
-L930:
-            blnk1->IXB |= 32768;
-            switch (KY) {
-            case 1:
-                goto L1000;
-                break;
-            case 2:
-                goto L931;
-                break;
 
-            case 3:
-                goto L1000;
-                break;
 
-            case 4:
-                goto L932;
-                break;
-            }
-            GOTOER();
-L931:
-            if ( KZ == 0 ) blnk1->IXB |= 4194464;
-            if ( KZ == 1 ) blnk1->IXB |= 12583048;
-            goto L90;
-L932:
-            blnk1->IXB |= 2753088;
-            if ( KZ == 1 ) blnk1->IXB |= 8;
-            goto L90;
-L940:
-            blnk1->IXB |= 512;
-            switch (KY) {
-            case 1:
-                goto L941;
-                break;
-            case 2:
-                goto L1000;
-                break;
-
-            case 3:
-                goto L942;
-                break;
-
-            case 4:
-                goto L1000;
-                break;
-            }
-            GOTOER();
-L941:
-            blnk1->IXB |= 131072;
-            if ( KZ == 1 ) goto L943;
-            blnk1->IXB |= 525312;
-            goto L90;
-L942:
-            blnk1->IXB |= 64;
-            if ( KZ == 1 ) goto L944;
-            blnk1->IXB |= 2623488;
-            goto L90;
-L943:
-            blnk1->IXB |= 2097152;
-L944:
-            blnk1->IXB |= 8;
-            goto L90;
-L950:
-            blnk1->IXB |= 32768;
-            switch (KY) {
-            case 1:
-                goto L1000;
-                break;
-            case 2:
-                goto L951;
-                break;
-
-            case 3:
-                goto L1000;
-                break;
-
-            case 4:
-                goto L952;
-                break;
-            }
-            GOTOER();
-L951:
-            blnk1->IXB |= 2753088;
-            if ( KZ == 1 ) blnk1->IXB |= 8;
-            goto L90;
-L952:
-            if ( KZ == 0 ) blnk1->IXB |= 8388864;
-            if ( KZ == 1 ) blnk1->IXB |= 4194568;
-            goto L90;
-L93:
-            if ( (blnk1->NCTR[blnk1->MULTX] % 16384) == 0 ) goto L95;
-            ISRH = 1;
-            if ( (307 & (blnk1->NCTR[blnk1->MULTX]-spgcom->NCONT[I])) == 0 ) goto L92;
-            goto L90;
-L94:
-            blnk1->IXB |= 2916928;
-            blnk1->XLT = blnk1->XLT/3.0;
-            goto L99;
-L95:
-            blnk1->IXB |= 17924240;
-            blnk1->XLT = blnk1->XLT/3.0;
-            goto L99;
 L90:
-            if ( L6-8192 < 0 ) goto L99; else goto L98;
-L98:
-            L6=1;
-            ++blnk1->MULTX;
-            goto L8;
+            if ( L6-8192 < 0 )
+            {
+                goto L99;
+            }
+            else
+            {
+                L6=1;
+                ++*MULTX_;
+                goto L8;
+            }
+
 L99:
-            blnk1->MULTX=L5;
+            *MULTX_ = L5;
         }
-        //L100:
-        L1=blnk1->MULTX-1;
+        L1=*MULTX_-1;
     }
 L104:
     if ( ISRH == 0 ) goto L200;
     if ( ISCK > 1 ) goto L2000;
     ++ISCK;
-    for (J=1; J <= I; ++J) if ( spgcom->NCONT[J] == 16384 ) goto L1011;
+    for (J=1; J <= I; ++J) if ( phases[*IPHASE].SYMB.NCONT[J] == 16384 )
+    {
+        if ( abs(Y_[1][1]-Y_[1][2]) < 0.0001 ) goto L120;
+        file6 << "THE ATOM AT "
+            << setw(8) << setprecision(5) << Y_[1][1]
+        << setw(8) << setprecision(5) << Y_[1][2]
+        << setw(8) << setprecision(5) << Y_[1][3]
+        << " WAS PUT AT"
+            << setw(8) << setprecision(5) << Y_[1][2]
+        << setw(8) << setprecision(5) << Y_[1][3]
+        << setw(8) << setprecision(5) << Y_[1][1] << endl;
+        X3 = Y_[1][1];
+        Y_[1][1] = Y_[1][2];
+        Y_[1][2] = Y_[1][3];
+        Y_[1][3] = X3;
+        goto L103;
+    }
     for (L2 = 1; L2 <= L1; ++L2)
     {
-        if ( abs(blnk1->Y[L2][1]-blnk1->Y[L2][2]) <= 0.0001 ) goto L102;
-        if ( abs(blnk1->Y[L2][1]+blnk1->Y[L2][2]-1.0) <= 0.0002 ) goto L102;
+        if ( abs(Y_[L2][1]-Y_[L2][2]) <= 0.0001 ) goto L102;
+        if ( abs(Y_[L2][1]+Y_[L2][2]-1.0) <= 0.0002 ) goto L102;
     }
     ISCK = 2;
     file6 << "NO X,X,Z OR X,-X,Z SET WAS FOUND FOR"
-        << setw(8) << setprecision(5) << blnk1->Y[1][1]
-    << setw(8) << setprecision(5) << blnk1->Y[1][2]
-    << setw(8) << setprecision(5) << blnk1->Y[1][3]
-    << setw(8) << setprecision(5) << blnk1->XLT << endl;
+        << setw(8) << setprecision(5) << Y_[1][1]
+    << setw(8) << setprecision(5) << Y_[1][2]
+    << setw(8) << setprecision(5) << Y_[1][3]
+    << setw(8) << setprecision(5) << *XLT_ << endl;
     goto L200;
-L1011:
-    if ( abs(blnk1->Y[1][1]-blnk1->Y[1][2]) < 0.0001 ) goto L120;
-    file6 << "THE ATOM AT "
-        << setw(8) << setprecision(5) << blnk1->Y[1][1]
-    << setw(8) << setprecision(5) << blnk1->Y[1][2]
-    << setw(8) << setprecision(5) << blnk1->Y[1][3]
-    << " WAS PUT AT"
-        << setw(8) << setprecision(5) << blnk1->Y[1][2]
-    << setw(8) << setprecision(5) << blnk1->Y[1][3]
-    << setw(8) << setprecision(5) << blnk1->Y[1][1] << endl;
-    X3 = blnk1->Y[1][1];
-    blnk1->Y[1][1] = blnk1->Y[1][2];
-    blnk1->Y[1][2] = blnk1->Y[1][3];
-    blnk1->Y[1][3] = X3;
-    goto L103;
+
+
+
 L102:
     if ( L2 == 1 ) goto L120;
-    file6 << "THE ATOM AT "
-        << setw(8) << setprecision(5) << blnk1->Y[1][1]
-    << setw(8) << setprecision(5) << blnk1->Y[1][2]
-    << setw(8) << setprecision(5) << blnk1->Y[1][3]
-    << " WAS PUT AT"
-        << setw(8) << setprecision(5) << blnk1->Y[L2][1]
-    << setw(8) << setprecision(5) << blnk1->Y[L2][2]
-    << setw(8) << setprecision(5) << blnk1->Y[L2][3] << endl;
-    blnk1->Y[1][1] = blnk1->Y[L2][1];
-    blnk1->Y[1][2] = blnk1->Y[L2][2];
-    blnk1->Y[1][3] = blnk1->Y[L2][3];
+    file6 << "THE ATOM AT "  << setw(8) << setprecision(5) << Y_[1][1]  << setw(8) << setprecision(5) << Y_[1][2]  << setw(8) << setprecision(5) << Y_[1][3]
+          << " WAS PUT AT"   << setw(8) << setprecision(5) << Y_[L2][1] << setw(8) << setprecision(5) << Y_[L2][2] << setw(8) << setprecision(5) << Y_[L2][3] << endl;
+    Y_[1][1] = Y_[L2][1];
+    Y_[1][2] = Y_[L2][2];
+    Y_[1][3] = Y_[L2][3];
     goto L103;
-L1000:
-    file6 << "THE SYMMETRY OPERATOR " << blnk1->NCTR[blnk1->MULTX] << " IS WRONG" << endl;
-    DBWSException("7701");
+
 L2000:
     file6 << "THERE ARE UNRESOLVABLE PROBLEMS WITH THE POSITION SET"
-        << setw(8) << setprecision(5) << blnk1->Y[1][1]
-    << setw(8) << setprecision(5) << blnk1->Y[1][2]
-    << setw(8) << setprecision(5) << blnk1->Y[1][3] << endl
+        << setw(8) << setprecision(5) << Y_[1][1]
+    << setw(8) << setprecision(5) << Y_[1][2]
+    << setw(8) << setprecision(5) << Y_[1][3] << endl
         << "ATTEMPTS TO DEFINE THE TRUE SITE SYMMETRY WERE ABANDONED." << endl;
 L120:
-    if ( abs(blnk1->Y[1][1]-blnk1->Y[1][2])+abs(blnk1->Y[1][1]-blnk1->Y[1][3]) <= 0.0002 ) goto L200;
-    for (L2=2; L2 <= L1; ++L2) if ( abs(blnk1->Y[L2][1]-blnk1->Y[L2][2])+abs(blnk1->Y[L2][1]-blnk1->Y[L2][3]) <= 0.0002 ) goto L102;
+    if ( abs(Y_[1][1]-Y_[1][2])+abs(Y_[1][1]-Y_[1][3]) <= 0.0002 ) goto L200;
+    for (L2=2; L2 <= L1; ++L2) if ( abs(Y_[L2][1]-Y_[L2][2])+abs(Y_[L2][1]-Y_[L2][3]) <= 0.0002 ) goto L102;
     //L130:
 L200:
-    blnk1->IXB = max( (blnk1->IXB & 18874367), (blnk1->IXB & 16777215));
-    if (  (blnk1->IXB & 384) == 384 ) blnk1->IXB |= 512;
+    *IXB_ = max( (*IXB_ & 18874367), (*IXB_ & 16777215));
+    if (  (*IXB_ & 384) == 384 ) *IXB_ |= 512;
 }
 
-void DBWS::RTMT(int* IPRT, int* IPHASE)
+void DBWS::RTMT(int* MULTX_, double Y_[][3+1], int* IPRT, int NCTR_[],  int* IPHASE)
 {
     //    THE MATRICES ARE IN THE FIRST THREE ROWS OF VCTR AND THE VECTORS
     //    ARE IN THE FOURTH ROW OF VCTR.
@@ -5442,54 +4420,54 @@ void DBWS::RTMT(int* IPRT, int* IPHASE)
 
     int I,K,IX,IY,IZ;
     double VCTR[3+1][4+1];
+    double XLT_;
+    int IXB_;
 
 
-    blnk1->Y[1][1] = 2.0/108.0;
-    blnk1->Y[1][2] = 3.0/108.0;
-    blnk1->Y[1][3] = 4.0/108.0;
-    SYMOPR();
-    spgcom->MULTP = blnk1->MULTX-1;
-    multip->MLTPHASE=spgcom->MULTP;
-    for (I=1; I <= spgcom->MULTP; ++I)
+
+    Y_[1][1] = 2.0/108.0;
+    Y_[1][2] = 3.0/108.0;
+    Y_[1][3] = 4.0/108.0;
+    SYMOPR(MULTX_, Y_,&XLT_, &IXB_,NCTR_, IPHASE);
+    phases[*IPHASE].SYMB.MULTP = *MULTX_-1;
+    multip->MLTPHASE=phases[*IPHASE].SYMB.MULTP;
+    for (I=1; I <= phases[*IPHASE].SYMB.MULTP; ++I)
     {
         rtmtx->IVEC[*IPHASE][I] = 0;
         for (K=1; K <= 3; ++K)
         {
-            IX = static_cast<int>(blnk1->Y[I][K]*108.0+0.1);
+            IX = static_cast<int>(Y_[I][K]*108.0+0.1);
             VCTR[K][4] = static_cast<double>((IX+4)/9) /12.0;
             VCTR[K][4] = fmod(VCTR[K][4],1.0);
             IY = ((IX+4) % 9)-4;
             IZ = abs(IY);
             switch (IZ) {
             case 1:
-                goto L220;
+                VCTR[K][1] = -1.0 * sign(IY);
+                VCTR[K][2] =  1.0 * sign(IY);
+                VCTR[K][3] =  0.0;
+                goto L300;
                 break;
             case 2:
-                goto L230;
+                VCTR[K][1] = 1.0 * sign(IY);
+                VCTR[K][2] = 0.0;
+                VCTR[K][3] = 0.0;
+                goto L300;
                 break;
             case 3:
-                goto L240;
+                VCTR[K][1] = 0.0;
+                VCTR[K][2] = 1.0 * sign(IY);
+                VCTR[K][3] = 0.00;
+                goto L300;
                 break;
             case 4:
                 goto L250;
                 break;
             }
             GOTOER();
-L220:
-            VCTR[K][1] = -1.0 * sign(IY);
-            VCTR[K][2] =  1.0 * sign(IY);
-            VCTR[K][3] =  0.0;
-            goto L300;
-L230:
-            VCTR[K][1] = 1.0 * sign(IY);
-            VCTR[K][2] = 0.0;
-            VCTR[K][3] = 0.0;
-            goto L300;
-L240:
-            VCTR[K][1] = 0.0;
-            VCTR[K][2] = 1.0 * sign(IY);
-            VCTR[K][3] = 0.00;
-            goto L300;
+
+
+
 L250:
             VCTR[K][1] = 0.0;
             VCTR[K][2] = 0.0;
@@ -5512,12 +4490,12 @@ L300:
             << "          VEC(" << setw(3) << I << ") =" << setw(15) << rtmtx->IVEC[*IPHASE][I] << endl << endl;
 L310:;
     }
-    rtmtx->MLTPHS[*IPHASE]=spgcom->MULTP;
+    rtmtx->MLTPHS[*IPHASE]=phases[*IPHASE].SYMB.MULTP;
     rtmtx->ICNTPHS[*IPHASE]=1;
-    if ( spgcom->NC == 0 ) rtmtx->ICNTPHS[*IPHASE]=2;
+    if ( phases[*IPHASE].SYMB.NC == 0 ) rtmtx->ICNTPHS[*IPHASE]=2;
 }
 
-void DBWS::OP1(int* IPHASE)
+void DBWS::OP1(int* IPHASE, int NCTR_[])
 {
     //
     //                            THIS SR GENERATES THE OPERATORS FOR
@@ -5529,61 +4507,61 @@ void DBWS::OP1(int* IPHASE)
     int I,J,K,L,N2;
 
     K = 2;
-    spgcom->NPOL = 7;
+    phases[*IPHASE].SYMB.NPOL = 7;
     for (I=1; I <= 7; ++I) hklctl->NC1[1][I][*IPHASE] = 0;
-    blnk1->NCTR[1] = 0;
+    NCTR_[1] = 0;
     for (I=1; I <= 8; ++I)
     {
-        if ( spgcom->NCONT[I] <= 0 ) goto L101;
-        if ( spgcom->NCONT[I] < 8192 ) goto L80;
-        if ( spgcom->NCONT[I] <= 8192 ) goto L60;		// TODO: Possivel erro aqui estava 08192
-        if ( spgcom->NCONT[I] == 16384 ) goto L70;
-        spgcom->NPOL = 4;
+        if ( phases[*IPHASE].SYMB.NCONT[I] <= 0 ) goto L101;
+        if ( phases[*IPHASE].SYMB.NCONT[I] < 8192 ) goto L80;
+        if ( phases[*IPHASE].SYMB.NCONT[I] <= 8192 ) goto L60;		// TODO: Possivel erro aqui estava 08192
+        if ( phases[*IPHASE].SYMB.NCONT[I] == 16384 ) goto L70;
+        phases[*IPHASE].SYMB.NPOL = 4;
         hklctl->NC1[I][1][*IPHASE] = 2;
 L50:
         for (J=2; J <= 7; ++J) hklctl->NC1[I][J][*IPHASE] = 0;
-        hklctl->NC1[I][6][*IPHASE] = (spgcom->NCONT[I]/4) % 32;
+        hklctl->NC1[I][6][*IPHASE] = (phases[*IPHASE].SYMB.NCONT[I]/4) % 32;
         goto L90;
 L60:
         hklctl->NC1[I][1][*IPHASE] = 3;
-        spgcom->NPOL = 1;
+        phases[*IPHASE].SYMB.NPOL = 1;
         goto L50;
 L70:
         hklctl->NC1[I][1][*IPHASE] = 1;
         goto L50;
 L80:
         hklctl->NC1[I][1][*IPHASE] = 0;
-        hklctl->NC1[I][2][*IPHASE] = spgcom->NCONT[I] % 4;
-        hklctl->NC1[I][3][*IPHASE] = (spgcom->NCONT[I]/4) % 4;
-        hklctl->NC1[I][4][*IPHASE] = (spgcom->NCONT[I]/16) % 4;
-        hklctl->NC1[I][5][*IPHASE] = (spgcom->NCONT[I]/64) % 4;
-        hklctl->NC1[I][6][*IPHASE] = (spgcom->NCONT[I]/256) % 2;
-        hklctl->NC1[I][7][*IPHASE] = (spgcom->NCONT[I]/512) % 16;
+        hklctl->NC1[I][2][*IPHASE] = phases[*IPHASE].SYMB.NCONT[I] % 4;
+        hklctl->NC1[I][3][*IPHASE] = (phases[*IPHASE].SYMB.NCONT[I]/4) % 4;
+        hklctl->NC1[I][4][*IPHASE] = (phases[*IPHASE].SYMB.NCONT[I]/16) % 4;
+        hklctl->NC1[I][5][*IPHASE] = (phases[*IPHASE].SYMB.NCONT[I]/64) % 4;
+        hklctl->NC1[I][6][*IPHASE] = (phases[*IPHASE].SYMB.NCONT[I]/256) % 2;
+        hklctl->NC1[I][7][*IPHASE] = (phases[*IPHASE].SYMB.NCONT[I]/512) % 16;
 L90:
         L = K-1;
         for (J=1; J <= L; ++J)
         {
-            if ( spgcom->NCONT[I] == 8192 ) goto L95;
-            blnk1->NCTR[K] = (spgcom->NCONT[I] ^ blnk1->NCTR[J]) & 57651;
-            if( (spgcom->NCONT[I] & 17) == 0) goto L92;
-            if( (blnk1->NCTR[J] & 34) == 0) goto L92;
-            if( (blnk1->NCTR[J] & 34) == 34) goto L92;
-            blnk1->NCTR[K]= blnk1->NCTR[K] ^ 34;
+            if ( phases[*IPHASE].SYMB.NCONT[I] == 8192 ) goto L95;
+            NCTR_[K] = (phases[*IPHASE].SYMB.NCONT[I] ^ NCTR_[J]) & 57651;
+            if( (phases[*IPHASE].SYMB.NCONT[I] & 17) == 0) goto L92;
+            if( (NCTR_[J] & 34) == 0) goto L92;
+            if( (NCTR_[J] & 34) == 34) goto L92;
+            NCTR_[K]= NCTR_[K] ^ 34;
 L92:
             ++K;
-            if ( spgcom->NCONT[I] < 8192 ) goto L100;
-            blnk1->NCTR[K] = blnk1->NCTR[K-1]+32768;
+            if ( phases[*IPHASE].SYMB.NCONT[I] < 8192 ) goto L100;
+            NCTR_[K] = NCTR_[K-1]+32768;
             K = K+1;
             goto L100;
 L95:
-            blnk1->NCTR[K] = 0;
-            blnk1->NCTR[K+1] = 0;
+            NCTR_[K] = 0;
+            NCTR_[K+1] = 0;
             K = K+2;
 L100:;
         }
     }
 L101:
-    spgcom->MULTP = K-1;
+    phases[*IPHASE].SYMB.MULTP = K-1;
     hklctl->N1HKL[*IPHASE] = I-1;
     if ( hklctl->N1HKL[*IPHASE] < 2 ) goto L105;
     for (N2=2; N2 <= hklctl->N1HKL[*IPHASE]; ++N2) if ( hklctl->NC1[N2-1][1][*IPHASE] == 1 ) goto L103;
@@ -5595,13 +4573,13 @@ L103:
     }
     hklctl->NC1[hklctl->N1HKL[*IPHASE]][1][*IPHASE] = 1;
 L105:
-    spgcom->NC = 1;
-    for (I=1; I <= spgcom->MULTP; ++I)
+    phases[*IPHASE].SYMB.NC = 1;
+    for (I=1; I <= phases[*IPHASE].SYMB.MULTP; ++I)
     {
-        if ( (blnk1->NCTR[I] ^ 290) == 0 ) spgcom->NC = 0;
-        if ( (blnk1->NCTR[I] & 3) > 0 ) spgcom->NPOL = (spgcom->NPOL & 6);
-        if ( (blnk1->NCTR[I] & 48) > 0 ) spgcom->NPOL = (spgcom->NPOL & 5);
-        if ( (blnk1->NCTR[I] & 256) > 0 ) spgcom->NPOL = (spgcom->NPOL & 3);
+        if ( (NCTR_[I] ^ 290) == 0 ) phases[*IPHASE].SYMB.NC = 0;
+        if ( (NCTR_[I] & 3) > 0 ) phases[*IPHASE].SYMB.NPOL = (phases[*IPHASE].SYMB.NPOL & 6);
+        if ( (NCTR_[I] & 48) > 0 ) phases[*IPHASE].SYMB.NPOL = (phases[*IPHASE].SYMB.NPOL & 5);
+        if ( (NCTR_[I] & 256) > 0 ) phases[*IPHASE].SYMB.NPOL = (phases[*IPHASE].SYMB.NPOL & 3);
     }
 }
 
@@ -5613,7 +4591,7 @@ void DBWS::LOOKUP(int K, int N, int NSCAT, int IXRAY, int JOB)
     NS=0;
     if (K > 1)
     {
-        for (IIPHAS=2; IIPHAS <= K; ++IIPHAS) IOF = IOF + jnk->NATOM[IIPHAS-1];
+        for (IIPHAS=2; IIPHAS <= K; ++IIPHAS) IOF = IOF + phases[IIPHAS-1].AtomCount;
     }
     if (K > 1) NS=dc->NSAVE;
     if (JOB == 2 || JOB == 4) goto L70;
@@ -5687,9 +4665,9 @@ void DBWS::CELL2(int NPHASE, double LAMDAM)
     double COSA,COSB,COSC,SINA,SINB,SINC,SINASR,SINBSR,COSASR,COSBSR,COSCSR;
 
 
-    file6 << "THE LAUE SYMMETRY IS " << LAU[spgcom->NSPGRP] << endl;
-    if ( spgcom->NAXIS > 3 ) DBWSException("5001");
-    switch (spgcom->NSPGRP) {
+    file6 << "THE LAUE SYMMETRY IS " << LAU[phases[NPHASE].SYMB.NSPGRP] << endl;
+    if ( phases[NPHASE].SYMB.NAXIS > 3 ) DBWSException("5001");
+    switch (phases[NPHASE].SYMB.NSPGRP) {
     case 1:
         goto L1002;
         break;
@@ -5735,9 +4713,9 @@ void DBWS::CELL2(int NPHASE, double LAMDAM)
     }
     GOTOER();
 L1071:
-    if ( spgcom->NAXIS != 1 ) cellx->ALPHA=90.0;
-    if ( spgcom->NAXIS != 2 ) cellx->BETA=90.0;
-    if ( spgcom->NAXIS != 3) cellx->GAMMA=90.0;
+    if ( phases[NPHASE].SYMB.NAXIS != 1 ) cellx->ALPHA=90.0;
+    if ( phases[NPHASE].SYMB.NAXIS != 2 ) cellx->BETA=90.0;
+    if ( phases[NPHASE].SYMB.NAXIS != 3) cellx->GAMMA=90.0;
     goto L1002;
 L1073:
     cellx->B = cellx->A;
@@ -5825,12 +4803,12 @@ L1002:
     cellx->AL[3][3]=cellx->AL[3][3]*cellx->AL[3][3];
 }
 
-double DBWS::MULT(int IH, int IK, int IL, int KXIS)
+double DBWS::MULT(int IPHASE, int IH, int IK, int IL, int KXIS)
 {
     double P;
 
     P = 2.0;
-    switch (spgcom->NSPGRP)
+    switch (phases[IPHASE].SYMB.NSPGRP)
     {
     case 1:
         goto L220;
@@ -6017,7 +4995,7 @@ L215:
     //-----THIS LINE ADDED TO CORRECT THE PROBLEMS WITH THE -3, -3M1, 6/M,
     //-----AND 6/MMM SPACE GROUPS THAT WERE OFF BY A FACTOR OF TWO
 L220:
-    if (spgcom->NSPGRP == 8  ||  spgcom->NSPGRP == 9  ||  spgcom->NSPGRP == 11  ||  spgcom->NSPGRP == 12) P=0.5*P;
+    if (phases[IPHASE].SYMB.NSPGRP == 8  ||  phases[IPHASE].SYMB.NSPGRP == 9  ||  phases[IPHASE].SYMB.NSPGRP == 11  ||  phases[IPHASE].SYMB.NSPGRP == 12) P=0.5*P;
     return P;
 }
 
@@ -6031,7 +5009,7 @@ void DBWS::REWRIT(int ISCALE, int IDIF)
 
 
     // line 1
-    file5b << char_->TITLE << "          OpenDBWS" <<endl;
+    file5b << title << "          OpenDBWS" <<endl;
     cntrls->JOBTYP=cntrls->JOBTYP-1;
     //cntrls->NPROF=cntrls->NPROF-1;
     NPLOF = cntrls->NPROF;
@@ -6156,17 +5134,17 @@ L124:;
     // line 9
     file5b << setw(8) << cntrls->MAXS << "                                                 PARAMS REFINED" << endl;
     N=0;
-    for (IIPHAS=1; IIPHAS <= cntrls->NPHASE; ++IIPHAS) N=N+jnk->NATOM[IIPHAS];
+    for (IIPHAS=1; IIPHAS <= cntrls->NPHASE; ++IIPHAS) N=N+phases[IIPHAS].AtomCount;
     for (I=1; I <= N; ++I)
     {
         for (J=1; J <= 11; ++J) params->A[I][J]=sign(params->A[I][J])*(static_cast<double>(10*params->LP[I][J])+abs(params->A[I][J]));
     }
     for (I=1; I <= cntrls->NPHASE; ++I)
     {
-        for (J=1; J <= 6; ++J) phases[I-1].PAR_[J+5-1]=dc->SAVE[I][J];
-        for (J=1; J <= 27; ++J) phases[I-1].PAR_[J-1].A=sign(phases[I-1].PAR_[J-1].A)*(static_cast<double>(10*phases[I-1].PAR_[J-1].L)+abs(phases[I-1].PAR_[J-1].A));
+        for (J=1; J <= 6; ++J) phases[I-1].PAR[J+5-1]=dc->SAVE[I][J];
+        for (J=1; J <= 27; ++J) phases[I-1].PAR[J-1].codeword=sign(phases[I-1].PAR[J-1].codeword)*(static_cast<double>(10*phases[I-1].PAR[J-1].L)+abs(phases[I-1].PAR[J-1].codeword));
     }
-    for (J=1; J <= 20; ++J) params->GLB_[J-1].A=sign(params->GLB_[J-1].A)*(static_cast<double>(10*params->GLB_[J-1].L)+abs(params->GLB_[J-1].A));
+    for (J=1; J <= 20; ++J) params->GLB_[J-1].codeword=sign(params->GLB_[J-1].codeword)*(static_cast<double>(10*params->GLB_[J-1].L)+abs(params->GLB_[J-1].codeword));
 
     // line 10.1
     file5b
@@ -6181,12 +5159,12 @@ L124:;
     // line 10.11
     file5b
         << setw(8) << setprecision(4) << params->GLB_[1-1]
-        << setw(8) << setprecision(4) << params->GLB_[10-1].A
-        << setw(8) << setprecision(4) << params->GLB_[11-1].A
-        << setw(8) << setprecision(4) << params->GLB_[8-1].A
-        << setw(8) << setprecision(4) << params->GLB_[9-1].A
-        << setw(8) << setprecision(4) << params->GLB_[12-1].A
-        << setw(8) << setprecision(4) << params->GLB_[13-1].A << " CODEWORDS" << endl;
+        << setw(8) << setprecision(4) << params->GLB_[10-1].codeword
+        << setw(8) << setprecision(4) << params->GLB_[11-1].codeword
+        << setw(8) << setprecision(4) << params->GLB_[8-1].codeword
+        << setw(8) << setprecision(4) << params->GLB_[9-1].codeword
+        << setw(8) << setprecision(4) << params->GLB_[12-1].codeword
+        << setw(8) << setprecision(4) << params->GLB_[13-1].codeword << " CODEWORDS" << endl;
     if (cntrls->IBGD == 1) goto L4600;
     // line 10.2
     file5b
@@ -6197,9 +5175,9 @@ L124:;
 
     // line 10.21
     file5b
-        << setw(8) << setprecision(4) << params->GLB_[20-1].A
-        << setw(8) << setprecision(4) << params->GLB_[18-1].A
-        << setw(8) << setprecision(4) << params->GLB_[19-1].A
+        << setw(8) << setprecision(4) << params->GLB_[20-1].codeword
+        << setw(8) << setprecision(4) << params->GLB_[18-1].codeword
+        << setw(8) << setprecision(4) << params->GLB_[19-1].codeword
         << "                                 CODEWORS" << endl;
 L4600:
     if(jnk->NBCKGD == 0)
@@ -6213,12 +5191,12 @@ L4600:
             << setw(9) << setprecision(2) << params->GLB_[7-1]
             << "   BACKGROUND" << endl;
         file5b
-            << setw(9) << setprecision(2) << params->GLB_[2-1].A
-            << setw(9) << setprecision(2) << params->GLB_[3-1].A
-            << setw(9) << setprecision(2) << params->GLB_[4-1].A
-            << setw(9) << setprecision(2) << params->GLB_[5-1].A
-            << setw(9) << setprecision(2) << params->GLB_[6-1].A
-            << setw(9) << setprecision(2) << params->GLB_[7-1].A
+            << setw(9) << setprecision(2) << params->GLB_[2-1].codeword
+            << setw(9) << setprecision(2) << params->GLB_[3-1].codeword
+            << setw(9) << setprecision(2) << params->GLB_[4-1].codeword
+            << setw(9) << setprecision(2) << params->GLB_[5-1].codeword
+            << setw(9) << setprecision(2) << params->GLB_[6-1].codeword
+            << setw(9) << setprecision(2) << params->GLB_[7-1].codeword
             << "   CODEWORDS" << endl;
     }
     //L477:
@@ -6227,23 +5205,23 @@ L4600:
         IOF=0;
         if (K > 1)
         {
-            for (IIPHAS=2; IIPHAS <= K; ++IIPHAS) IOF = IOF + jnk->NATOM[IIPHAS-1];
+            for (IIPHAS=2; IIPHAS <= K; ++IIPHAS) IOF = IOF + phases[IIPHAS-1].AtomCount;
         }
         // line 11.1
-        file5b << setw(50) << phases[K].PHSNM << "       PHASE NUMBER " << setw(2) << K << endl;
+        file5b << setw(50) << phases[K].name << "       PHASE NUMBER " << setw(2) << K << endl;
 
         // line 11.2
         file5b
-            << setw(4) << jnk->NATOM[K]
-            << setw(4) << jnk->NMOL[K]
-            << setw(7) << setprecision(4) << multip->SAQF[K]
+            << setw(4) << phases[K].AtomCount
+            << setw(4) << phases[K].NMOL
+            << setw(7) << setprecision(4) << phases[K].SAQF
             << " "
-            << setw(4) << setprecision(1) << jnk->PREF[K][1]
-            << setw(4) << setprecision(1) << jnk->PREF[K][2]
-            << setw(4) << setprecision(1) << jnk->PREF[K][3]
-            << setw(7) << setprecision(2) << multip->WTIS[K]
+            << setw(4) << setprecision(1) << phases[K].PREF[1]
+            << setw(4) << setprecision(1) << phases[K].PREF[2]
+            << setw(4) << setprecision(1) << phases[K].PREF[3]
+            << setw(7) << setprecision(2) << phases[K].WTIS
             << "                      #ATMS #FU AFQPA PREFDIR ISWT" << endl;
-        N=jnk->NATOM[K];
+        N=phases[K].AtomCount;
 
         // line 11.3
         file5b << setw(20) << phases[K].SYMB << "                                     SPACE GROUP" << endl;
@@ -6285,74 +5263,74 @@ L4600:
             << "          CODEWORDS" << endl;
         }
         file5b
-            << scientific << setw(8) << setprecision(2) << phases[K-1].PAR_[1-1]
+            << scientific << setw(8) << setprecision(2) << phases[K-1].PAR[0]
             << fixed
-            << setw(8) << setprecision(4) << phases[K-1].PAR_[2-1]
+            << setw(8) << setprecision(4) << phases[K-1].PAR[1]
             << "                                         SCALE Bo(OVERALL)" << endl
-            << setw(8) << setprecision(2) << phases[K-1].PAR_[1-1].A
-            << setw(8) << setprecision(2) << phases[K-1].PAR_[2-1].A << endl
-            << setw(8) << setprecision(5) << phases[K-1].PAR_[3-1]
-            << setw(8) << setprecision(5) << phases[K-1].PAR_[4-1]
-            << setw(8) << setprecision(5) << phases[K-1].PAR_[5-1]
-            << setw(8) << setprecision(5) << phases[K-1].PAR_[21-1]
-            << setw(8) << setprecision(5) << phases[K-1].PAR_[20-1]
-            << setw(8) << setprecision(5) << phases[K-1].PAR_[15-1]
-            << setw(8) << setprecision(5) << phases[K-1].PAR_[16-1]
+            << setw(8) << setprecision(2) << phases[K-1].PAR[0].codeword
+            << setw(8) << setprecision(2) << phases[K-1].PAR[1].codeword << endl
+            << setw(8) << setprecision(5) << phases[K-1].PAR[2]
+            << setw(8) << setprecision(5) << phases[K-1].PAR[3]
+            << setw(8) << setprecision(5) << phases[K-1].PAR[4]
+            << setw(8) << setprecision(5) << phases[K-1].PAR[20]
+            << setw(8) << setprecision(5) << phases[K-1].PAR[19]
+            << setw(8) << setprecision(5) << phases[K-1].PAR[14]
+            << setw(8) << setprecision(5) << phases[K-1].PAR[15]
             << " U V W CT Z X Y" << endl
 
-            << setw(8) << setprecision(2) << phases[K-1].PAR_[3-1].A
-            << setw(8) << setprecision(2) << phases[K-1].PAR_[4-1].A
-            << setw(8) << setprecision(2) << phases[K-1].PAR_[5-1].A
-            << setw(8) << setprecision(2) << phases[K-1].PAR_[21-1].A
-            << setw(8) << setprecision(2) << phases[K-1].PAR_[20-1].A
-            << setw(8) << setprecision(2) << phases[K-1].PAR_[15-1].A
-            << setw(8) << setprecision(2) << phases[K-1].PAR_[16-1].A << endl
+            << setw(8) << setprecision(2) << phases[K-1].PAR[2].codeword
+            << setw(8) << setprecision(2) << phases[K-1].PAR[3].codeword
+            << setw(8) << setprecision(2) << phases[K-1].PAR[4].codeword
+            << setw(8) << setprecision(2) << phases[K-1].PAR[20].codeword
+            << setw(8) << setprecision(2) << phases[K-1].PAR[19].codeword
+            << setw(8) << setprecision(2) << phases[K-1].PAR[14].codeword
+            << setw(8) << setprecision(2) << phases[K-1].PAR[15].codeword << endl
 
-            << setw(8) << setprecision(4) << phases[K-1].PAR_[6-1]
-            << setw(8) << setprecision(4) << phases[K-1].PAR_[7-1]
-            << setw(8) << setprecision(4) << phases[K-1].PAR_[8-1]
-            << setw(8) << setprecision(4) << phases[K-1].PAR_[9-1]
-            << setw(8) << setprecision(4) << phases[K-1].PAR_[10-1]
-            << setw(8) << setprecision(4) << phases[K-1].PAR_[11-1]
+            << setw(8) << setprecision(4) << phases[K-1].PAR[5]
+            << setw(8) << setprecision(4) << phases[K-1].PAR[6]
+            << setw(8) << setprecision(4) << phases[K-1].PAR[7]
+            << setw(8) << setprecision(4) << phases[K-1].PAR[8]
+            << setw(8) << setprecision(4) << phases[K-1].PAR[9]
+            << setw(8) << setprecision(4) << phases[K-1].PAR[10]
             << "         CELL PARAMETERS" << endl
 
-            << setw(8) << setprecision(2) << phases[K-1].PAR_[6-1].A
-            << setw(8) << setprecision(2) << phases[K-1].PAR_[7-1].A
-            << setw(8) << setprecision(2) << phases[K-1].PAR_[8-1].A
-            << setw(8) << setprecision(2) << phases[K-1].PAR_[9-1].A
-            << setw(8) << setprecision(2) << phases[K-1].PAR_[10-1].A
-            << setw(8) << setprecision(2) << phases[K-1].PAR_[11-1].A << endl
+            << setw(8) << setprecision(2) << phases[K-1].PAR[5].codeword
+            << setw(8) << setprecision(2) << phases[K-1].PAR[6].codeword
+            << setw(8) << setprecision(2) << phases[K-1].PAR[7].codeword
+            << setw(8) << setprecision(2) << phases[K-1].PAR[8].codeword
+            << setw(8) << setprecision(2) << phases[K-1].PAR[9].codeword
+            << setw(8) << setprecision(2) << phases[K-1].PAR[10].codeword << endl
 
-            << setw(8) << setprecision(5) << phases[K-1].PAR_[12-1]
-            << setw(8) << setprecision(5) << phases[K-1].PAR_[13-1]
-            << setw(8) << setprecision(5) << phases[K-1].PAR_[14-1]
+            << setw(8) << setprecision(5) << phases[K-1].PAR[11]
+            << setw(8) << setprecision(5) << phases[K-1].PAR[12]
+            << setw(8) << setprecision(5) << phases[K-1].PAR[13]
             << "                                 PREF1 PREF2 R/RCF_ASYM" << endl
 
-            << setw(8) << setprecision(2) << phases[K-1].PAR_[12-1].A
-            << setw(8) << setprecision(2) << phases[K-1].PAR_[13-1].A
-            << setw(8) << setprecision(2) << phases[K-1].PAR_[14-1].A << endl
+            << setw(8) << setprecision(2) << phases[K-1].PAR[11].codeword
+            << setw(8) << setprecision(2) << phases[K-1].PAR[12].codeword
+            << setw(8) << setprecision(2) << phases[K-1].PAR[13].codeword << endl
 
-            << setw(8) << setprecision(4) << phases[K-1].PAR_[17-1]
-            << setw(8) << setprecision(4) << phases[K-1].PAR_[18-1]
-            << setw(8) << setprecision(4) << phases[K-1].PAR_[19-1]
+            << setw(8) << setprecision(4) << phases[K-1].PAR[16]
+            << setw(8) << setprecision(4) << phases[K-1].PAR[17]
+            << setw(8) << setprecision(4) << phases[K-1].PAR[18]
             << "                                 NA NB NC (MIX_PARAMS)" << endl
 
-            << setw(8) << setprecision(2) << phases[K-1].PAR_[17-1].A
-            << setw(8) << setprecision(2) << phases[K-1].PAR_[18-1].A
-            << setw(8) << setprecision(2) << phases[K-1].PAR_[19-1].A << endl
+            << setw(8) << setprecision(2) << phases[K-1].PAR[16].codeword
+            << setw(8) << setprecision(2) << phases[K-1].PAR[17].codeword
+            << setw(8) << setprecision(2) << phases[K-1].PAR[18].codeword << endl
 
-            << setw(8) << setprecision(4) << phases[K-1].PAR_[24-1]
-            << setw(8) << setprecision(4) << phases[K-1].PAR_[25-1]
-            << setw(8) << setprecision(4) << phases[K-1].PAR_[26-1]
+            << setw(8) << setprecision(4) << phases[K-1].PAR[23]
+            << setw(8) << setprecision(4) << phases[K-1].PAR[24]
+            << setw(8) << setprecision(4) << phases[K-1].PAR[25]
             << "                                 NA NB NC (HIGH SIDE)" << endl
 
-            << setw(8) << setprecision(2) << phases[K-1].PAR_[24-1].A
-            << setw(8) << setprecision(2) << phases[K-1].PAR_[25-1].A
-            << setw(8) << setprecision(2) << phases[K-1].PAR_[26-1].A << endl
+            << setw(8) << setprecision(2) << phases[K-1].PAR[23].codeword
+            << setw(8) << setprecision(2) << phases[K-1].PAR[24].codeword
+            << setw(8) << setprecision(2) << phases[K-1].PAR[25].codeword << endl
 
-            << setw(8) << setprecision(4) << phases[K-1].PAR_[27-1] << "" << endl
+            << setw(8) << setprecision(4) << phases[K-1].PAR[26] << "" << endl
 
-            << setw(8) << setprecision(2) << phases[K-1].PAR_[27-1].A << endl;
+            << setw(8) << setprecision(2) << phases[K-1].PAR[26].codeword << endl;
     }
     if (cntrls->IPL != 0) file5b << setw(8) << ISCALE << IDIF << "                                         LINE PRINTER INFO" << endl;
     if (file5b.is_open()) file5b.close();
@@ -6378,10 +5356,10 @@ void DBWS::size(int K)
     // a segunda linha ira ler U,Z,X,Y da FWHM do padrao
     file17 >> UI >> ZI >> XI >> YI;
     file17.close();
-    UA = phases[K-1].PAR_[3-1];
-    ZA = phases[K-1].PAR_[20-1];
-    XA = phases[K-1].PAR_[15-1];
-    YA = phases[K-1].PAR_[16-1];
+    UA = phases[K-1].PAR[2];
+    ZA = phases[K-1].PAR[19];
+    XA = phases[K-1].PAR[14];
+    YA = phases[K-1].PAR[15];
     if (ZI  !=  0.0)
     {
         file6 << "SIZE NOT COMPUTED * bad standard? - check Z for standard." << endl;
@@ -6529,7 +5507,7 @@ void DBWS::WRITE94(int ISCALE, int IDIF)
     //REWIND 53;
 
     // line 1
-    file53 << setw(70) << char_->TITLE << endl;
+    file53 << setw(70) << title << endl;
     cntrls->JOBTYP=cntrls->JOBTYP-1;
     cntrls->INSTRM = cntrls->INSTRM-1;
 
@@ -6624,25 +5602,25 @@ L124:
     // line 9
     file53 << setw(8) << cntrls->MAXS << "                                                 PARAMS REFINED" << endl;
     N=0;
-    for (IIPHAS=1; IIPHAS <= cntrls->NPHASE; ++IIPHAS) N=N+jnk->NATOM[IIPHAS];
+    for (IIPHAS=1; IIPHAS <= cntrls->NPHASE; ++IIPHAS) N=N+phases[IIPHAS].AtomCount;
     for (I=1; I <= N; ++I)
     {
         for (J=1; J <= 11; ++J) params->A[I][J]=sign(params->A[I][J])*(static_cast<double>(10*params->LP[I][J])+abs(params->A[I][J]));
     }
     for (I=1; I <= cntrls->NPHASE; ++I)
     {
-        for (J=1; J <= 6; ++J) phases[I-1].PAR_[J+5-1]=dc->SAVE[I][J];
-        for (J=1; J <= 27; ++J) phases[I-1].PAR_[J-1].A=sign(phases[I-1].PAR_[J-1].A)*(static_cast<double>(10*phases[I-1].PAR_[J-1].L)+abs(phases[I-1].PAR_[J-1].A));
+        for (J=1; J <= 6; ++J) phases[I-1].PAR[J+5-1]=dc->SAVE[I][J];
+        for (J=1; J <= 27; ++J) phases[I-1].PAR[J-1].codeword=sign(phases[I-1].PAR[J-1].codeword)*(static_cast<double>(10*phases[I-1].PAR[J-1].L)+abs(phases[I-1].PAR[J-1].codeword));
     }
-    for (J=1; J <= 20; ++J) params->GLB_[J-1].A=sign(params->GLB_[J-1].A)*(static_cast<double>(10*params->GLB_[J-1].L)+abs(params->GLB_[J-1].A));
+    for (J=1; J <= 20; ++J) params->GLB_[J-1].codeword=sign(params->GLB_[J-1].codeword)*(static_cast<double>(10*params->GLB_[J-1].L)+abs(params->GLB_[J-1].codeword));
 
     // line 10.1
     file53 << setw(8) << setprecision(4) << params->GLB_[1-1]
-    << setw(8) << setprecision(4) << params->GLB_[1-1].A
+    << setw(8) << setprecision(4) << params->GLB_[1-1].codeword
     << setw(8) << setprecision(4) << params->GLB_[10-1]
-    << setw(8) << setprecision(4) << params->GLB_[10-1].A
+    << setw(8) << setprecision(4) << params->GLB_[10-1].codeword
     << setw(8) << setprecision(4) << params->GLB_[11-1]
-    << setw(8) << setprecision(4) << params->GLB_[11-1].A
+    << setw(8) << setprecision(4) << params->GLB_[11-1].codeword
     << "         ZER DISP TRANS + CODEWORS" << endl
         << setw(9) << setprecision(4) << 0.0
         << setw(9) << setprecision(4) << 0.0
@@ -6657,20 +5635,20 @@ L124:
         IOF=0;
         if(K > 1)
         {
-            for (IIPHAS=2; IIPHAS <= K; ++IIPHAS) IOF = IOF + jnk->NATOM[IIPHAS-1];
+            for (IIPHAS=2; IIPHAS <= K; ++IIPHAS) IOF = IOF + phases[IIPHAS-1].AtomCount;
         }
         // line 11.1
-        file53 << setw(50) << phases[K].PHSNM << "       PHASE NUMBER " << setw(2) << K << endl;
+        file53 << setw(50) << phases[K].name << "       PHASE NUMBER " << setw(2) << K << endl;
 
         // line 11.2
-        file53 << setw(4) << jnk->NATOM[K]
-        << setw(4) << jnk->NMOL[K]
+        file53 << setw(4) << phases[K].AtomCount
+        << setw(4) << phases[K].NMOL
         << "        "
-            << setw(4) << setprecision(1) << jnk->PREF[K][1]
-        << setw(4) << setprecision(1) << jnk->PREF[K][2]
-        << setw(4) << setprecision(1) << jnk->PREF[K][3]
+            << setw(4) << setprecision(1) << phases[K].PREF[1]
+        << setw(4) << setprecision(1) << phases[K].PREF[2]
+        << setw(4) << setprecision(1) << phases[K].PREF[3]
         << "                             #ATMS #FU PREFDIR" << endl;
-        N=jnk->NATOM[K];
+        N=phases[K].AtomCount;
 
         // line 11.3
         file53 << setw(20) << phases[K].SYMB
@@ -6709,64 +5687,64 @@ L124:
             << "          CODEWORDS" << endl;
         }
         file53 << scientific
-            << setw(8) << setprecision(2) << phases[K-1].PAR_[1-1]
+            << setw(8) << setprecision(2) << phases[K-1].PAR[0]
         << fixed
-            << setw(8) << setprecision(4) << phases[K-1].PAR_[2-1]
+            << setw(8) << setprecision(4) << phases[K-1].PAR[1]
         << "                                    SCALE Bo(OVERALL)" << endl
-            << setw(8) << setprecision(2) << phases[K-1].PAR_[1-1].A
-        << setw(8) << setprecision(2) << phases[K-1].PAR_[2-1].A << endl
-            << setw(8) << setprecision(5) << phases[K-1].PAR_[3-1]
-        << setw(8) << setprecision(5) << phases[K-1].PAR_[4-1]
-        << setw(8) << setprecision(5) << phases[K-1].PAR_[5-1]
-        << setw(8) << setprecision(5) << phases[K-1].PAR_[21-1]
-        << setw(8) << setprecision(5) << phases[K-1].PAR_[20-1]
-        << setw(8) << setprecision(5) << phases[K-1].PAR_[15-1]
-        << setw(8) << setprecision(5) << phases[K-1].PAR_[16-1]
+            << setw(8) << setprecision(2) << phases[K-1].PAR[0].codeword
+        << setw(8) << setprecision(2) << phases[K-1].PAR[1].codeword << endl
+            << setw(8) << setprecision(5) << phases[K-1].PAR[2]
+        << setw(8) << setprecision(5) << phases[K-1].PAR[3]
+        << setw(8) << setprecision(5) << phases[K-1].PAR[4]
+        << setw(8) << setprecision(5) << phases[K-1].PAR[20]
+        << setw(8) << setprecision(5) << phases[K-1].PAR[19]
+        << setw(8) << setprecision(5) << phases[K-1].PAR[14]
+        << setw(8) << setprecision(5) << phases[K-1].PAR[15]
         << " U V W CT Z X Y" << endl
-            << setw(8) << setprecision(2) << phases[K-1].PAR_[3-1].A
-        << setw(8) << setprecision(2) << phases[K-1].PAR_[4-1].A
-        << setw(8) << setprecision(2) << phases[K-1].PAR_[5-1].A
-        << setw(8) << setprecision(2) << phases[K-1].PAR_[21-1].A
-        << setw(8) << setprecision(2) << phases[K-1].PAR_[20-1].A
-        << setw(8) << setprecision(2) << phases[K-1].PAR_[15-1].A
-        << setw(8) << setprecision(2) << phases[K-1].PAR_[16-1].A << endl
-            << setw(8) << setprecision(4) << phases[K-1].PAR_[6-1]
-        << setw(8) << setprecision(4) << phases[K-1].PAR_[7-1]
-        << setw(8) << setprecision(4) << phases[K-1].PAR_[8-1]
-        << setw(8) << setprecision(4) << phases[K-1].PAR_[9-1]
-        << setw(8) << setprecision(4) << phases[K-1].PAR_[10-1]
-        << setw(8) << setprecision(4) << phases[K-1].PAR_[11-1]
+            << setw(8) << setprecision(2) << phases[K-1].PAR[2].codeword
+        << setw(8) << setprecision(2) << phases[K-1].PAR[3].codeword
+        << setw(8) << setprecision(2) << phases[K-1].PAR[4].codeword
+        << setw(8) << setprecision(2) << phases[K-1].PAR[20].codeword
+        << setw(8) << setprecision(2) << phases[K-1].PAR[19].codeword
+        << setw(8) << setprecision(2) << phases[K-1].PAR[14].codeword
+        << setw(8) << setprecision(2) << phases[K-1].PAR[15].codeword << endl
+            << setw(8) << setprecision(4) << phases[K-1].PAR[5]
+        << setw(8) << setprecision(4) << phases[K-1].PAR[6]
+        << setw(8) << setprecision(4) << phases[K-1].PAR[7]
+        << setw(8) << setprecision(4) << phases[K-1].PAR[8]
+        << setw(8) << setprecision(4) << phases[K-1].PAR[9]
+        << setw(8) << setprecision(4) << phases[K-1].PAR[10]
         << "         CELL PARAMETERS" << endl
-            << setw(8) << setprecision(2) << phases[K-1].PAR_[6-1].A
-        << setw(8) << setprecision(2) << phases[K-1].PAR_[7-1].A
-        << setw(8) << setprecision(2) << phases[K-1].PAR_[8-1].A
-        << setw(8) << setprecision(2) << phases[K-1].PAR_[9-1].A
-        << setw(8) << setprecision(2) << phases[K-1].PAR_[10-1].A
-        << setw(8) << setprecision(2) << phases[K-1].PAR_[11-1].A << endl
-            << setw(8) << setprecision(5) << phases[K-1].PAR_[12-1]
-        << setw(8) << setprecision(5) << phases[K-1].PAR_[13-1]
-        << setw(8) << setprecision(5) << phases[K-1].PAR_[14-1]
+            << setw(8) << setprecision(2) << phases[K-1].PAR[5].codeword
+        << setw(8) << setprecision(2) << phases[K-1].PAR[6].codeword
+        << setw(8) << setprecision(2) << phases[K-1].PAR[7].codeword
+        << setw(8) << setprecision(2) << phases[K-1].PAR[8].codeword
+        << setw(8) << setprecision(2) << phases[K-1].PAR[9].codeword
+        << setw(8) << setprecision(2) << phases[K-1].PAR[10].codeword << endl
+            << setw(8) << setprecision(5) << phases[K-1].PAR[11]
+        << setw(8) << setprecision(5) << phases[K-1].PAR[12]
+        << setw(8) << setprecision(5) << phases[K-1].PAR[13]
         << "                                 PREF1 PREF2 R/RCF_ASYM" << endl
-            << setw(8) << setprecision(2) << phases[K-1].PAR_[12-1].A
-        << setw(8) << setprecision(2) << phases[K-1].PAR_[13-1].A
-        << setw(8) << setprecision(2) << phases[K-1].PAR_[14-1].A << endl
-            << setw(8) << setprecision(4) << phases[K-1].PAR_[17-1]
-        << setw(8) << setprecision(4) << phases[K-1].PAR_[18-1]
-        << setw(8) << setprecision(4) << phases[K-1].PAR_[19-1]
+            << setw(8) << setprecision(2) << phases[K-1].PAR[11].codeword
+        << setw(8) << setprecision(2) << phases[K-1].PAR[12].codeword
+        << setw(8) << setprecision(2) << phases[K-1].PAR[13].codeword << endl
+            << setw(8) << setprecision(4) << phases[K-1].PAR[16]
+        << setw(8) << setprecision(4) << phases[K-1].PAR[17]
+        << setw(8) << setprecision(4) << phases[K-1].PAR[18]
         << "                                 NA NB NC (MIX_PARAMS)" << endl
-            << setw(8) << setprecision(2) << phases[K-1].PAR_[17-1].A
-        << setw(8) << setprecision(2) << phases[K-1].PAR_[18-1].A
-        << setw(8) << setprecision(2) << phases[K-1].PAR_[19-1].A << endl
-            << setw(8) << setprecision(4) << phases[K-1].PAR_[24-1]
-        << setw(8) << setprecision(4) << phases[K-1].PAR_[25-1]
-        << setw(8) << setprecision(4) << phases[K-1].PAR_[26-1]
+            << setw(8) << setprecision(2) << phases[K-1].PAR[16].codeword
+        << setw(8) << setprecision(2) << phases[K-1].PAR[17].codeword
+        << setw(8) << setprecision(2) << phases[K-1].PAR[18].codeword << endl
+            << setw(8) << setprecision(4) << phases[K-1].PAR[23]
+        << setw(8) << setprecision(4) << phases[K-1].PAR[24]
+        << setw(8) << setprecision(4) << phases[K-1].PAR[25]
         << "                                 NA NB NC (HIGH SIDE)" << endl
-            << setw(8) << setprecision(2) << phases[K-1].PAR_[24-1].A
-        << setw(8) << setprecision(2) << phases[K-1].PAR_[25-1].A
-        << setw(8) << setprecision(2) << phases[K-1].PAR_[26-1].A << endl
-            << setw(8) << setprecision(2) << phases[K-1].PAR_[27-1]
+            << setw(8) << setprecision(2) << phases[K-1].PAR[23].codeword
+        << setw(8) << setprecision(2) << phases[K-1].PAR[24].codeword
+        << setw(8) << setprecision(2) << phases[K-1].PAR[25].codeword << endl
+            << setw(8) << setprecision(2) << phases[K-1].PAR[26]
         << "                                                 PEARSON ASYM.FACTOR" << endl
-            << setw(8) << setprecision(2) << phases[K-1].PAR_[27-1].A << endl;
+            << setw(8) << setprecision(2) << phases[K-1].PAR[26].codeword << endl;
     }
 
     if (file5.is_open()) file5.close();
@@ -6874,7 +5852,7 @@ L37:
     file9.open("plotinfo");
     file10.open("plotinfo.bin");
     for (I = 1; I <= datax->NPTS; ++I) file10 << datax->BK[I];
-    file9 << char_->TITLE << endl;
+    file9 << title << endl;
     file9 << "NO. OF PHASESZ  " << cntrls->NPHASE << endl
         << "NO. OF REFLECTIONS IN EACH PHASEQ  ";
     for (IIPHAS=1; IIPHAS <= cntrls->NPHASE; ++IIPHAS) file9 << setw(4) << refls->ICR[IIPHAS];
@@ -6884,8 +5862,8 @@ L37:
     {
         for (I=1; I <= datax->NPTS; ++I) datax->KR[I] = 0;
         if ((K % 2) == 1) allp->ILOC = allp->ILOC + 1;
-        file6 << "PHASE NO. = " << K << "     PHASE NAME " << phases[K].PHSNM << endl;
-        file9 << phases[K].PHSNM;
+        file6 << "PHASE NO. = " << K << "     PHASE NAME " << phases[K].name << endl;
+        file9 << phases[K].name;
         T2OBS=0.0;
         TDOBS=0.0;
         RFNMR=0.0;
@@ -6940,11 +5918,11 @@ L37:
             VERT=refls->REFS[IX][2] <= g1->RLIM;
             if (cntrls->NPROF == _pseudoVoigt)
             {
-                prfx->GAM1=phases[K-1].PAR_[17-1] + phases[K-1].PAR_[18-1] * refls->REFS[IX][2];
+                prfx->GAM1=phases[K-1].PAR[16] + phases[K-1].PAR[17] * refls->REFS[IX][2];
             }
             else if (cntrls->NPROF == _PearsonVII)
             {
-                prfx->GAM1=phases[K-1].PAR_[17-1]+(phases[K-1].PAR_[18-1]+phases[K-1].PAR_[19-1]/refls->REFS[IX][2])/refls->REFS[IX][2];
+                prfx->GAM1=phases[K-1].PAR[16]+(phases[K-1].PAR[17]+phases[K-1].PAR[18]/refls->REFS[IX][2])/refls->REFS[IX][2];
                 PRSVII(prfx->GAM1);
             }
             else if (cntrls->NPROF == _TCHZ)
@@ -6955,14 +5933,14 @@ L37:
             }
             else if (cntrls->NPROF == _SplitPearsonVII)
             {
-                spvii->RL=phases[K-1].PAR_[17-1]+(phases[K-1].PAR_[18-1]+phases[K-1].PAR_[19-1]/refls->REFS[IX][2])/refls->REFS[IX][2];
-                spvii->RH=phases[K-1].PAR_[24-1]+(phases[K-1].PAR_[25-1]+phases[K-1].PAR_[26-1]/refls->REFS[IX][2])/refls->REFS[IX][2];
-                mspvii(phases[K-1].PAR_[27-1],prfx->TL);
+                spvii->RL=phases[K-1].PAR[16]+(phases[K-1].PAR[17]+phases[K-1].PAR[18]/refls->REFS[IX][2])/refls->REFS[IX][2];
+                spvii->RH=phases[K-1].PAR[23]+(phases[K-1].PAR[24]+phases[K-1].PAR[25]/refls->REFS[IX][2])/refls->REFS[IX][2];
+                mspvii(phases[K-1].PAR[26],prfx->TL);
             }
             BB=prfx->TL*prfx->TL;
             TIOBS=0.0;
             TIC=0.0;
-            refls->FMGNTD[IX] = refls->FMGNTD[IX]*refls->REFS[IX][3]*phases[K-1].PAR_[1-1];
+            refls->FMGNTD[IX] = refls->FMGNTD[IX]*refls->REFS[IX][3]*phases[K-1].PAR[0];
             for (IS=MIN; IS <= MAX; ++IS)
             {
                 TH=g1->THMIN+static_cast<double>(IS-1)*g1->STEP;
@@ -6982,13 +5960,13 @@ L37:
                 if (cntrls->IASYM == 0)
                 {
                     YX=prfx->DELT * sign(prfx->DELTA);
-                    Z=1.0-phases[K-1].PAR_[14-1]*YX/tan(TH2);
+                    Z=1.0-phases[K-1].PAR[13]*YX/tan(TH2);
                 }
                 else
                 {
                     YX=sign(prfx->DELTA)*prfx->DELTA/(2*prfx->TL);
                     if (TH2 > (45.0/RAD)) TH2 = TH2-(90.0/RAD);
-                    Z=(phases[K-1].PAR_[14-1]/tan(TH2)) * (2.0*(prfx->DELTA/(2*prfx->TL))*exp(-YX));
+                    Z=(phases[K-1].PAR[13]/tan(TH2)) * (2.0*(prfx->DELTA/(2*prfx->TL))*exp(-YX));
                     Z=1+Z;
                 }
                 if(Z <= 0.0)Z=0.0001;
@@ -7023,8 +6001,8 @@ L410:;
                 TDOBS = TDOBS + abs(TIOBS-TIC);
                 if (cntrls->IPC == 2 || cntrls->IPC == 3)
                 {
-                    TFCAL= sqrt(abs(TIC/refls->REFS[IX][3]/phases[K-1].PAR_[1-1]/struphase->TAVIX[IX]/struphase->SRIX[IX]));
-                    TFOBS= sqrt(abs(TIOBS/refls->REFS[IX][3]/phases[K-1].PAR_[1-1]/struphase->TAVIX[IX]/struphase->SRIX[IX]));
+                    TFCAL= sqrt(abs(TIC/refls->REFS[IX][3]/phases[K-1].PAR[0]/struphase->TAVIX[IX]/struphase->SRIX[IX]));
+                    TFOBS= sqrt(abs(TIOBS/refls->REFS[IX][3]/phases[K-1].PAR[0]/struphase->TAVIX[IX]/struphase->SRIX[IX]));
                     AFCAL=TFCAL*cos(struphase->APHASE[IX]);
                     BFCAL=TFCAL*sin(struphase->APHASE[IX]);
                     AFOBS=TFOBS*cos(struphase->APHASE[IX]);
@@ -7534,7 +6512,7 @@ L36:
     if(cntrls->IPLOSS == 1 && cntrls->IPBIG == 0)
     {
         file31.open("PLOTOSS.COR");
-        file31 << " \"" << setw(70) << char_->TITLE << setw(8) << TITLE1 << endl;
+        file31 << " \"" << setw(70) << title << setw(8) << TITLE1 << endl;
         file31 << setw(6) << datax->NPTS
             << setw(15) << setprecision(5) << g1->STEP
             << setw(15) << setprecision(5) << g1->THMIN
@@ -7551,7 +6529,7 @@ L36:
     if(cntrls->IPLCAL == 1 && cntrls->IPBIG == 0)
     {
         file32.open("PLOTCAL.TOT");
-        file32 << " \"" << setw(70) << char_->TITLE << setw(8) << TITLE2 << endl;
+        file32 << " \"" << setw(70) << title << setw(8) << TITLE2 << endl;
         file32 << setw(6) << datax->NPTS
             << setw(15) << setprecision(5) << g1->STEP
             << setw(15) << setprecision(5) << g1->THMIN
@@ -7568,7 +6546,7 @@ L36:
     if(cntrls->IPLCOM == 1 && cntrls->IPBIG == 0)
     {
         file33.open("PLOTCOM.TOT");
-        file33 << " \"" << setw(70) << char_->TITLE << setw(8) << TITLE3 << endl;
+        file33 << " \"" << setw(70) << title << setw(8) << TITLE3 << endl;
         file33 << setw(6) << datax->NPTS
             << setw(15) << setprecision(5) << g1->STEP
             << setw(15) << setprecision(5) << g1->THMIN
@@ -7585,7 +6563,7 @@ L36:
     if(cntrls->IPLDIS == 1 && cntrls->IPBIG == 0)
     {
         file34.open("PLOTDIS.TOT");
-        file34 << " \"" << setw(70) << char_->TITLE << setw(8) << TITLE4 << endl;
+        file34 << " \"" << setw(70) << title << setw(8) << TITLE4 << endl;
         file34 << setw(6) << datax->NPTS
             << setw(15) << setprecision(5) << g1->STEP
             << setw(15) << setprecision(5) << g1->THMIN
@@ -7601,7 +6579,7 @@ L36:
     if(cntrls->IPLPOL == 1 && cntrls->IPBIG == 0)
     {
         file37.open("PLOTPOL.TOT");
-        file37 << " \"" << setw(70) << char_->TITLE << setw(8) << TITLE7 << endl;
+        file37 << " \"" << setw(70) << title << setw(8) << TITLE7 << endl;
         file37 << setw(6) << datax->NPTS
             << setw(15) << setprecision(5) << g1->STEP
             << setw(15) << setprecision(5) << g1->THMIN
@@ -7617,7 +6595,7 @@ L36:
     if(cntrls->IPLAM == 1 && cntrls->IPBIG == 0)
     {
         file36.open("PLOTAM.TOT");
-        file36 << " \"" << setw(70) << char_->TITLE << setw(8) << TITLE6 << endl;
+        file36 << " \"" << setw(70) << title << setw(8) << TITLE6 << endl;
         file36 << setw(6) << datax->NPTS
             << setw(15) << setprecision(5) << g1->STEP
             << setw(15) << setprecision(5) << g1->THMIN
@@ -7633,7 +6611,7 @@ L36:
     if(cntrls->IPBIG == 1)
     {
         file38.open("PLOTBIG.DAT");
-        file38 << " \"" << setw(70) << char_->TITLE << setw(8) << TITLE8 << endl;
+        file38 << " \"" << setw(70) << title << setw(8) << TITLE8 << endl;
 
         file38 << "       ANG       OSS       CAL       +AM      +POL      +DIS      +COM       RES" << endl;
         for (I=1; I <= datax->NPTS; ++I)
@@ -7707,7 +6685,7 @@ L33:
 L30:
     if (cntrls->IPL == 0) goto L45;
     for (I=1; I <= 12; ++I) LABEL[I]=10*I*ISCALE;
-    file6 << "                              " << char_->TITLE << endl << endl;
+    file6 << "                              " << title << endl << endl;
     for (I=1; I <= 12; ++I) file6 << setw(10) << LABEL[I];
     file6 << endl;
     for (I=1; I <= 12; ++I) LABEL[I]=-60*IDIF+10*I*IDIF;
@@ -7843,7 +6821,7 @@ L88880:
     if (cntrls->IPLST == 2 && cntrls->MAXS != 0)
     {
         file6 << "PARAMETERS AND STANDARD DEVIATIONS IN THE FINAL CYCLE FOR DATA BASE" << endl
-            << " \" " << char_->TITLE << " \" " << endl;
+            << " \" " << title << " \" " << endl;
         file6 << scientific << setw(10) << setprecision(4);
         for (I=1; I <= allp->ILOC; ++I)
         {
@@ -7860,7 +6838,7 @@ L88880:
     //	DBWSException("ERROR IN READING FROM UNIT 8 IN SUBROUTINE EXPUT");
 }
 
-void DBWS::REFGEN(int IPHASE, double ZERO, double DIS, double TRANS, double PREF[][3+1], double PREFOR)
+void DBWS::REFGEN(int IPHASE, double ZERO, double DIS, double TRANS, double PREFOR, int NCTR_[])
 {
     const string LAU[14 +1] = {"",  "1BAR","2/M","MMM","4/M","4/MMM","3BAR   R","3BAR M R","3BAR","3BAR M 1","3BAR 1 M","6/M","6/MMM","M3","M3M"};
     int I, H1, H2, H3, I1, L1, I2, I3, IC,I1D, I2D, I3D,LX1, I12D, I13D, I23D,
@@ -7872,9 +6850,9 @@ void DBWS::REFGEN(int IPHASE, double ZERO, double DIS, double TRANS, double PREF
     POS = 0.0;
 
     RAD = 3.14159265359/360.0;
-    if ( spgcom->NAXIS > 3 ) DBWSException("5001");
-    KXIS = spgcom->NAXIS;
-    spgcom->NAXIS = 1;
+    if ( phases[IPHASE].SYMB.NAXIS > 3 ) DBWSException("5001");
+    KXIS = phases[IPHASE].SYMB.NAXIS;
+    phases[IPHASE].SYMB.NAXIS = 1;
     //L1002:
     //J = 0;
     I2D = 0;
@@ -7888,12 +6866,12 @@ void DBWS::REFGEN(int IPHASE, double ZERO, double DIS, double TRANS, double PREF
     I3DEL = 1;
     for (I=1; I <= 8; ++I)
     {
-        if ( spgcom->NCONT[I] == 0 ) goto L9000;
-        if ( spgcom->NCONT[I]-8192 < 0 )
+        if ( phases[IPHASE].SYMB.NCONT[I] == 0 ) goto L9000;
+        if ( phases[IPHASE].SYMB.NCONT[I]-8192 < 0 )
         {
             goto L8002;
         }
-        else if ( spgcom->NCONT[I]-8192 == 0 )
+        else if ( phases[IPHASE].SYMB.NCONT[I]-8192 == 0 )
         {
             goto L8001;
         }
@@ -7907,21 +6885,21 @@ void DBWS::REFGEN(int IPHASE, double ZERO, double DIS, double TRANS, double PREF
         I123D = 3;
         goto L9000;
         L8002:
-        if ( spgcom->NCONT[I]-576 == 0 ) goto L8003; else goto L8004;
+        if ( phases[IPHASE].SYMB.NCONT[I]-576 == 0 ) goto L8003; else goto L8004;
         L8003:
         I3DEL = 2;
         I23D = 2;
         goto L8000;
         L8004:
-        if ( spgcom->NCONT[I]-516 == 0 ) goto L8009; else goto L8008;
+        if ( phases[IPHASE].SYMB.NCONT[I]-516 == 0 ) goto L8009; else goto L8008;
         L8009:
         I3DEL = 2;
         I13D = 2;
         goto L8000;
         L8008:
-        if ( spgcom->NCONT[I]-68 == 0 ) goto L8013; else goto L8012;
+        if ( phases[IPHASE].SYMB.NCONT[I]-68 == 0 ) goto L8013; else goto L8012;
         L8012:
-        if ( spgcom->NCONT[I]-580  == 0) goto L8016; else goto L8015;
+        if ( phases[IPHASE].SYMB.NCONT[I]-580  == 0) goto L8016; else goto L8015;
         L8013:
         I2DEL = 2;
         I12D = 2;
@@ -7979,9 +6957,9 @@ void DBWS::REFGEN(int IPHASE, double ZERO, double DIS, double TRANS, double PREF
     THMAXX=ANGTTETA;
     if ( g1->LAMDA[2] > g1->LAMDA[1] ) TMIN=TMIN* pow( (g1->LAMDA[1]/g1->LAMDA[2]) , 2);
     if ( g1->LAMDA[2] > 0.0  &&  g1->LAMDA[2] < g1->LAMDA[1] )SMAX=SMAX* pow((g1->LAMDA[1]/g1->LAMDA[2]) ,2);
-    OP1(&IPHASE);
+    OP1(&IPHASE,NCTR_);
     file6
-        << "LAUE SYMMETRY " << LAU[spgcom->NSPGRP] << " WILL BE USED TO GENERATE INDICES" << endl
+        << "LAUE SYMMETRY " << LAU[phases[IPHASE].SYMB.NSPGRP] << " WILL BE USED TO GENERATE INDICES" << endl
         << "       -------------------------------------------" << endl;
     I1MAX=static_cast<int>(cellx->A*2.0*sqrt(SMAX));
     if ( KXIS < 3 )
@@ -7994,8 +6972,8 @@ void DBWS::REFGEN(int IPHASE, double ZERO, double DIS, double TRANS, double PREF
         I2MAX = static_cast<int>(2.0*cellx->C*sqrt(SMAX));
         I3MAX = static_cast<int>(2.0*cellx->B*sqrt(SMAX));
     }
-    L1 = spgcom->NSPGRP;
-    if ( L1 >= 13 && spgcom->NCONT[1] == 580 ) L1=L1+2;
+    L1 = phases[IPHASE].SYMB.NSPGRP;
+    if ( L1 >= 13 && phases[IPHASE].SYMB.NCONT[1] == 580 ) L1=L1+2;
     if ( I12D+I13D+I23D != 5 ) goto L2131;
     I12D = 2;
     I13D = 1;
@@ -8220,24 +7198,24 @@ L3117:
     //     NEXT if BLOCK FOR PHASE WITH DISTINCT ORIENTATION ALONG PREF(NAXIS,I)
     if (PREFOR > 99.0)
     {
-        ORH1 = static_cast<int>(PREF[IPHASE][1]) == H1;
-        if ( !(ORH1) && H1 != 0 && static_cast<int>(PREF[IPHASE][1]) != 0) ORH1 = (H1 % static_cast<int>(PREF[IPHASE][1])) == 0;
+        ORH1 = static_cast<int>(phases[IPHASE].PREF[1]) == H1;
+        if ( !(ORH1) && H1 != 0 && static_cast<int>(phases[IPHASE].PREF[1]) != 0) ORH1 = (H1 % static_cast<int>(phases[IPHASE].PREF[1])) == 0;
         if ( !ORH1 ) goto L2233;
 
-        ORH2 = static_cast<int>(PREF[IPHASE][2]) == H2;
-        if ( !(ORH2) && H2 != 0 && static_cast<int>(PREF[IPHASE][2]) != 0) ORH2 = (H2 % static_cast<int>(PREF[IPHASE][2])) == 0;
+        ORH2 = static_cast<int>(phases[IPHASE].PREF[2]) == H2;
+        if ( !(ORH2) && H2 != 0 && static_cast<int>(phases[IPHASE].PREF[2]) != 0) ORH2 = (H2 % static_cast<int>(phases[IPHASE].PREF[2])) == 0;
         if ( !ORH2 ) goto L2233;
 
-        ORH3 = static_cast<int>(PREF[IPHASE][3]) == H3;
-        if ( !(ORH3) && H3 != 0 && static_cast<int>(PREF[IPHASE][3]) != 0)  ORH3 = (H3 % static_cast<int>(PREF[IPHASE][3])) == 0;
+        ORH3 = static_cast<int>(phases[IPHASE].PREF[3]) == H3;
+        if ( !(ORH3) && H3 != 0 && static_cast<int>(phases[IPHASE].PREF[3]) != 0)  ORH3 = (H3 % static_cast<int>(phases[IPHASE].PREF[3])) == 0;
         if ( !ORH3 ) goto L2233;
 
         IORDR1=0;
         IORDR2=0;
         IORDR3=0;
-        if (H1 != 0) IORDR1 = static_cast<int>(H1/static_cast<int>(PREF[IPHASE][1]));
-        if (H2 != 0) IORDR2 = static_cast<int>(H2/static_cast<int>(PREF[IPHASE][2]));
-        if (H3 != 0) IORDR3 = static_cast<int>(H3/static_cast<int>(PREF[IPHASE][3]));
+        if (H1 != 0) IORDR1 = static_cast<int>(H1/static_cast<int>(phases[IPHASE].PREF[1]));
+        if (H2 != 0) IORDR2 = static_cast<int>(H2/static_cast<int>(phases[IPHASE].PREF[2]));
+        if (H3 != 0) IORDR3 = static_cast<int>(H3/static_cast<int>(phases[IPHASE].PREF[3]));
         if (IORDR1 == IORDR2 && IORDR2 == IORDR3) goto L9257;
         if (IORDR1 == 0 && (IORDR2 == IORDR3)) goto L9257;
         if (IORDR2 == 0 && (IORDR3 == IORDR1)) goto L9257;
@@ -8280,7 +7258,7 @@ L9257:
         if(cntrls->JOBTYP == 1)PLOR=PLOR*(1.+(1.-2.*SQH)*(1.-2.*SQH)*g1->CTHM);
 L4000:
         refls->IREFS[IC]=256*(256*(256*(8*IPHASE+LX1)+128+H1)+128+H2)+128+H3;
-        refls->FMGNTD[IC]=MULT(H1,H2,H3,KXIS);
+        refls->FMGNTD[IC]=MULT(IPHASE,H1,H2,H3,KXIS);
 
         //------CALCULATE FWHM FOR PSEUDOVOIGT WITH GAUSS AND LORENTZ
         if (cntrls->NPROF == _TCHZ)
@@ -8342,7 +7320,7 @@ void DBWS::FINDC(int K, int NSCAT)
     const char PIU = '+';
     const char MENO = '-';
 
-    int I, J, L, NA, NK, NN, NS, IOF/*, NSAVE*/;
+    int I, J, L, NA, NN, NS, IOF/*, NSAVE*/;
     string NOM,NOME;
 
     IOF = 0;
@@ -8351,13 +7329,13 @@ void DBWS::FINDC(int K, int NSCAT)
     if(K > 1)
     {
         //-----CALCULATE IOF = ALL ATOMS OF THE K-1 PHASES
-        for (I = 2; I <= K; ++I) IOF = IOF + jnk->NATOM[I-1];
+        for (I = 2; I <= K; ++I) IOF = IOF + phases[I-1].AtomCount;
         //NS = NSAVE;
         NS = dc->NSAVE;
     }
-    //-----DEFINE NK = NUMBER OF ATOMS OF THE K-TH PHASE
-    NK = jnk->NATOM[K];
-    for (I = 1; I <= NK; ++I)
+
+
+    for (I = 1; I <= phases[K].AtomCount; ++I)
     {
         for (J = 1; J <= NSCAT; ++J) if(parac->NTYP[I+IOF] == coefc->NAM[J]) goto L30;
         //-----212 = ALL THE POSSIBLE NAMES OF ATOMS AND IONS
@@ -8436,556 +7414,6 @@ void DBWS::ABSORP(double MU, double SW, double TH, double* ABC)
     *ABC = 1.0 - exp(-EX);
 }
 
-// subroutine convert from dbws9411 to dbws9807
-void DBWS::conv94(void)
-{
-    const string UPPER = " ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    const string LOWER = " abcdefghijklmnopqrstuvwxyz";
-    //	double XRYZ[10+1] = {
-    //		2.748510,2.289620, 1.935970, 1.788965, 1.540520,
-    //		0.709260,0.559360, 0.215947, 0.209010, 0.180195};
-
-    //double XNOTHING;
-    int I,J,K,N,IK,IOF,ISOF,IIPHAS;
-    //IPLCL
-    string SPG,s;
-
-
-    //XNOTHING = XRYZ[1];
-    if (file5.is_open()) file5.close();
-    file5.open(file5name.data());			// rewind 5;
-    file6 << "*** New ICF starts here with next line *** Delete everything above it" << endl;
-
-    // line 1
-    getline(file5,s);
-    s = s.substr(0,70);
-    file6 << setw(70) << char_->TITLE << endl;
-    cout << char_->TITLE << endl;
-
-    // line 2.1
-    stringstream(s.substr(0*4,4)) >> cntrls->JOBTYP;
-    stringstream(s.substr(1*4,4)) >> cntrls->NPROF;
-    stringstream(s.substr(2*4,4)) >> cntrls->NPHASE;
-    stringstream(s.substr(3*4,4)) >> jnk->NBCKGD;
-    stringstream(s.substr(4*4,4)) >> jnk->NEXCRG;
-    stringstream(s.substr(5*4,4)) >> jnk->NSCAT;
-    stringstream(s.substr(6*4,4)) >> cntrls->INSTRM;
-    stringstream(s.substr(7*4,4)) >> cntrls->IPREF;
-    stringstream(s.substr(8*4,4)) >> cntrls->IABSR;
-
-    cntrls->IASYM = 0;
-    cntrls->NPROF = abs(cntrls->NPROF);
-    cntrls->IDATA=0;
-    cntrls->ISPHASE=0;
-    cntrls->I2D94 =0;
-    file6 << setw(4) << cntrls->JOBTYP
-        << setw(4) << cntrls->NPROF
-        << setw(4) << cntrls->NPHASE
-        << setw(4) << jnk->NBCKGD
-        << setw(4) << jnk->NEXCRG
-        << setw(4) << jnk->NSCAT
-        << setw(4) << cntrls->INSTRM
-        << setw(4) << cntrls->IPREF
-        << setw(4) << cntrls->IASYM
-        << setw(4) << cntrls->IABSR
-        << setw(4) << cntrls->IDATA
-        << setw(4) << cntrls->ISPHASE
-        << setw(4) << cntrls->I2D94 << "     LINE 2.1" << endl;
-
-    // line 3
-    getline(file5,s);
-    stringstream(s.substr(0,1)) >> cntrls->IOT;
-    stringstream(s.substr(1,1)) >> cntrls->IPL;
-    stringstream(s.substr(2,1)) >> cntrls->IPC;
-    stringstream(s.substr(3,1)) >> cntrls->MAT;
-    stringstream(s.substr(4,1)) >> cntrls->NXT;
-    stringstream(s.substr(5,1)) >> cntrls->LST1;
-    stringstream(s.substr(6,1)) >> cntrls->LST2;
-    stringstream(s.substr(7,1)) >> cntrls->LST3;
-    stringstream(s.substr(8,1)) >> cntrls->IPL1;
-    stringstream(s.substr(9,1)) >> cntrls->IPL2;
-    stringstream(s.substr(10,1)) >> cntrls->IPLST;
-    cntrls->IPLOSS = 0;
-    //	IPLCL  = 0;
-    cntrls->IPLCAL = 0;
-    cntrls->IPLPOL = 0;
-    cntrls->IPLCOM = 0;
-    cntrls->IPLDIS = 0;
-    cntrls->IPLAM  = 0;
-    cntrls->IPBIG  = 0;
-    file6 << setw(1) << cntrls->IOT
-        << setw(1) << cntrls->IPL
-        << setw(1) << cntrls->IPC
-        << setw(1) << cntrls->MAT
-        << setw(1) << cntrls->NXT << " "
-        << setw(1) << cntrls->LST1
-        << setw(1) << cntrls->LST2
-        << setw(1) << cntrls->LST3
-        << setw(1) << cntrls->IPL1
-        << setw(1) << cntrls->IPL2 << " "
-        << setw(1) << cntrls->IPLST
-        << setw(1) << cntrls->IPLOSS
-        << setw(1) << cntrls->IPLCAL
-        << setw(1) << cntrls->IPLPOL
-        << setw(1) << cntrls->IPLCOM << " "
-        << setw(1) << cntrls->IPLDIS
-        << setw(1) << cntrls->IPLAM
-        << setw(1) << cntrls->IPBIG << "                                    LINE 3" << endl;
-
-    getline(file5,s);
-    stringstream(s.substr(0*8,8)) >> g1->LAMDA[1];
-    stringstream(s.substr(1*8,8)) >> g1->LAMDA[2];
-    stringstream(s.substr(2*8,8)) >> params->RATIO[2];
-    stringstream(s.substr(3*8,8)) >> g1->BKPOS;
-    stringstream(s.substr(4*8,8)) >> g1->WDT;
-    stringstream(s.substr(5*8,8)) >> g1->CTHM;
-    stringstream(s.substr(6*8,8)) >> g1->TMV;
-    stringstream(s.substr(7*8,8)) >> g1->RLIM;
-    cntrls->SW = 0.0;
-    file6 << setw(8) << setprecision(5) << g1->LAMDA[1]
-    << setw(8) << setprecision(5) << g1->LAMDA[2]
-    << setw(8) << setprecision(5) << params->RATIO[2]
-    << setw(8) << setprecision(4) << g1->BKPOS
-        << setw(8) << setprecision(4) << g1->WDT
-        << setw(8) << setprecision(4) << g1->CTHM
-        << setw(8) << setprecision(4) << g1->TMV
-        << setw(8) << setprecision(4) << g1->RLIM
-        << setw(8) << setprecision(4) << cntrls->SW << endl;
-
-    //  line 5
-    getline(file5,s);
-    stringstream(s.substr(0,4)) >> cntrls->MCYCLE;
-    stringstream(s.substr(4,4)) >> cntrls->EPS;
-    stringstream(s.substr(8,4)) >> params->RELAX[1];
-    stringstream(s.substr(12,4)) >> params->RELAX[2];
-    stringstream(s.substr(16,4)) >> params->RELAX[3];
-    stringstream(s.substr(20,4)) >> params->RELAX[4];
-    stringstream(s.substr(24,8)) >> g1->THMIN;
-    stringstream(s.substr(32,8)) >> g1->STEP;
-    stringstream(s.substr(40,8)) >> g1->THMAX;
-    file6 << setw(4) << cntrls->MCYCLE
-        << setw(4) << setprecision(2) << cntrls->EPS
-        << setw(4) << setprecision(2) << params->RELAX[1]
-    << setw(4) << setprecision(2) << params->RELAX[2]
-    << setw(4) << setprecision(2) << params->RELAX[3]
-    << setw(4) << setprecision(2) << params->RELAX[4]
-    << setw(8) << setprecision(3) << g1->THMIN
-        << setw(8) << setprecision(3) << g1->STEP
-        << setw(8) << setprecision(3) << g1->THMAX << "         CYCLS EPS RELAX P_CALC" << endl;
-    if(jnk->NBCKGD < 2)goto L120;
-
-    // line 6(*)
-    for (I=1; I <= jnk->NBCKGD; ++I)
-    {
-        getline(file5,s);
-        stringstream(s.substr(0,8)) >> jnk->POS[I];
-        stringstream(s.substr(8,8)) >> jnk->BCK[I];
-    }
-    for (I=1; I <= jnk->NBCKGD; ++I)
-    {
-        file6 << setw(8) << setprecision(2) << jnk->POS[I]
-        << setw(8) << setprecision(2) << jnk->BCK[I] << endl;
-    }
-
-    // line 7(*)
-L120:
-    if(jnk->NEXCRG <= 0)goto L122;
-    for (I=1; I <= jnk->NEXCRG; ++I)
-    {
-        getline(file5,s);
-        stringstream(s.substr(0,8)) >> jnk->ALOW[I];
-        stringstream(s.substr(8,8)) >> jnk->AHIGH[I];
-    }
-    for (I=1; I <= jnk->NEXCRG; ++I)
-    {
-        file6 << setw(8) << setprecision(2) << jnk->ALOW[I]
-        << setw(8) << setprecision(2) << jnk->AHIGH[I]
-        << "                                         EXCLUDED REGION" << endl;
-    }
-
-    //  line 8(*) read
-L122:
-    if(jnk->NSCAT <= 0)goto L124;
-    for (I=1; I <= jnk->NSCAT; ++I)
-    {
-        if(cntrls->JOBTYP == 1 || cntrls->JOBTYP == 3)
-        {
-            getline(file5,s);
-            coefc->NAM[I] = s.substr(0,4);
-            stringstream(s.substr(4,8)) >> coeff->DFP[I];
-            stringstream(s.substr(12,8)) >> coeff->XMAS[I];
-            goto L125;
-        }
-        getline(file5,s);
-        coefc->NAM[I] = s.substr(0,4);
-        stringstream(s.substr(4,8)) >> coeff->DFP[I];
-        stringstream(s.substr(12,8)) >> coeff->DFPP[I];
-        stringstream(s.substr(20,8)) >> coeff->XMAS[I];
-        K=0;
-L126:
-        getline(file5,s);
-        for (J=1; J <= 9; ++J) stringstream(s.substr((J-1)*8,8)) >> coeff->AC[J][I];
-        if(coeff->AC[1][I] == -100.0) coeff->COEF(&I,&K);
-        if(coeff->AC[3][I] != 0.0) goto L125;
-        K=K+1;
-        coeff->POSI[K]=coeff->AC[1][I];
-        coeff->SCAT[K]=coeff->AC[2][I];
-        if(K <= 29) goto L126;
-        file6 << "TOO MANY SCATTERING TABLE ENTRIES" << endl;
-        DBWSException("7700");
-L125:;
-    }
-    goto L124;
-L124:
-
-    //  line 8 (write)
-    if(jnk->NSCAT <= 0)goto L813;
-    for (I=1; I <= jnk->NSCAT; ++I)
-    {
-        if (cntrls->JOBTYP  ==  1 || cntrls->JOBTYP == 3) goto L809;
-        // line 8.1 XRD (*)
-        file6 << setw(4) << coefc->NAM[I]
-        << setw(8) << setprecision(4) << coeff->DFP[I]
-        << setw(8) << setprecision(4) << coeff->DFPP[I]
-        << setw(8) << setprecision(4) << coeff->XMAS[I]
-        << "                             SCATTERING SET" << setw(2) << jnk->NSCAT << endl;
-        goto L814;
-
-L809:
-        // line 8.1 ND(*)
-        file6 << setw(4) << coefc->NAM[I]
-        << setw(8) << setprecision(4) << coeff->DFP[I]
-        << setw(8) << setprecision(4) << coeff->XMAS[I]
-        << "                                     " << setw(2) << jnk->NSCAT << endl;
-
-
-L814:
-        // line 8.2 XRD(*)
-        if(cntrls->JOBTYP == 0 || cntrls->JOBTYP == 2)
-        {
-            for (J=1; J <= 9; ++J) file6 << setw(8) << setprecision(5) << coeff->AC[J][I];
-            file6 << endl;
-        }
-    }
-L813:
-
-    // line 9
-    getline(file5,s);
-    stringstream(s.substr(0,8)) >> cntrls->MAXS;
-    file6 << setw(8) << cntrls->MAXS << "                                                  PARAMS REFINED" << endl;
-
-    //  line 10 (read)
-    getline(file5,s);
-    params->GLB_[1-1] = s.substr(0*8,8);
-    params->GLB_[10-1] = s.substr(1*8,8);
-    params->GLB_[11-1] = s.substr(2*8,8);
-    params->GLB_[8-1] = s.substr(3*8,8);
-    params->GLB_[9-1] = s.substr(4*8,8);
-    params->GLB_[12-1] = s.substr(5*8,8);
-    params->GLB_[13-1] = s.substr(6*8,8);
-
-    getline(file5,s);
-    stringstream(s.substr(0*8,8)) >> params->GLB_[1-1].A;
-    stringstream(s.substr(1*8,8)) >> params->GLB_[10-1].A;
-    stringstream(s.substr(2*8,8)) >> params->GLB_[11-1].A;
-    stringstream(s.substr(3*8,8)) >> params->GLB_[8-1].A;
-    stringstream(s.substr(4*8,8)) >> params->GLB_[9-1].A;
-    stringstream(s.substr(5*8,8)) >> params->GLB_[12-1].A;
-    stringstream(s.substr(6*8,8)) >> params->GLB_[13-1].A;
-
-    // line 10.1 (write)
-    file6 << setw(8) << setprecision(4) << params->GLB_[1-1]
-    << setw(8) << setprecision(4) << params->GLB_[10-1]
-    << setw(8) << setprecision(4) << params->GLB_[11-1]
-    << setw(8) << setprecision(4) << params->GLB_[8-1]
-    << setw(8) << setprecision(4) << params->GLB_[9-1]
-    << setw(8) << setprecision(4) << params->GLB_[12-1]
-    << setw(8) << setprecision(4) << params->GLB_[13-1]
-    << " ZER DISP TRANS p q r t" << endl;
-    // line 10.11 (write)
-    file6 << setw(8) << setprecision(4) << params->GLB_[1-1].A
-    << setw(8) << setprecision(4) << params->GLB_[10-1].A
-    << setw(8) << setprecision(4) << params->GLB_[11-1].A
-    << setw(8) << setprecision(4) << params->GLB_[8-1].A
-    << setw(8) << setprecision(4) << params->GLB_[9-1].A
-    << setw(8) << setprecision(4) << params->GLB_[12-1].A
-    << setw(8) << setprecision(4) << params->GLB_[13-1].A
-    << " CODEWORDS" << endl;
-
-    // line 10.3 (read & write)
-    if(jnk->NBCKGD != 0)goto L49;
-    getline(file5,s);
-    params->GLB_[2-1] = s.substr(0*9,9);
-    params->GLB_[3-1] = s.substr(1*9,9);
-    params->GLB_[4-1] = s.substr(2*9,9);
-
-    getline(file5,s);
-    stringstream(s.substr(0*9,9)) >> params->GLB_[2-1].A;
-    stringstream(s.substr(1*9,9)) >> params->GLB_[3-1].A;
-    stringstream(s.substr(2*9,9)) >> params->GLB_[4-1].A;
-
-    file6 << setw(9) << setprecision(2) << params->GLB_[2-1]
-    << setw(9) << setprecision(2) << params->GLB_[3-1]
-    << setw(9) << setprecision(2) << params->GLB_[4-1]
-    << setw(9) << setprecision(2) << params->GLB_[5-1]
-    << setw(9) << setprecision(2) << params->GLB_[6-1]
-    << setw(9) << setprecision(2) << params->GLB_[7-1] << "   BACKGROUND" << endl
-        << setw(9) << setprecision(4) << params->GLB_[2-1].A
-    << setw(9) << setprecision(4) << params->GLB_[3-1].A
-    << setw(9) << setprecision(4) << params->GLB_[4-1].A
-    << setw(9) << setprecision(4) << params->GLB_[5-1].A
-    << setw(9) << setprecision(4) << params->GLB_[6-1].A
-    << setw(9) << setprecision(4) << params->GLB_[7-1].A << "   CODEWORDS" << endl;
-L49:
-    // read AND rewrite for phases
-    for (K=1; K <= cntrls->NPHASE; ++K)
-    {
-        // line 11.1
-        getline(file5,s);
-        phases[K].PHSNM = s.substr(0,50);
-        file6 << setw(50) << phases[K].PHSNM << "       PHASE NUMBER " << setw(2) << K << endl;
-
-        // line 11.2
-        getline(file5,s);
-        stringstream(s.substr(0,4)) >> jnk->NATOM[K];
-        stringstream(s.substr(4,4)) >> jnk->NMOL[K];
-        stringstream(s.substr(16,4)) >> jnk->PREF[K][1];
-        stringstream(s.substr(20,4)) >> jnk->PREF[K][2];
-        stringstream(s.substr(24,4)) >> jnk->PREF[K][3];
-        multip->SAQF[K] = 1.0;
-        file6 << setw(4) << jnk->NATOM[K]
-        << setw(4) << jnk->NMOL[K]
-        << setw(7) << setprecision(4) << multip->SAQF[K] << " "
-            << setw(4) << setprecision(1) << jnk->PREF[K][1]
-        << setw(4) << setprecision(1) << jnk->PREF[K][2]
-        << setw(4) << setprecision(1) << jnk->PREF[K][3]
-        << setw(7) << setprecision(2) << multip->WTIS[K]
-        << "                      #ATMS #FU AFQPA PREFDIR ISWT" << endl;
-        N=jnk->NATOM[K];
-
-        // line 11.3
-        getline(file5,s);
-        phases[K].SYMB = s.substr(0,20);
-        file6 << setw(20) << phases[K].SYMB << "                                     SPACE GROUP" << endl;
-        SPG = " " + phases[K].SYMB;
-        for (I=1; I <= 20; ++I)
-        {
-            // convert lower case to upper case
-            for (IK=1; IK <= 26; ++IK) if (SPG[I] == LOWER[IK]) SPG[I]=UPPER[IK];
-            // finish conversion
-        }
-        if (convert->ICNVT != 1) file6 << "THE SPACE GROUP IS " << SPG << endl;
-        spgcom->SPGP(SPG);
-        // getting multiplicity of each phase !cp jun 96)
-        simoper->ISIMOP=1;
-        RTMT(&cntrls->IPL1,&K);
-        multip->XMLTP[K]=multip->MLTPHASE;
-        cout << "General position multiplicity is " << setw(4) << multip->MLTPHASE << " for phase " << setw(2) << K << endl;
-
-        // line 11.4
-        //-----READ  FOR EACH ATOM
-        IOF=0;
-        if (K > 1)
-        {
-            for (IIPHAS=2; IIPHAS <= K; ++IIPHAS) IOF = IOF + jnk->NATOM[IIPHAS-1];
-        }
-
-        // line 11.41 and 11.42
-        for (I=1; I <= N; ++I)
-        {
-            getline(file5,s);
-            parac->ATEXT[I+IOF] = s.substr(0,4);
-            parac->NTYP[I+IOF] = s.substr(4,4);
-            stringstream(s.substr(16,8)) >> params->XL[I+IOF][1];
-            stringstream(s.substr(16,8)) >> params->XL[I+IOF][2];
-            stringstream(s.substr(24,8)) >> params->XL[I+IOF][3];
-            stringstream(s.substr(32,8)) >> params->XL[I+IOF][4];
-            stringstream(s.substr(40,8)) >> params->XL[I+IOF][5];
-
-            getline(file5,s);
-            stringstream(s.substr(16,8)) >> params->A[I+IOF][1];
-            stringstream(s.substr(24,8)) >> params->A[I+IOF][2];
-            stringstream(s.substr(32,8)) >> params->A[I+IOF][3];
-            stringstream(s.substr(40,8)) >> params->A[I+IOF][4];
-            stringstream(s.substr(48,8)) >> params->A[I+IOF][5];
-
-            getline(file5,s);
-            stringstream(s.substr(0,8)) >> params->XL[I+IOF][6];
-            stringstream(s.substr(8,8)) >> params->XL[I+IOF][7];
-            stringstream(s.substr(16,8)) >> params->XL[I+IOF][8];
-            stringstream(s.substr(24,8)) >> params->XL[I+IOF][9];
-            stringstream(s.substr(32,8)) >> params->XL[I+IOF][10];
-            stringstream(s.substr(40,8)) >> params->XL[I+IOF][11];
-
-            getline(file5,s);
-            stringstream(s.substr(0,8)) >> params->A[I+IOF][6];
-            stringstream(s.substr(8,8)) >> params->A[I+IOF][7];
-            stringstream(s.substr(16,8)) >> params->A[I+IOF][8];
-            stringstream(s.substr(24,8)) >> params->A[I+IOF][9];
-            stringstream(s.substr(32,8)) >> params->A[I+IOF][10];
-            stringstream(s.substr(40,8)) >> params->A[I+IOF][11];
-        }
-        // Creating MURT and 'So'
-        for (ISOF=1; ISOF <= N; ++ISOF) params->XL[ISOF+IOF][5]=1.0;
-        for (I=1; I <= N; ++I)
-        {
-            file6 << setw(4) << parac->ATEXT[I+IOF] << "    # "
-                << setw(4) << parac->NTYP[I+IOF] << "  "
-                << setw(8) << setprecision(5) << params->XL[I+IOF][1]
-            << setw(8) << setprecision(5) << params->XL[I+IOF][2]
-            << setw(8) << setprecision(5) << params->XL[I+IOF][3]
-            << setw(8) << setprecision(5) << params->XL[I+IOF][4]
-            << setw(8) << setprecision(5) << params->XL[I+IOF][5]
-            << "  LBL M NTYP x y z B So" << endl
-                << "                "
-                << setw(8) << setprecision(2) << params->A[I+IOF][1]
-            << setw(8) << setprecision(2) << params->A[I+IOF][2]
-            << setw(8) << setprecision(2) << params->A[I+IOF][3]
-            << setw(8) << setprecision(2) << params->A[I+IOF][4]
-            << setw(8) << setprecision(2) << params->A[I+IOF][5]
-            << "  CODEWORDS" << endl
-                << setw(8) << setprecision(5) << params->XL[I+IOF][6]
-            << setw(8) << setprecision(5) << params->XL[I+IOF][7]
-            << setw(8) << setprecision(5) << params->XL[I+IOF][8]
-            << setw(8) << setprecision(5) << params->XL[I+IOF][9]
-            << setw(8) << setprecision(5) << params->XL[I+IOF][10]
-            << setw(8) << setprecision(5) << params->XL[I+IOF][11]
-            << "          BETAS" << endl
-                << setw(8) << setprecision(2) << params->A[I+IOF][6]
-            << setw(8) << setprecision(2) << params->A[I+IOF][7]
-            << setw(8) << setprecision(2) << params->A[I+IOF][8]
-            << setw(8) << setprecision(2) << params->A[I+IOF][9]
-            << setw(8) << setprecision(2) << params->A[I+IOF][10]
-            << setw(8) << setprecision(2) << params->A[I+IOF][11]
-            << "          CODEWORDS" << endl;
-
-        }
-        getline(file5,s);
-        phases[K-1].PAR_[1-1] = s.substr(0,8);
-        phases[K-1].PAR_[2-1] = s.substr(8,8);
-        getline(file5,s);
-        stringstream(s.substr(0,8)) >> phases[K-1].PAR_[1-1].A;
-        stringstream(s.substr(8,8)) >> phases[K-1].PAR_[2-1].A;
-        getline(file5,s);
-        phases[K-1].PAR_[3-1] = s.substr(0*8,8);
-        phases[K-1].PAR_[4-1] = s.substr(1*8,8);
-        phases[K-1].PAR_[5-1] = s.substr(2*8,8);
-        phases[K-1].PAR_[20-1] = s.substr(3*8,8);
-        phases[K-1].PAR_[15-1] = s.substr(4*8,8);
-        phases[K-1].PAR_[16-1] = s.substr(5*8,8);
-        getline(file5,s);
-        stringstream(s.substr(0*8,8)) >> phases[K-1].PAR_[3-1].A;
-        stringstream(s.substr(1*8,8)) >> phases[K-1].PAR_[4-1].A;
-        stringstream(s.substr(2*8,8)) >> phases[K-1].PAR_[5-1].A;
-        stringstream(s.substr(3*8,8)) >> phases[K-1].PAR_[20-1].A;
-        stringstream(s.substr(4*8,8)) >> phases[K-1].PAR_[15-1].A;
-        stringstream(s.substr(5*8,8)) >> phases[K-1].PAR_[16-1].A;
-        getline(file5,s);
-        phases[K-1].PAR_[6-1] = s.substr(0*8,8);
-        phases[K-1].PAR_[7-1] = s.substr(1*8,8);
-        phases[K-1].PAR_[8-1] = s.substr(2*8,8);
-        phases[K-1].PAR_[9-1] = s.substr(3*8,8);
-        phases[K-1].PAR_[10-1] = s.substr(4*8,8);
-        phases[K-1].PAR_[11-1] = s.substr(5*8,8);
-        getline(file5,s);
-        stringstream(s.substr(0*8,8)) >> phases[K-1].PAR_[6-1].A;
-        stringstream(s.substr(1*8,8)) >> phases[K-1].PAR_[7-1].A;
-        stringstream(s.substr(2*8,8)) >> phases[K-1].PAR_[8-1].A;
-        stringstream(s.substr(3*8,8)) >> phases[K-1].PAR_[9-1].A;
-        stringstream(s.substr(4*8,8)) >> phases[K-1].PAR_[10-1].A;
-        stringstream(s.substr(5*8,8)) >> phases[K-1].PAR_[11-1].A;
-        getline(file5,s);
-        phases[K-1].PAR_[12-1] = s.substr(0*8,8);
-        phases[K-1].PAR_[13-1] = s.substr(1*8,8);
-        phases[K-1].PAR_[14-1] = s.substr(2*8,8);
-        getline(file5,s);
-        stringstream(s.substr(0*8,8)) >> phases[K-1].PAR_[12-1].A;
-        stringstream(s.substr(1*8,8)) >> phases[K-1].PAR_[13-1].A;
-        stringstream(s.substr(2*8,8)) >> phases[K-1].PAR_[14-1].A;
-        getline(file5,s);
-        phases[K-1].PAR_[17-1] = s.substr(0*8,8);
-        phases[K-1].PAR_[18-1] = s.substr(1*8,8);
-        phases[K-1].PAR_[19-1] = s.substr(2*8,8);
-        getline(file5,s);
-        stringstream(s.substr(0*8,8)) >> phases[K-1].PAR_[17-1].A;
-        stringstream(s.substr(1*8,8)) >> phases[K-1].PAR_[18-1].A;
-        stringstream(s.substr(2*8,8)) >> phases[K-1].PAR_[19-1].A;
-        getline(file5,s);
-        phases[K-1].PAR_[24-1] = s.substr(0*8,8);
-        phases[K-1].PAR_[25-1] = s.substr(1*8,8);
-        phases[K-1].PAR_[26-1] = s.substr(2*8,8);
-        getline(file5,s);
-        stringstream(s.substr(0*8,8)) >> phases[K-1].PAR_[24-1].A;
-        stringstream(s.substr(1*8,8)) >> phases[K-1].PAR_[25-1].A;
-        stringstream(s.substr(2*8,8)) >> phases[K-1].PAR_[26-1].A;
-        getline(file5,s);
-        phases[K-1].PAR_[27-1] = s.substr(0*8,8);
-        getline(file5,s);
-        stringstream(s.substr(0*8,8)) >> phases[K-1].PAR_[27-1].A;
-        phases[K-1].PAR_[21-1]  = 0.0;
-        phases[K-1].PAR_[21-1].A = 0.0;
-        file6 << scientific << setw(8) << setprecision(3) << phases[K-1].PAR_[1-1]
-        << fixed << setw(8) << setprecision(4) << phases[K-1].PAR_[2-1]
-        << "                                         SCALE Bo(OVERALL)" << endl
-            << setw(8) << setprecision(2) << phases[K-1].PAR_[1-1].A
-        << setw(8) << setprecision(2) << phases[K-1].PAR_[2-1].A << endl
-            << setw(8) << setprecision(5) << phases[K-1].PAR_[3-1]
-        << setw(8) << setprecision(5) << phases[K-1].PAR_[4-1]
-        << setw(8) << setprecision(5) << phases[K-1].PAR_[5-1]
-        << setw(8) << setprecision(5) << phases[K-1].PAR_[21-1]
-        << setw(8) << setprecision(5) << phases[K-1].PAR_[20-1]
-        << setw(8) << setprecision(5) << phases[K-1].PAR_[15-1]
-        << setw(8) << setprecision(5) << phases[K-1].PAR_[16-1]
-        << " U V W CT Z X Y" << endl
-            << setw(8) << setprecision(2) << phases[K-1].PAR_[3-1].A
-        << setw(8) << setprecision(2) << phases[K-1].PAR_[4-1].A
-        << setw(8) << setprecision(2) << phases[K-1].PAR_[5-1].A
-        << setw(8) << setprecision(2) << phases[K-1].PAR_[21-1].A
-        << setw(8) << setprecision(2) << phases[K-1].PAR_[20-1].A
-        << setw(8) << setprecision(2) << phases[K-1].PAR_[15-1].A
-        << setw(8) << setprecision(2) << phases[K-1].PAR_[16-1].A << endl
-            << setw(8) << setprecision(4) << phases[K-1].PAR_[6-1]
-        << setw(8) << setprecision(4) << phases[K-1].PAR_[7-1]
-        << setw(8) << setprecision(4) << phases[K-1].PAR_[8-1]
-        << setw(8) << setprecision(4) << phases[K-1].PAR_[9-1]
-        << setw(8) << setprecision(4) << phases[K-1].PAR_[10-1]
-        << setw(8) << setprecision(4) << phases[K-1].PAR_[11-1]
-        << "         CELL PARAMETERS" << endl
-            << setw(8) << setprecision(2) << phases[K-1].PAR_[6-1].A
-        << setw(8) << setprecision(2) << phases[K-1].PAR_[7-1].A
-        << setw(8) << setprecision(2) << phases[K-1].PAR_[8-1].A
-        << setw(8) << setprecision(2) << phases[K-1].PAR_[9-1].A
-        << setw(8) << setprecision(2) << phases[K-1].PAR_[10-1].A
-        << setw(8) << setprecision(2) << phases[K-1].PAR_[11-1].A << endl
-            << setw(8) << setprecision(5) << phases[K-1].PAR_[12-1]
-        << setw(8) << setprecision(5) << phases[K-1].PAR_[13-1]
-        << setw(8) << setprecision(5) << phases[K-1].PAR_[14-1]
-        << "                                 PREF1 PREF2 R/RCF_ASYM" << endl
-            << setw(8) << setprecision(2) << phases[K-1].PAR_[12-1].A
-        << setw(8) << setprecision(2) << phases[K-1].PAR_[13-1].A
-        << setw(8) << setprecision(2) << phases[K-1].PAR_[14-1].A << endl
-            << setw(8) << setprecision(5) << phases[K-1].PAR_[17-1]
-        << setw(8) << setprecision(5) << phases[K-1].PAR_[18-1]
-        << setw(8) << setprecision(5) << phases[K-1].PAR_[19-1]
-        << "                                 NA NB NC (MIX_PARAMS)" << endl
-            << setw(8) << setprecision(2) << phases[K-1].PAR_[17-1].A
-        << setw(8) << setprecision(2) << phases[K-1].PAR_[18-1].A
-        << setw(8) << setprecision(2) << phases[K-1].PAR_[19-1].A << endl
-            << setw(8) << setprecision(5) << phases[K-1].PAR_[24-1]
-        << setw(8) << setprecision(5) << phases[K-1].PAR_[25-1]
-        << setw(8) << setprecision(5) << phases[K-1].PAR_[26-1]
-        << "                                 NA NB NC (HIGH SIDE)" << endl
-            << setw(8) << setprecision(2) << phases[K-1].PAR_[24-1].A
-        << setw(8) << setprecision(2) << phases[K-1].PAR_[25-1].A
-        << setw(8) << setprecision(2) << phases[K-1].PAR_[26-1].A << endl
-        << setw(8) << setprecision(4) << phases[K-1].PAR_[27-1]
-        << "                                                 PEARSON ASYM.FACTOR" << endl
-            << setw(8) << setprecision(2) << phases[K-1].PAR_[27-1].A << endl;
-    }
-    return;
-    //L99999:
-    //	DBWSException("END OF FILE TAPE5");
-}
 
 // SUBROUTINE GSASREAD * READ GSAS FORMATTED DATA FILE
 void DBWS::GSASREAD(void)
@@ -9186,9 +7614,9 @@ void DBWS::qpainit(void)
         IOF=0;
         if(IP > 1)
         {
-            for (IIPHAS=2; IIPHAS <= IP; ++IIPHAS) IOF = IOF + jnk->NATOM[IIPHAS-1];
+            for (IIPHAS=2; IIPHAS <= IP; ++IIPHAS) IOF = IOF + phases[IIPHAS-1].AtomCount;
         }
-        N=jnk->NATOM[IP];
+        N=phases[IP].AtomCount;
         for (I=1; I <= N; ++I)
         {
             ICOCO=params->PTR[I+IOF];
@@ -9210,7 +7638,7 @@ void DBWS::qpainit(void)
         //		ARG1 = VOSQ*(2 * cos(dircv->DCV[4]) * sin(dircv->DCV[4]) - 2*sin(dircv->DCV[4]) *cos(dircv->DCV[5]) *cos(dircv->DCV[6])) * dircv->DCSM[4][4];
         //		ARG2 = VOSQ*(2 * cos(dircv->DCV[5]) * sin(dircv->DCV[5]) - 2*sin(dircv->DCV[5]) *cos(dircv->DCV[4]) *cos(dircv->DCV[6])) * dircv->DCSM[5][5];
         //		ARG3 = VOSQ*(2 * cos(dircv->DCV[6]) * sin(dircv->DCV[6]) - 2*sin(dircv->DCV[6]) *cos(dircv->DCV[4]) *cos(dircv->DCV[5])) * dircv->DCSM[6][6];
-        W[IP] = phases[IP-1].PAR_[1-1] * multip->TMASSA[IP] * VOL[IP]/multip->SAQF[IP];
+        W[IP] = phases[IP-1].PAR[0] * multip->TMASSA[IP] * VOL[IP]/phases[IP].SAQF;
         file6 << "Volume("
             << setw(2) << IP << ")= "
             << setw(9) << setprecision(3) << VOL[IP]
@@ -9229,7 +7657,7 @@ void DBWS::qpainit(void)
     for (I = 1; I <= cntrls->NPHASE; ++I)
     {
         if (IINNMOL == 1) goto L2713;
-        if (jnk->NMOL[I] == 0) IINNMOL=1;
+        if (phases[I].NMOL == 0) IINNMOL=1;
 L2713:;
     }
     if (IINNMOL == 1)
@@ -9250,7 +7678,7 @@ L2713:;
         FT = 0.0000000;
         for (I = 1; I <= cntrls->NPHASE; ++I)
         {
-            FRP[I] = XMASS[I] * jnk->NMOL[I] / multip->TMASSA[I];
+            FRP[I] = XMASS[I] * phases[I].NMOL / multip->TMASSA[I];
             FT = FT + FRP[I];
         }
         for (I = 1; I <= cntrls->NPHASE; ++I)
@@ -9268,13 +7696,13 @@ L2713:;
     if(cntrls->ISPHASE != 0)
     {
         file6 << endl << "Considering Amorphous Content:" << endl;
-        SFIS=multip->WTIS[cntrls->ISPHASE]/XMASS[cntrls->ISPHASE];
+        SFIS=phases[cntrls->ISPHASE].WTIS/XMASS[cntrls->ISPHASE];
         if(SFIS > 1.0)
         {
             file6 << "PROBLEM:Amount of Internal Standard (Phase #"
                 << setw(2) << cntrls->ISPHASE
                 << ") is less than the specified "
-                << setw(6) << setprecision(2) << multip->WTIS[cntrls->ISPHASE]
+                << setw(6) << setprecision(2) << phases[cntrls->ISPHASE].WTIS
             << "%." << endl
                 << "Amorphous content not computed. Check ISWT in line 11.2 for this phase" << endl;
             goto L2720;
@@ -9558,6 +7986,10 @@ L20:
 
 void DBWS::INPTR(void)
 {
+    int MULTX_;
+    double Y_[192+1][3+1];
+    int NCTR_[192+1];
+
     const string UPPER = " ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     const string LOWER = " abcdefghijklmnopqrstuvwxyz";
     // Adding the code from Ian Madsen (10 feb 98)  (Au,Cr,Fe,Co,Cu,
@@ -9579,13 +8011,10 @@ void DBWS::INPTR(void)
 
     // line 1
     getline(file5,s);
-    cout << "linha 1" << endl;
-    cout << s << endl;
-    char_->TITLE = s.substr(0,70);
+    title = s.substr(0,70);
 
     // line 2
     getline(file5,s);
-    cout << s << endl;
     stringstream(s.substr( 0*4,4)) >> cntrls->JOBTYP;
     stringstream(s.substr( 1*4,4)) >> cntrls->NPROF;
     stringstream(s.substr( 2*4,4)) >> cntrls->NPHASE;
@@ -9599,32 +8028,14 @@ void DBWS::INPTR(void)
     stringstream(s.substr(10*4,4)) >> cntrls->IDATA;
     stringstream(s.substr(11*4,4)) >> cntrls->ISPHASE;
     stringstream(s.substr(12*4,4)) >> cntrls->I2D94;
-    if (cntrls->NPROF < 0)
+
+    if (cntrls->ISPHASE > cntrls->NPHASE)
     {
-        convert->ICNVT=1;
-        file6 << "$ INPUT FILE CONVERSION FROM DBWS9411 TO DBWS9807" << endl
-            << "$ CHECK ALL PARAMETERS" << endl
-            << "$ SPECIAL ATTENTION REQUIRED TO ATOM MULTIPLICITIES AND OCCUPANCIES" << endl
-            << "$ See USER's GUIDE,  LINE 11-41" << endl
-            << "                  GOOD LUCK!" << endl;
-        cout  << "$ INPUT FILE CONVERSION FROM DBWS9411 TO DBWS9807" << endl
-            << "$ CHECK ALL PARAMETERS" << endl
-            << "$ SPECIAL ATTENTION REQUIRED TO ATOM MULTIPLICITIES AND OCCUPANCIES" << endl
-            << "$ See USER's GUIDE,  LINE 11-41" << endl
-            << "                  GOOD LUCK!" << endl;
-        conv94();
-        goto L88088;
+        file6 << "Internal Standard Phase does not exist. Check its number in line 2, column 12." << endl
+            << "No Internal Standard will be used in the QPA" << endl;
+        cntrls->ISPHASE = 0;
     }
-    else
-    {
-        convert->ICNVT = 0;
-        if (cntrls->ISPHASE > cntrls->NPHASE)
-        {
-            file6 << "Internal Standard Phase does not exist. Check its number in line 2, column 12." << endl
-                << "No Internal Standard will be used in the QPA" << endl;
-            cntrls->ISPHASE = 0;
-        }
-    }
+
     //     open file to write +/- dbws9006 & dbws9411 format (readable by ATOMS and ZORTEP)
     if(cntrls->I2D94 == 1) file53.open("ICF94.ICF");
     if (cntrls->NPROF == 9)
@@ -9644,7 +8055,7 @@ void DBWS::INPTR(void)
         cntrls->IBGD   = 1;
         codebck->IBCKCODE=jnk->NBCKGD;
     }
-    if(cntrls->NPHASE == 0)cntrls->NPHASE=1;
+    if(cntrls->NPHASE == 0) cntrls->NPHASE=1;
     cntrls->INSTRM=cntrls->INSTRM+1;
     cntrls->JOBTYP=cntrls->JOBTYP+1;
     //cntrls->NPROF=cntrls->NPROF+1;
@@ -9656,16 +8067,16 @@ void DBWS::INPTR(void)
         << "    NATS=" << setw(4) << NATS
         << "     MSZ=" << setw(3) << MSZ
         << "     NOV=" << setw(5) << NOV << endl;
-    file6 << char_->TITLE << endl;
+    file6 << title << endl;
     cout << "RIETVELD ANALYSIS PROGRAM OPENDBWS," << endl
-         << "COPYRIGHT 2013 BY VEGNER UTUNI." << endl << endl;
+         << "COPYRIGHT 2013 BY VEGNER UTUNI. v3" << endl << endl;
     cout  << "PROGRAM PARAMETERS:" << endl
         << "IDSZ=" << setw(5) << IDSZ
         << "    IRS=" << setw(5) << IRS
         << "    NATS=" << setw(4) << NATS
         << "     MSZ=" << setw(3) << MSZ
         << "     NOV=" << setw(5) << NOV << endl;
-    cout  << char_->TITLE << endl;
+    cout  << title << endl;
     if(cntrls->JOBTYP == 1) file6 << "FOR X-RAY DATA" << endl;
     if(cntrls->JOBTYP == 1 && cntrls->INSTRM == 2) file6 << "COLLECTED IN SYNCHROTRON AT NSLS OR SRS" << endl;
     if(cntrls->JOBTYP == 2) file6 << "FOR NEUTRON DATA, NUCLEAR INTENSITIES ONLY" << endl;
@@ -9683,59 +8094,48 @@ void DBWS::INPTR(void)
     file6 << "NUMBER OF PHASES= " << setw(4) << cntrls->NPHASE << endl
         << "NUMBER OF EXCLUDED REGIONS= " << setw(4) << jnk->NEXCRG << endl
         << "NUMBER OF SCATTERING SETS= " << setw(4) << jnk->NSCAT << endl;
+
     if (jnk->NBCKGD-1 < 0)
     {
-        goto L110;
+        file6 << "BACKGROUND TO BE REFINED" << endl;
     }
     else if(jnk->NBCKGD-1 == 0)
     {
-        goto L111;
+        file6 << "BACKGROUND DATA TO BE READ FROM FILE" << endl;
     }
     else
     {
-        goto L112;
+        file6 << "BACKGROUND CORRECTION BY INTERPOLATION BETWEEN THE " << setw(4) << jnk->NBCKGD << " POINTS GIVEN" << endl;
     }
-L110:
-    file6 << "BACKGROUND TO BE REFINED" << endl;
-    goto L113;
-L111:
-    file6 << "BACKGROUND DATA TO BE READ FROM FILE" << endl;
-    goto L113;
-L112:
-    file6 << "BACKGROUND CORRECTION BY INTERPOLATION BETWEEN THE " << setw(4) << jnk->NBCKGD << " POINTS GIVEN" << endl;
-L113:
-    if(cntrls->NPROF == _Gaussian)
-    {
+
+
+    switch (cntrls->NPROF) {
+    case _Gaussian:
         file6 << "GAUSSIAN PROFILE, NPROF = " << setw(4) << cntrls->NPROF << endl;
-    }
-    else if(cntrls->NPROF == _Lorentzian)
-    {
+        break;
+    case _Lorentzian:
         file6 << "LORENTZIAN (CAUCHY) PROFILE, NPROF = " << setw(4) << cntrls->NPROF << endl;
-    }
-    else if(cntrls->NPROF == _Mod1)
-    {
+        break;
+    case _Mod1:
         file6 << "MOD 1 LORENTZIAN PROFILE, NPROF = " << setw(4) << cntrls->NPROF << endl;
-    }
-    else if(cntrls->NPROF == _Mod2)
-    {
+        break;
+    case _Mod2:
         file6 << "MOD 2 LORENTZIAN PROFILE, NPROF = " << setw(4) << cntrls->NPROF << endl;
-    }
-    else if(cntrls->NPROF == _SplitPearsonVII)
-    {
+        break;
+    case _SplitPearsonVII:
         file6 << "SPLIT PEARSON VII PROFILE, NPROF = " << setw(4) << cntrls->NPROF << endl;
-    }
-    else if(cntrls->NPROF == _pseudoVoigt)
-    {
+        break;
+    case _pseudoVoigt:
         file6 << "PSEUDO-VOIGT (PV) PROFILE, NPROF = " << setw(4) << cntrls->NPROF << endl;
-    }
-    else if(cntrls->NPROF == _PearsonVII)
-    {
+        break;
+    case _PearsonVII:
         file6 << "PEARSON VII PROFILE, NPROF = " << setw(4) << cntrls->NPROF << endl;
-    }
-    else if(cntrls->NPROF == _TCHZ)
-    {
+        break;
+    case _TCHZ:
         file6 << "THOMPSON-COX-HASTINGS (PV) PROFILE, NPROF = " << setw(4) << cntrls->NPROF << endl;
+        break;
     }
+
     if (cntrls->IPREF == 0)
     {
         file6 << "IPREF=0, UDA-RIETVELD PREFERRED ORIENTATION FUNCTION" << endl;
@@ -9744,12 +8144,23 @@ L113:
     {
         file6 << "IPREF=1, MARCH-DOLLASE PREFERRED ORIENTATION FUNCTION" << endl;
     }
+
     //  SURFACE ROUGHNESS
-    // !cp jun 97 7448 introduced line below
-    if (cntrls->IABSR == 1) file6 << "IABSR=1, CORRECTION OF SURFACE ROUGHNESS BY YOUNG" << endl;
-    if (cntrls->IABSR == 2) file6 << "IABSR=2, CORRECTION OF SURFACE ROUGHNESS BY, SPARKS, ET AL." << endl;
-    if (cntrls->IABSR == 3) file6 << "IABSR=3, CORRECTION OF SURFACE ROUGHNESS BY SUORTTI" << endl;
-    if (cntrls->IABSR == 4) file6 << "IABSR=4, CORRECTION OF SURFACE ROUGHNESS BY PITSCHKE, HERMANN, AND MATTERN" << endl;
+    switch (cntrls->IABSR) {
+    case 1:
+        file6 << "IABSR=1, CORRECTION OF SURFACE ROUGHNESS BY YOUNG" << endl;
+        break;
+    case 2:
+        file6 << "IABSR=2, CORRECTION OF SURFACE ROUGHNESS BY, SPARKS, ET AL." << endl;
+        break;
+    case 3:
+        file6 << "IABSR=3, CORRECTION OF SURFACE ROUGHNESS BY SUORTTI" << endl;
+        break;
+    case 4:
+        file6 << "IABSR=4, CORRECTION OF SURFACE ROUGHNESS BY PITSCHKE, HERMANN, AND MATTERN" << endl;
+        break;
+    }
+
     //  asymmetry correction  Test for asymmetry model included !cp ap 97
     if (cntrls->IASYM == 0) file6 << "IASYM=0, Usual Rietveld Asymmetry" << endl;
     if (cntrls->IASYM == 1) file6 << "IASYM=1, Asymmetry by Riello et al.:',' Powder Diffraction,10,204-206,1995" << endl;
@@ -9779,6 +8190,8 @@ L113:
     if(cntrls->IAS == 1) file6 << "IAS = 1, LINEAR ABSORPTION CORRECTION IS APPLIED" << endl;
     if(cntrls->FONDO == 1) file6 << "FONDO = 1,ISOTROPIC B FACTOR USED FOR BKG EVALUATION" << endl;
     if(cntrls->FONDO == 2) file6 << "FONDO = 2,OVERALL Q USED FOR BKG EVALUATION" << endl;
+
+
     // line 3
 L7448:
     getline (file5,s);
@@ -9840,7 +8253,6 @@ L7448:
     stringstream(s.substr( 6*8, 8)) >> g1->TMV;
     stringstream(s.substr( 7*8, 8)) >> g1->RLIM;
     stringstream(s.substr( 8*8, 8)) >> cntrls->SW;
-    //        !cp ap 21 97
     params->RATIO[1] = 1.0;
     LAMDAM=(params->RATIO[1]*g1->LAMDA[1]+params->RATIO[2]*g1->LAMDA[2])/(params->RATIO[1]+params->RATIO[2]);
     file6
@@ -9861,8 +8273,7 @@ L119:
         << "SLAB-WIDTH = " << setw(8) << setprecision(4) << cntrls->SW << " CM." << endl;
     if (cntrls->IASYM == 0)
     {
-        file6 << "RIETVELD ASYMMETRY CORRECTION FOR ANGLES LESS THAN "
-            << setw(8) << setprecision(3) << g1->RLIM << " DEGREES" << endl;
+        file6 << "RIETVELD ASYMMETRY CORRECTION FOR ANGLES LESS THAN " << setw(8) << setprecision(3) << g1->RLIM << " DEGREES" << endl;
     }
     else
     {
@@ -9881,12 +8292,13 @@ L119:
     stringstream(s.substr(16,4)) >> params->RELAX[3];
     stringstream(s.substr(20,4)) >> params->RELAX[4];
 
-    // TODO: falata codigo aqui
-    stringstream(s.substr(24,8)) >> g1->THMIN;
-    stringstream(s.substr(32,8)) >> g1->STEP;
-    stringstream(s.substr(40,8)) >> g1->THMAX;
-
-    if(cntrls->JOBTYP > 2)cntrls->MCYCLE=1;
+    if(cntrls->JOBTYP > 2)
+    {
+        cntrls->MCYCLE=1;
+        stringstream(s.substr(24,8)) >> g1->THMIN;
+        stringstream(s.substr(32,8)) >> g1->STEP;
+        stringstream(s.substr(40,8)) >> g1->THMAX;
+    }
     cntrls->ICYRUN = cntrls->MCYCLE;
     file6 << "NUMBER OF CYCLES = " << setw(4) << cntrls->MCYCLE << endl;
     file6 << "RELAXATION FACTORS" << endl
@@ -9895,97 +8307,104 @@ L119:
         << "FOR FWHM PARAMETERS= " << setw(5) << setprecision(2) << params->RELAX[3] << endl
         << "FOR LATTICE CONSTANTS= " << setw(5) << setprecision(2) << params->RELAX[4] << endl;
     file6 << "EPS-VALUE= " << setw(6) << setprecision(1) << cntrls->EPS << endl;
-    if(jnk->NBCKGD < 2)goto L120;
 
-    // line 6(*)
-    for (I=1; I <= jnk->NBCKGD; ++I)
+    if(jnk->NBCKGD >= 2)
     {
-        getline(file5,s);
-        stringstream(s.substr(0,8)) >> jnk->POS[I];
-        stringstream(s.substr(8,8)) >> jnk->BCK[I];
-    }
-    file6 << "BACKGROUND" << endl
-        << "POSITION    INTENSITY" << endl;
-    for (I=1; I <= jnk->NBCKGD; ++I)
-    {
-        file6 << setw(9) << setprecision(4) << jnk->POS[I]
-        << setw(9) << setprecision(4) << jnk->BCK[I] << endl;
-    }
-L120:
-    if(jnk->NEXCRG <= 0)goto L122;
-    // line 7(*)
-    for (I=1; I <= jnk->NEXCRG; ++I)
-    {
-        getline(file5,s);
-        stringstream(s.substr(0,8)) >> jnk->ALOW[I];
-        stringstream(s.substr(8,8)) >> jnk->AHIGH[I];
-    }
-    file6 << "EXCLUDED REGIONS" << endl
-        << "FROM     TO" << endl;
-    for (I=1; I <= jnk->NEXCRG; ++I)
-    {
-        file6 << setw(9) << setprecision(4) << jnk->ALOW[I]
-        << setw(9) << setprecision(4) << jnk->AHIGH[I] << endl;
-    }
-L122:
-    if(jnk->NSCAT <= 0)goto L124;
-    for (I=1; I <= jnk->NSCAT; ++I)
-    {
-        if(cntrls->JOBTYP == 2 || cntrls->JOBTYP == 4)
+        // line 6(*)
+        for (I=1; I <= jnk->NBCKGD; ++I)
         {
-            // line 8.1 XRD(*)
+            getline(file5,s);
+            stringstream(s.substr(0,8)) >> jnk->POS[I];
+            stringstream(s.substr(8,8)) >> jnk->BCK[I];
+        }
+        file6 << "BACKGROUND" << endl
+            << "POSITION    INTENSITY" << endl;
+        for (I=1; I <= jnk->NBCKGD; ++I)
+        {
+            file6 << setw(9) << setprecision(4) << jnk->POS[I]
+            << setw(9) << setprecision(4) << jnk->BCK[I] << endl;
+        }
+    }
+
+    if(jnk->NEXCRG > 0)
+    {
+        // line 7(*)
+        for (I=1; I <= jnk->NEXCRG; ++I)
+        {
+            getline(file5,s);
+            stringstream(s.substr(0,8)) >> jnk->ALOW[I];
+            stringstream(s.substr(8,8)) >> jnk->AHIGH[I];
+        }
+        file6 << "EXCLUDED REGIONS" << endl
+            << "FROM     TO" << endl;
+        for (I=1; I <= jnk->NEXCRG; ++I)
+        {
+            file6 << setw(9) << setprecision(4) << jnk->ALOW[I]
+            << setw(9) << setprecision(4) << jnk->AHIGH[I] << endl;
+        }
+    }
+
+    if(jnk->NSCAT > 0)
+    {
+        for (I=1; I <= jnk->NSCAT; ++I)
+        {
+            if(cntrls->JOBTYP == 2 || cntrls->JOBTYP == 4)
+            {
+                // line 8.1 XRD(*)
+                getline(file5,s);
+                coefc->NAM[I] = s.substr(0,4);
+                stringstream(s.substr(4,8)) >> coeff->DFP[I];
+                stringstream(s.substr(12,8)) >> coeff->XMAS[I];
+                goto L125;
+            }
+            // line 8.1 ND(*)
             getline(file5,s);
             coefc->NAM[I] = s.substr(0,4);
             stringstream(s.substr(4,8)) >> coeff->DFP[I];
-            stringstream(s.substr(12,8)) >> coeff->XMAS[I];
-            goto L125;
+            stringstream(s.substr(12,8)) >> coeff->DFPP[I];
+            stringstream(s.substr(20,8)) >> coeff->XMAS[I];
+            K=0;
+            // line 8.2 XRD(*)
+            L126:
+            getline(file5,s);
+            for (J=1; J <= 9; ++J) stringstream(s.substr((J-1)*8,8)) >> coeff->AC[J][I];
+            if (coeff->AC[1][I] == -100.0) coeff->COEF(&I,&K);
+            if(coeff->AC[3][I] != 0.)goto L125;
+            K=K+1;
+            coeff->POSI[K]=coeff->AC[1][I];
+            coeff->SCAT[K]=coeff->AC[2][I];
+            if (K <= 29) goto L126;
+            file6 << "TOO MANY SCATTERING TABLE ENTRIES" << endl;
+            DBWSException("7700");
+            L125:;
         }
-        // line 8.1 ND(*)
-        getline(file5,s);
-        coefc->NAM[I] = s.substr(0,4);
-        stringstream(s.substr(4,8)) >> coeff->DFP[I];
-        stringstream(s.substr(12,8)) >> coeff->DFPP[I];
-        stringstream(s.substr(20,8)) >> coeff->XMAS[I];
-        K=0;
-        // line 8.2 XRD(*)
-L126:
-        getline(file5,s);
-        for (J=1; J <= 9; ++J) stringstream(s.substr((J-1)*8,8)) >> coeff->AC[J][I];
-        if (coeff->AC[1][I] == -100.0) coeff->COEF(&I,&K);
-        if(coeff->AC[3][I] != 0.)goto L125;
-        K=K+1;
-        coeff->POSI[K]=coeff->AC[1][I];
-        coeff->SCAT[K]=coeff->AC[2][I];
-        if (K <= 29) goto L126;
-        file6 << "TOO MANY SCATTERING TABLE ENTRIES" << endl;
-        DBWSException("7700");
-L125:;
+        if(cntrls->JOBTYP == 1 || cntrls->JOBTYP == 3)goto L129;
+        file6 << "SCATTERING LENGTHS" << endl;
+        for (I=1; I <= jnk->NSCAT; ++I)
+        {
+            file6 << "FOR " << setw(4) << coefc->NAM[I] << "     "
+                << setw(10) << setprecision(6) << coeff->DFP[I] << endl;
+        }
+        for (I=1; I <= jnk->NSCAT; ++I)
+        {
+            for (J=1; J <= 9; ++J) coeff->AC[J][I]=0.0;
+            coeff->DFPP[I]=0.0;
+        }
+        goto L124;
+        L129:
+        file6 << "FORMFACTORS" << endl;
+        for (I=1; I <= jnk->NSCAT; ++I)
+        {
+            file6 << "FOR " << setw(4) << coefc->NAM[I]
+            << " DFP=" << setw(10) << setprecision(6) << coeff->DFP[I]
+            << " DFPP=" << setw(10) << setprecision(6) << coeff->DFPP[I] << endl
+                << "COEFFICIENTS= ";
+            for (J=1; J <= 9; ++J) file6 << setw(10) << setprecision(6) << coeff->AC[J][I];
+            file6 << endl;
+        }
+        L124:;
     }
-    if(cntrls->JOBTYP == 1 || cntrls->JOBTYP == 3)goto L129;
-    file6 << "SCATTERING LENGTHS" << endl;
-    for (I=1; I <= jnk->NSCAT; ++I)
-    {
-        file6 << "FOR " << setw(4) << coefc->NAM[I] << "     "
-            << setw(10) << setprecision(6) << coeff->DFP[I] << endl;
-    }
-    for (I=1; I <= jnk->NSCAT; ++I)
-    {
-        for (J=1; J <= 9; ++J) coeff->AC[J][I]=0.0;
-        coeff->DFPP[I]=0.0;
-    }
-    goto L124;
-L129:
-    file6 << "FORMFACTORS" << endl;
-    for (I=1; I <= jnk->NSCAT; ++I)
-    {
-        file6 << "FOR " << setw(4) << coefc->NAM[I]
-        << " DFP=" << setw(10) << setprecision(6) << coeff->DFP[I]
-        << " DFPP=" << setw(10) << setprecision(6) << coeff->DFPP[I] << endl
-            << "COEFFICIENTS= ";
-        for (J=1; J <= 9; ++J) file6 << setw(10) << setprecision(6) << coeff->AC[J][I];
-        file6 << endl;
-    }
-L124:
+
 
     // line 9
     getline(file5,s);
@@ -10001,6 +8420,7 @@ L124:
         goto L99995;
     }
     cout << "INPUT:    CYCLES =" << setw(4) << cntrls->MCYCLE << "     REFINABLE PARAMETERS =" << setw(4) <<cntrls->MAXS << endl;
+
     //     CHECK DIMENSIONING FOR SOME EQUIVALENCED ARRAYS
     if (IDSZ < MSZ*cntrls->MAXS)
     {
@@ -10026,18 +8446,18 @@ L124:
 
     // line 10.11
     getline(file5,s);
-    stringstream(s.substr(0,8))   >> params->GLB_[1-1].A;
-    stringstream(s.substr(1*8,8)) >> params->GLB_[10-1].A;
-    stringstream(s.substr(2*8,8)) >> params->GLB_[11-1].A;
-    stringstream(s.substr(3*8,8)) >> params->GLB_[8-1].A;
-    stringstream(s.substr(4*8,8)) >> params->GLB_[9-1].A;
-    stringstream(s.substr(5*8,8)) >> params->GLB_[12-1].A;
-    stringstream(s.substr(6*8,8)) >> params->GLB_[13-1].A;
+    stringstream(s.substr(0,8))   >> params->GLB_[1-1].codeword;
+    stringstream(s.substr(1*8,8)) >> params->GLB_[10-1].codeword;
+    stringstream(s.substr(2*8,8)) >> params->GLB_[11-1].codeword;
+    stringstream(s.substr(3*8,8)) >> params->GLB_[8-1].codeword;
+    stringstream(s.substr(4*8,8)) >> params->GLB_[9-1].codeword;
+    stringstream(s.substr(5*8,8)) >> params->GLB_[12-1].codeword;
+    stringstream(s.substr(6*8,8)) >> params->GLB_[13-1].codeword;
 
     file6 << "GLOBAL PARAMETERS AND CODEWORDS" << endl
         << "ZEROPOINT= "
         << setw(8) << setprecision(2) << params->GLB_[1-1]
-    << setw(8) << setprecision(2) << params->GLB_[1-1].A << endl;
+    << setw(8) << setprecision(2) << params->GLB_[1-1].codeword << endl;
 
     //-----PMON1,PMON2=PARAMETER OF THE MONOCHROMATOR
     //-----IT READS PARAMETER OF THE MONOCHROMATOR AND AIR SCALE
@@ -10053,352 +8473,370 @@ L124:
     //     *  params->GLB_[18-1],params->GLB_[18-1].A,params->GLB_[19-1], params->GLB_[19-1].A
     //455     FORMAT(BZ,8F8.0)
     //  !cp jun 95 start
-    if (cntrls->IBGD == 1) goto L4555;
+    if (cntrls->IBGD != 1)
+    {
+        // line 10.2 and line 10.21
+        getline(file5,s);
+        params->GLB_[20-1] = s.substr(0*8,8);
+        params->GLB_[18-1] = s.substr(1*8,8);
+        params->GLB_[19-1] = s.substr(2*8,8);
 
-    // line 10.2 and line 10.21
-    getline(file5,s);
-    params->GLB_[20-1] = s.substr(0*8,8);
-    params->GLB_[18-1] = s.substr(1*8,8);
-    params->GLB_[19-1] = s.substr(2*8,8);
+        getline(file5,s);
+        stringstream(s.substr(0*8,8)) >> params->GLB_[20-1].codeword;
+        stringstream(s.substr(1*8,8)) >> params->GLB_[18-1].codeword;
+        stringstream(s.substr(2*8,8)) >> params->GLB_[19-1].codeword;
 
-    getline(file5,s);
-    stringstream(s.substr(0*8,8)) >> params->GLB_[20-1].A;
-    stringstream(s.substr(1*8,8)) >> params->GLB_[18-1].A;
-    stringstream(s.substr(2*8,8)) >> params->GLB_[19-1].A;
-
-    file6 << "AMORPHOUS SCALE and CODEWORD= "
-        << setw(14) << setprecision(4) << params->GLB_[20-1]
-    << setw(14) << setprecision(4) << params->GLB_[20-1].A << endl;
-    file6 << "MONOCROMATOR BANDPASS PARAMETERS AND CODEWORDS" << endl
-        << "PARAMETERS MONOC="
-        << setw(8) << setprecision(4) << params->GLB_[18-1]
-    << setw(8) << setprecision(4) << params->GLB_[18-1].A
-    << "                  "
-        << setw(8) << setprecision(4) << params->GLB_[19-1]
-    << setw(8) << setprecision(4) << params->GLB_[19-1].A << endl;
-L4555:
-    if(jnk->NBCKGD != 0)goto L49;
-    // line 10.4(*)
-    // line 10.3 and line 10.31
-    getline(file5,s);
-    params->GLB_[2-1] = s.substr(0*9,9);
-    params->GLB_[3-1] = s.substr(1*9,9);
-    params->GLB_[4-1] = s.substr(2*9,9);
-    params->GLB_[5-1] = s.substr(3*9,9);
-    params->GLB_[6-1] = s.substr(4*9,9);
-    params->GLB_[7-1] = s.substr(5*9,9);
-
-    getline(file5,s);
-    stringstream(s.substr(0*9,9)) >> params->GLB_[2-1].A;
-    stringstream(s.substr(1*9,9)) >> params->GLB_[3-1].A;
-    stringstream(s.substr(2*9,9)) >> params->GLB_[4-1].A;
-    stringstream(s.substr(3*9,9)) >> params->GLB_[5-1].A;
-    stringstream(s.substr(4*9,9)) >> params->GLB_[6-1].A;
-    stringstream(s.substr(5*9,9)) >> params->GLB_[7-1].A;
+        file6 << "AMORPHOUS SCALE and CODEWORD= "
+            << setw(14) << setprecision(4) << params->GLB_[20-1]
+        << setw(14) << setprecision(4) << params->GLB_[20-1].codeword << endl;
+        file6 << "MONOCROMATOR BANDPASS PARAMETERS AND CODEWORDS" << endl
+            << "PARAMETERS MONOC="
+            << setw(8) << setprecision(4) << params->GLB_[18-1]
+        << setw(8) << setprecision(4) << params->GLB_[18-1].codeword
+        << "                  "
+            << setw(8) << setprecision(4) << params->GLB_[19-1]
+        << setw(8) << setprecision(4) << params->GLB_[19-1].codeword << endl;
+    }
 
 
-    file6 << "BACKGROUND PARAMETERS AND CODEWORDS" << endl
-        << "ORIGIN OF BACKGROUND POLYNOMIAL AT TWO-THETA = "
-        << setw(8) << setprecision(3) << g1->BKPOS << "DEGREES" << endl
-        << setw(12) << setprecision(4) << params->GLB_[2-1]
-        << setw(12) << setprecision(4) << params->GLB_[3-1]
-        << setw(12) << setprecision(4) << params->GLB_[4-1]
-        << setw(12) << setprecision(4) << params->GLB_[5-1]
-        << setw(12) << setprecision(4) << params->GLB_[6-1]
-        << setw(12) << setprecision(4) << params->GLB_[7-1] << endl
-        << setw(12) << setprecision(3) << params->GLB_[2-1].A << "    "
-        << setw(12) << setprecision(3) << params->GLB_[3-1].A << "    "
-        << setw(12) << setprecision(3) << params->GLB_[4-1].A << "    "
-        << setw(12) << setprecision(3) << params->GLB_[5-1].A << "    "
-        << setw(12) << setprecision(3) << params->GLB_[6-1].A << "    "
-        << setw(12) << setprecision(3) << params->GLB_[7-1].A << "    " << endl;
-L49:
+    if(jnk->NBCKGD == 0)
+    {
+        // line 10.4(*)
+        // line 10.3 and line 10.31
+        getline(file5,s);
+        params->GLB_[2-1] = s.substr(0*9,9);
+        params->GLB_[3-1] = s.substr(1*9,9);
+        params->GLB_[4-1] = s.substr(2*9,9);
+        params->GLB_[5-1] = s.substr(3*9,9);
+        params->GLB_[6-1] = s.substr(4*9,9);
+        params->GLB_[7-1] = s.substr(5*9,9);
+
+        getline(file5,s);
+        stringstream(s.substr(0*9,9)) >> params->GLB_[2-1].codeword;
+        stringstream(s.substr(1*9,9)) >> params->GLB_[3-1].codeword;
+        stringstream(s.substr(2*9,9)) >> params->GLB_[4-1].codeword;
+        stringstream(s.substr(3*9,9)) >> params->GLB_[5-1].codeword;
+        stringstream(s.substr(4*9,9)) >> params->GLB_[6-1].codeword;
+        stringstream(s.substr(5*9,9)) >> params->GLB_[7-1].codeword;
+
+
+        file6 << "BACKGROUND PARAMETERS AND CODEWORDS" << endl
+            << "ORIGIN OF BACKGROUND POLYNOMIAL AT TWO-THETA = "
+            << setw(8) << setprecision(3) << g1->BKPOS << "DEGREES" << endl
+            << setw(12) << setprecision(4) << params->GLB_[2-1]
+            << setw(12) << setprecision(4) << params->GLB_[3-1]
+            << setw(12) << setprecision(4) << params->GLB_[4-1]
+            << setw(12) << setprecision(4) << params->GLB_[5-1]
+            << setw(12) << setprecision(4) << params->GLB_[6-1]
+            << setw(12) << setprecision(4) << params->GLB_[7-1] << endl
+            << setw(12) << setprecision(3) << params->GLB_[2-1].codeword << "    "
+            << setw(12) << setprecision(3) << params->GLB_[3-1].codeword << "    "
+            << setw(12) << setprecision(3) << params->GLB_[4-1].codeword << "    "
+            << setw(12) << setprecision(3) << params->GLB_[5-1].codeword << "    "
+            << setw(12) << setprecision(3) << params->GLB_[6-1].codeword << "    "
+            << setw(12) << setprecision(3) << params->GLB_[7-1].codeword << "    " << endl;
+    }
+
     file6 << "DISPLACEMENT PEAKSHIFT PARAMETER AND CODEWORD"
         << setw(8) << setprecision(2) << params->GLB_[10-1]
-    << setw(8) << setprecision(2) << params->GLB_[10-1].A << endl
+    << setw(8) << setprecision(2) << params->GLB_[10-1].codeword << endl
         << "TRANSPARENCY PEAKSHIFT PARAMETER AND CODEWORD"
         << setw(8) << setprecision(2) << params->GLB_[11-1]
-    << setw(8) << setprecision(2) << params->GLB_[11-1].A << endl;
+    << setw(8) << setprecision(2) << params->GLB_[11-1].codeword << endl;
     file6 << "SURFACE ROUGHNESS P PARAMETER AND CODEWORD"
         << setw(9) << setprecision(4) << params->GLB_[8-1]
-    << setw(9) << setprecision(4) << params->GLB_[8-1].A << endl
+    << setw(9) << setprecision(4) << params->GLB_[8-1].codeword << endl
         << "SURFACE ROUGHNESS Q PARAMETER AND CODEWORD"
         << setw(9) << setprecision(4) << params->GLB_[9-1]
-    << setw(9) << setprecision(4) << params->GLB_[9-1].A << endl
+    << setw(9) << setprecision(4) << params->GLB_[9-1].codeword << endl
         << "SURFACE ROUGHNESS R PARAMETER AND CODEWORD"
         << setw(9) << setprecision(4) << params->GLB_[12-1]
-    << setw(9) << setprecision(4) << params->GLB_[12-1].A << endl
+    << setw(9) << setprecision(4) << params->GLB_[12-1].codeword << endl
         << "SURFACE ROUGHNESS T PARAMETER AND CODEWORD"
         << setw(9) << setprecision(4) << params->GLB_[13-1]
-    << setw(9) << setprecision(4) << params->GLB_[13-1].A << endl;
-    if(cntrls->JOBTYP > 2)goto L483;
-    //-----if PATTERN CALCULATION ONLY FOR SYNCHROTRON X-RAY DATA goto 501
-    if(cntrls->JOBTYP == 1 && cntrls->INSTRM == 2) goto L501;
-    //-----if PATTERN CALCULATION ONLY FOR MULTIPLE NEUTRON DATA goto 601
-    if(cntrls->JOBTYP == 2 && cntrls->INSTRM == 2) goto L601;
-    //471    format(BZ,F8.5,f8.7,f8.5,A56)
-    // read DBWS formated
-    if(cntrls->IDATA == 0 || cntrls->IDATA == 1)
+    << setw(9) << setprecision(4) << params->GLB_[13-1].codeword << endl;
+
+
+    if(cntrls->JOBTYP <= 2)
     {
-        getline(file4,s);
-        stringstream(s.substr(0*8,8)) >> g1->THMIN;
-        stringstream(s.substr(1*8,8)) >> g1->STEP;
-        stringstream(s.substr(2*8,8)) >> g1->THMAX;
-        DATAID = s.substr(3*8,56);
-        cout << "DATA RANGE (2THETA):  START =" << setw(8) << setprecision(3) << g1->THMIN
-            << ", STOP =" << setw(8) << setprecision(3) << g1->THMAX
-            << ", STEP =" << setw(8) << setprecision(3) << g1->STEP << endl;
-        file6 << "    DATA ID " << DATAID << endl;
-        cout << "DATA RANGE (2THETA):  START =" << setw(8) << setprecision(3) << g1->THMIN
-            << ", STOP =" << setw(8) << setprecision(3) << g1->THMAX
-            << ", STEP =" << setw(8) << setprecision(3) << g1->STEP << endl;
-        datax->NPTS=static_cast<int>((g1->THMAX-g1->THMIN)/g1->STEP+1.5);
-        if (datax->NPTS > IDSZ)
+
+        if(cntrls->JOBTYP == 1 && cntrls->INSTRM == 2)           //-----if PATTERN CALCULATION ONLY FOR SYNCHROTRON X-RAY DATA
         {
-            file6 << "PROGRAM CAN HANDLE " << setw(5) << IDSZ << " POINTS" << endl
-                << setw(5) << datax->NPTS << " POINTS WERE INPUT" << endl
-                << "INCREASE IDSZ IN PARAMETER STATEMENT" << endl;
-            cout  << "PROGRAM CAN HANDLE " << setw(5) << IDSZ << " POINTS" << endl
-                << setw(5) << datax->NPTS << " POINTS WERE INPUT" << endl
-                << "INCREASE IDSZ IN PARAMETER STATEMENT" << endl;
-            DBWSException("TOO MANY DATA POINTS");
-        }
-    }
-    else if(cntrls->IDATA == 2)
-    {
-        // read GSAS data file (read start,stop,step and data)
-        GSASREAD();
-        goto L3333;
-    }
-    if(cntrls->IDATA == 3)
-    {
-        // read Philips data file (read start,stop,step and data)
-        PHILIPSREAD();
-        goto L3333;
-    }
-    if(cntrls->IDATA == 4)
-    {
-        // read SCINTAG data file (read start,stop,step and data)
-        scintag();
-        goto L3333;
-    }
-    if(cntrls->IDATA == 5)
-    {
-        // read  SIEMENS UXD data file (read start,stepsize,stepcount and data)
-        SIEMENSREAD();
-        goto L3333;
-    }
-    if(cntrls->IDATA == 6)
-    {
-        // read  RIGAKU data file (read start,stepsize,stop,stepcount and data)
-        rigakuread();
-        goto L3333;
-    }
-    // END SPECIAL FORMATS DATA FILE
-    if(cntrls->IDATA == 0)
-    {
-        I=0;
-        while ( I < datax->NPTS)
-        {
+            //       READ DATA FROM SYNCHROTRON SOURCE AND CORRECT DATA FOR DEAD TIME,
+            //      CALCULATE VARIANCE FOR EACH OF THE DATA POINTS
+            //     DATE IS OCT85,FEB86,AUG86,SRS83,SRS91
+            //     NRANGE IS THE NO OF BLOCKS IN WHICH THE DATA ARE GIVEN
+            //     OFSTI0 - DARK BEAM CURRENT, READING WITH NO ELECTRONS IN THE CHAMBER
+            //     OFSTI1 - DETECTOR DARK BEAM CURRENT
+            //     CHMBRI - ALL CURRENTS ARE  NORMALISED TO CHMBRI
             getline(file4,s);
-            for (J = 1; J <= 8; ++J)
+            DATE = s.substr(0,5);
+            DATAID = s.substr(5,56);
+            file6 << "    DATA ID " << DATAID << endl;
+            getline(file4,s);
+            stringstream(s.substr(0*8,8)) >> NRANGE;
+            stringstream(s.substr(1*8,8)) >> CHMBRI;
+            stringstream(s.substr(2*8,10)) >> TAUK;
+
+            //     NPTS IS THE COUNTER FOR TOTAL NO OF POINTS IN ALL THE RANGES
+            datax->NPTS = 0;
+            for (J=1; J <= NRANGE; ++J)
             {
-                s1 = s.substr((J-1)*8,7);
-                if ( !s1.empty() )
+                //     READ INFORMATION ABOUT EACH RANGE
+                getline(file4,s);
+                stringstream(s.substr(0*8,8)) >> ANGMIN;
+                stringstream(s.substr(1*8,8)) >> g1->STEP;
+                stringstream(s.substr(2*8,8)) >> ANGMAX;
+                stringstream(s.substr(3*8,8)) >> STPTIM;
+                stringstream(s.substr(4*8,8)) >> OFSTI0;
+                stringstream(s.substr(5*8,8)) >> OFSTI1;
+                IPTS = static_cast<int>((ANGMAX-ANGMIN)/g1->STEP +1.5);
+                //     FIND MAXIMUM AND MINIMUM TWO THETA IN ALL RANGES
+                if (J == 1) g1->THMIN = ANGMIN;
+                if (J == NRANGE) g1->THMAX = ANGMAX;
+                if (J > 1)
                 {
-                    ++I;
-                    stringstream(s1) >> datax->Y[I];
+                    getline(file4,s);
+                    IPTS = IPTS - 1;
+                }
+                if (datax->NPTS+IPTS > IDSZ)
+                {
+                    file6 << "PROGRAM CAN HANDLE " << setw(5) << IDSZ << "POINTS" << endl
+                        << setw(5) << (datax->NPTS+IPTS) << " POINTS WERE INPUT" << endl
+                        << "INCREASE IDSZ IN PARAMETER STATEMENT" << endl;
+                    DBWSException("TOO MANY DATA POINTS");
+                }
+                //     VAR(I) IS USED FOR TWO QUANTITIES, JUST TO SAVE SOME SPACE.
+                if (DATE == "OCT85")
+                {
+                    for (I=1; I <= IPTS; ++I)
+                    {
+                        getline(file4,s);
+                        stringstream(s.substr(24,7)) >> datax->Y[I+datax->NPTS];
+                        stringstream(s.substr(32,7)) >> datax->VAR[I+datax->NPTS];
+                    }
+                }
+                else if (DATE == "FEB86")
+                {
+                    for (I=1; I <= IPTS; ++I)
+                    {
+                        getline(file4,s);
+                        stringstream(s.substr(24,7)) >> datax->Y[I+datax->NPTS];
+                        stringstream(s.substr(32,7)) >> datax->VAR[I+datax->NPTS];
+                    }
+                }
+                else if (DATE == "AUG86")
+                {
+                    for (I=1; I <= IPTS; ++I)
+                    {
+                        getline(file4,s);
+                        stringstream(s.substr(51,10)) >> datax->VAR[I+datax->NPTS];
+                        stringstream(s.substr(62,10)) >> datax->Y[I+datax->NPTS];
+                    }
+                }
+                else if (DATE == "SRS83")
+                {
+                    for (I=1; I <= IPTS; ++I)
+                    {
+                        getline(file4,s);
+                        stringstream(s.substr(37,9)) >> datax->VAR[I+datax->NPTS];
+                        stringstream(s.substr(47,9)) >> datax->Y[I+datax->NPTS];
+                    }
+                }
+                else if (DATE == "SRS91")
+                {
+                    for (I=1; I <= IPTS; ++I)
+                    {
+                        getline(file4,s);
+                        stringstream(s.substr(29,9)) >> datax->VAR[I+datax->NPTS];
+                        stringstream(s.substr(48,9)) >> datax->Y[I+datax->NPTS];
+                    }
+                }
+                else
+                {
+                    file6 << "    WHEN AND WHERE WERE THESE DATA TAKEN. OCT85,FEB86,AUG86,SRS83,SRS91" << endl;
+                }
+                for (I=datax->NPTS+1; I <= IPTS+datax->NPTS; ++I)
+                {
+                    datax->Y[I] = datax->Y[I]/STPTIM;
+                    FLEET1 = datax->VAR[I]-OFSTI0;
+                    FLEET2= FLEET1/CHMBRI;
+                    FLEET2= pow((FLEET2*(1-TAUK*datax->Y[I])) , 2.0);
+                    datax->VAR[I] = (STPTIM*datax->Y[I])/FLEET2;
+                    datax->Y[I] = STPTIM*(datax->Y[I]/(1-TAUK*datax->Y[I])-OFSTI1)*CHMBRI/FLEET1;
+                    if (abs(datax->Y[I]) < 0.01) datax->Y[I]=1.0;
+                }
+                //L530:
+                datax->NPTS=datax->NPTS+IPTS;
+            }
+            file6 << "DATA RANGE (2THETA):  START = " << setw(8) << setprecision(2) << g1->THMIN
+                << ", STOP =" << setw(8) << setprecision(2) << g1->THMAX
+                << ", STEP =" << setw(8) << setprecision(2) << g1->STEP << endl;
+            cout  << "DATA RANGE (2THETA):  START = " << setw(8) << setprecision(2) << g1->THMIN
+                << ", STOP =" << setw(8) << setprecision(2) << g1->THMAX
+                << ", STEP =" << setw(8) << setprecision(2) << g1->STEP << endl;
+            goto L484;
+            //       ENDS SYNCHROTRON DATA MODifICATION
+        }
+
+        if(cntrls->JOBTYP == 2 && cntrls->INSTRM == 2)           //-----if PATTERN CALCULATION ONLY FOR MULTIPLE NEUTRON DATA
+        {
+            //     BEGIN VARIANCE CALCULATION FOR VARYING NO. OF COUNTERS AT EACH STEP
+            getline(file4,s);
+            stringstream(s.substr(0*8,8)) >> g1->THMIN;
+            stringstream(s.substr(1*8,8)) >> g1->STEP;
+            stringstream(s.substr(2*8,8)) >> g1->THMAX;
+            DATAID = s.substr(3*8,56);
+            file6 << "    DATA ID " << DATAID << endl;
+            file6 << "DATA RANGE (2THETA):  START =" << setw(8) << setprecision(2) << g1->THMIN
+                << ", STOP =" << setw(8) << setprecision(2) << g1->THMAX
+                << ", STEP =" << setw(8) << setprecision(2) << g1->STEP << endl;
+            datax->NPTS = static_cast<int>((g1->THMAX-g1->THMIN)/g1->STEP+1.5);
+            if (datax->NPTS > IDSZ)
+            {
+                file6 << "PROGRAM CAN HANDLE " << setw(5) << IDSZ << "POINTS" << endl
+                    << datax->NPTS+IPTS << " POINTS WERE INPUT" << endl
+                    << "INCREASE IDSZ IN PARAMETER STATEMENT" << endl;
+                DBWSException("TOO MANY DATA POINTS");
+            }
+            I=0;
+            while ( I > datax->NPTS)
+            {
+                getline(file4,s);
+                for (J = 1; J <= 10; ++J)
+                {
+                    s1 = s.substr((J-1)*8,2);
+                    if ( !s1.empty() )
+                    {
+                        ++I;
+                        stringstream(s1) >> datax->VAR[I];
+                    }
+                    s1 = s.substr((J-1)*8+2,6);
+                    if ( !s1.empty() )
+                    {
+                        stringstream(s1) >> datax->Y[I];
+                    }
                 }
             }
+            for (I=1; I <= datax->NPTS; ++I) datax->VAR[I]=datax->Y[I]/datax->VAR[I];
+            goto L484;
         }
-    }
-    if(cntrls->IDATA == 1)
-    {
-        for (I=1; I <= datax->NPTS; ++I) file4 >> datax->Y[I];
-    }
 
-    //     CHECK FOR NON-ZERO COUNTS AT ALL POINTS
-    maxint->XMAXINT = 0.0;
-L3333:
-    for (I=1; I <= datax->NPTS; ++I)
-    {
-        if(datax->Y[I] <= 1.0E-6) datax->Y[I]=1.0;
-        if(datax->Y[I] > maxint->XMAXINT) maxint->XMAXINT=datax->Y[I];
-    }
-    for (I=1; I <= datax->NPTS; ++I)
-    {
-        //     BUILD UP AMORPHOUS-VECTOR
-        //     if REQUIRED MAKE ABSORPTION CORRECTION
-        //-----COMPUTE TWO-THETA
-        TH = g1->THMIN + static_cast<double>(I-1) * g1->STEP;
-        datax->VAR[I]=datax->Y[I];
-        //-----COMPUTE SAMPLE ABSORPTION CORRECTION
-        if(cntrls->IAS == 1)
-        {
-            ABSORP(g1->TMV,cntrls->SW,TH,&ABC);
-            datax->Y[I] = datax->Y[I] / ABC;
-            datax->VAR[I]=datax->VAR[I]/ABC;
-        }
-    }
-    goto L484;
-    //       READ DATA FROM SYNCHROTRON SOURCE AND CORRECT DATA FOR DEAD TIME,
-    //      CALCULATE VARIANCE FOR EACH OF THE DATA POINTS
-    //     DATE IS OCT85,FEB86,AUG86,SRS83,SRS91
-    //     NRANGE IS THE NO OF BLOCKS IN WHICH THE DATA ARE GIVEN
-    //     OFSTI0 - DARK BEAM CURRENT, READING WITH NO ELECTRONS IN THE CHAMBER
-    //     OFSTI1 - DETECTOR DARK BEAM CURRENT
-    //     CHMBRI - ALL CURRENTS ARE  NORMALISED TO CHMBRI
-L501:
-    getline(file4,s);
-    DATE = s.substr(0,5);
-    DATAID = s.substr(5,56);
-    file6 << "    DATA ID " << DATAID << endl;
-    getline(file4,s);
-    stringstream(s.substr(0*8,8)) >> NRANGE;
-    stringstream(s.substr(1*8,8)) >> CHMBRI;
-    stringstream(s.substr(2*8,10)) >> TAUK;
 
-    //     NPTS IS THE COUNTER FOR TOTAL NO OF POINTS IN ALL THE RANGES
-    datax->NPTS = 0;
-    for (J=1; J <= NRANGE; ++J)
-    {
-        //     READ INFORMATION ABOUT EACH RANGE
-        getline(file4,s);
-        stringstream(s.substr(0*8,8)) >> ANGMIN;
-        stringstream(s.substr(1*8,8)) >> g1->STEP;
-        stringstream(s.substr(2*8,8)) >> ANGMAX;
-        stringstream(s.substr(3*8,8)) >> STPTIM;
-        stringstream(s.substr(4*8,8)) >> OFSTI0;
-        stringstream(s.substr(5*8,8)) >> OFSTI1;
-        IPTS = static_cast<int>((ANGMAX-ANGMIN)/g1->STEP +1.5);
-        //     FIND MAXIMUM AND MINIMUM TWO THETA IN ALL RANGES
-        if (J == 1) g1->THMIN = ANGMIN;
-        if (J == NRANGE) g1->THMAX = ANGMAX;
-        if (J > 1)
-        {
+        switch (cntrls->IDATA) {
+        case 0:
+            // read DBWS formated
             getline(file4,s);
-            IPTS = IPTS - 1;
-        }
-        if (datax->NPTS+IPTS > IDSZ)
-        {
-            file6 << "PROGRAM CAN HANDLE " << setw(5) << IDSZ << "POINTS" << endl
-                << setw(5) << (datax->NPTS+IPTS) << " POINTS WERE INPUT" << endl
-                << "INCREASE IDSZ IN PARAMETER STATEMENT" << endl;
-            DBWSException("TOO MANY DATA POINTS");
-        }
-        //     VAR(I) IS USED FOR TWO QUANTITIES, JUST TO SAVE SOME SPACE.
-        if (DATE == "OCT85")
-        {
-            for (I=1; I <= IPTS; ++I)
+            stringstream(s.substr(0*8,8)) >> g1->THMIN;
+            stringstream(s.substr(1*8,8)) >> g1->STEP;
+            stringstream(s.substr(2*8,8)) >> g1->THMAX;
+            DATAID = s.substr(3*8,56);
+            cout << "DATA RANGE (2THETA):  START =" << setw(8) << setprecision(3) << g1->THMIN
+                << ", STOP =" << setw(8) << setprecision(3) << g1->THMAX
+                << ", STEP =" << setw(8) << setprecision(3) << g1->STEP << endl;
+            file6 << "    DATA ID " << DATAID << endl;
+            cout << "DATA RANGE (2THETA):  START =" << setw(8) << setprecision(3) << g1->THMIN
+                << ", STOP =" << setw(8) << setprecision(3) << g1->THMAX
+                << ", STEP =" << setw(8) << setprecision(3) << g1->STEP << endl;
+            datax->NPTS=static_cast<int>((g1->THMAX-g1->THMIN)/g1->STEP+1.5);
+            if (datax->NPTS > IDSZ)
+            {
+                file6 << "PROGRAM CAN HANDLE " << setw(5) << IDSZ << " POINTS" << endl
+                    << setw(5) << datax->NPTS << " POINTS WERE INPUT" << endl
+                    << "INCREASE IDSZ IN PARAMETER STATEMENT" << endl;
+                cout  << "PROGRAM CAN HANDLE " << setw(5) << IDSZ << " POINTS" << endl
+                    << setw(5) << datax->NPTS << " POINTS WERE INPUT" << endl
+                    << "INCREASE IDSZ IN PARAMETER STATEMENT" << endl;
+                DBWSException("TOO MANY DATA POINTS");
+            }
+            I=0;
+            while ( I < datax->NPTS)
             {
                 getline(file4,s);
-                stringstream(s.substr(24,7)) >> datax->Y[I+datax->NPTS];
-                stringstream(s.substr(32,7)) >> datax->VAR[I+datax->NPTS];
+                for (J = 1; J <= 8; ++J)
+                {
+                    s1 = s.substr((J-1)*8,7);
+                    if ( !s1.empty() )
+                    {
+                        ++I;
+                        stringstream(s1) >> datax->Y[I];
+                    }
+                }
             }
-        }
-        else if (DATE == "FEB86")
-        {
-            for (I=1; I <= IPTS; ++I)
+            maxint->XMAXINT = 0.0;            //     CHECK FOR NON-ZERO COUNTS AT ALL POINTS
+            break;
+        case 1:
+            // read DBWS formated
+            getline(file4,s);
+            stringstream(s.substr(0*8,8)) >> g1->THMIN;
+            stringstream(s.substr(1*8,8)) >> g1->STEP;
+            stringstream(s.substr(2*8,8)) >> g1->THMAX;
+            DATAID = s.substr(3*8,56);
+            cout << "DATA RANGE (2THETA):  START =" << setw(8) << setprecision(3) << g1->THMIN
+                << ", STOP =" << setw(8) << setprecision(3) << g1->THMAX
+                << ", STEP =" << setw(8) << setprecision(3) << g1->STEP << endl;
+            file6 << "    DATA ID " << DATAID << endl;
+            cout << "DATA RANGE (2THETA):  START =" << setw(8) << setprecision(3) << g1->THMIN
+                << ", STOP =" << setw(8) << setprecision(3) << g1->THMAX
+                << ", STEP =" << setw(8) << setprecision(3) << g1->STEP << endl;
+            datax->NPTS=static_cast<int>((g1->THMAX-g1->THMIN)/g1->STEP+1.5);
+            if (datax->NPTS > IDSZ)
             {
-                getline(file4,s);
-                stringstream(s.substr(24,7)) >> datax->Y[I+datax->NPTS];
-                stringstream(s.substr(32,7)) >> datax->VAR[I+datax->NPTS];
+                file6 << "PROGRAM CAN HANDLE " << setw(5) << IDSZ << " POINTS" << endl
+                    << setw(5) << datax->NPTS << " POINTS WERE INPUT" << endl
+                    << "INCREASE IDSZ IN PARAMETER STATEMENT" << endl;
+                cout  << "PROGRAM CAN HANDLE " << setw(5) << IDSZ << " POINTS" << endl
+                    << setw(5) << datax->NPTS << " POINTS WERE INPUT" << endl
+                    << "INCREASE IDSZ IN PARAMETER STATEMENT" << endl;
+                DBWSException("TOO MANY DATA POINTS");
             }
+            for (I=1; I <= datax->NPTS; ++I) file4 >> datax->Y[I];
+            maxint->XMAXINT = 0.0;            //     CHECK FOR NON-ZERO COUNTS AT ALL POINTS
+            break;
+        case 2:
+            GSASREAD();          // read GSAS data file (read start,stop,step and data)
+            break;
+        case 3:
+            PHILIPSREAD();      // read Philips data file (read start,stop,step and data)
+            break;
+        case 4:
+            scintag();          // read SCINTAG data file (read start,stop,step and data)
+            break;
+        case 5:
+            SIEMENSREAD();     // read  SIEMENS UXD data file (read start,stepsize,stepcount and data)
+            break;
+        case 6:
+            rigakuread();        // read  RIGAKU data file (read start,stepsize,stop,stepcount and data)
+            break;
         }
-        else if (DATE == "AUG86")
-        {
-            for (I=1; I <= IPTS; ++I)
-            {
-                getline(file4,s);
-                stringstream(s.substr(51,10)) >> datax->VAR[I+datax->NPTS];
-                stringstream(s.substr(62,10)) >> datax->Y[I+datax->NPTS];
-            }
-        }
-        else if (DATE == "SRS83")
-        {
-            for (I=1; I <= IPTS; ++I)
-            {
-                getline(file4,s);
-                stringstream(s.substr(37,9)) >> datax->VAR[I+datax->NPTS];
-                stringstream(s.substr(47,9)) >> datax->Y[I+datax->NPTS];
-            }
-        }
-        else if (DATE == "SRS91")
-        {
-            for (I=1; I <= IPTS; ++I)
-            {
-                getline(file4,s);
-                stringstream(s.substr(29,9)) >> datax->VAR[I+datax->NPTS];
-                stringstream(s.substr(48,9)) >> datax->Y[I+datax->NPTS];
-            }
-        }
-        else
-        {
-            file6 << "    WHEN AND WHERE WERE THESE DATA TAKEN. OCT85,FEB86,AUG86,SRS83,SRS91" << endl;
-        }
-        for (I=datax->NPTS+1; I <= IPTS+datax->NPTS; ++I)
-        {
-            datax->Y[I] = datax->Y[I]/STPTIM;
-            FLEET1 = datax->VAR[I]-OFSTI0;
-            FLEET2= FLEET1/CHMBRI;
-            FLEET2= pow((FLEET2*(1-TAUK*datax->Y[I])) , 2.0);
-            datax->VAR[I] = (STPTIM*datax->Y[I])/FLEET2;
-            datax->Y[I] = STPTIM*(datax->Y[I]/(1-TAUK*datax->Y[I])-OFSTI1)*CHMBRI/FLEET1;
-            if (abs(datax->Y[I]) < 0.01) datax->Y[I]=1.0;
-        }
-        //L530:
-        datax->NPTS=datax->NPTS+IPTS;
-    }
-    file6 << "DATA RANGE (2THETA):  START = " << setw(8) << setprecision(2) << g1->THMIN
-        << ", STOP =" << setw(8) << setprecision(2) << g1->THMAX
-        << ", STEP =" << setw(8) << setprecision(2) << g1->STEP << endl;
-    cout  << "DATA RANGE (2THETA):  START = " << setw(8) << setprecision(2) << g1->THMIN
-        << ", STOP =" << setw(8) << setprecision(2) << g1->THMAX
-        << ", STEP =" << setw(8) << setprecision(2) << g1->STEP << endl;
-    goto L484;
-    //       ENDS SYNCHROTRON DATA MODifICATION
 
-    //     BEGIN VARIANCE CALCULATION FOR VARYING NO. OF COUNTERS AT EACH STEP
-L601:
-    getline(file4,s);
-    stringstream(s.substr(0*8,8)) >> g1->THMIN;
-    stringstream(s.substr(1*8,8)) >> g1->STEP;
-    stringstream(s.substr(2*8,8)) >> g1->THMAX;
-    DATAID = s.substr(3*8,56);
-    file6 << "    DATA ID " << DATAID << endl;
-    file6 << "DATA RANGE (2THETA):  START =" << setw(8) << setprecision(2) << g1->THMIN
-        << ", STOP =" << setw(8) << setprecision(2) << g1->THMAX
-        << ", STEP =" << setw(8) << setprecision(2) << g1->STEP << endl;
-    datax->NPTS = static_cast<int>((g1->THMAX-g1->THMIN)/g1->STEP+1.5);
-    if (datax->NPTS > IDSZ)
-    {
-        file6 << "PROGRAM CAN HANDLE " << setw(5) << IDSZ << "POINTS" << endl
-            << datax->NPTS+IPTS << " POINTS WERE INPUT" << endl
-            << "INCREASE IDSZ IN PARAMETER STATEMENT" << endl;
-        DBWSException("TOO MANY DATA POINTS");
-    }
-    I=0;
-    while ( I > datax->NPTS)
-    {
-        getline(file4,s);
-        for (J = 1; J <= 10; ++J)
+        for (I=1; I <= datax->NPTS; ++I)
         {
-            s1 = s.substr((J-1)*8,2);
-            if ( !s1.empty() )
+            if(datax->Y[I] <= 1.0E-6) datax->Y[I]=1.0;
+            if(datax->Y[I] > maxint->XMAXINT) maxint->XMAXINT=datax->Y[I];
+        }
+        for (I=1; I <= datax->NPTS; ++I)
+        {
+            //     BUILD UP AMORPHOUS-VECTOR
+            //     if REQUIRED MAKE ABSORPTION CORRECTION
+            //-----COMPUTE TWO-THETA
+            TH = g1->THMIN + static_cast<double>(I-1) * g1->STEP;
+            datax->VAR[I]=datax->Y[I];
+            //-----COMPUTE SAMPLE ABSORPTION CORRECTION
+            if(cntrls->IAS == 1)
             {
-                ++I;
-                stringstream(s1) >> datax->VAR[I];
-            }
-            s1 = s.substr((J-1)*8+2,6);
-            if ( !s1.empty() )
-            {
-                stringstream(s1) >> datax->Y[I];
+                ABSORP(g1->TMV,cntrls->SW,TH,&ABC);
+                datax->Y[I] = datax->Y[I] / ABC;
+                datax->VAR[I]=datax->VAR[I]/ABC;
             }
         }
+        goto L484;
+
+
     }
-    for (I=1; I <= datax->NPTS; ++I) datax->VAR[I]=datax->Y[I]/datax->VAR[I];
-    goto L484;
-L483:
+
+
+
     datax->NPTS = static_cast<int>((g1->THMAX-g1->THMIN)/g1->STEP+1.5);
     if (datax->NPTS > IDSZ)
     {
@@ -10407,61 +8845,67 @@ L483:
             << "INCREASE IDSZ IN PARAMETER STATEMENT" << endl;
         DBWSException("TOO MANY DATA POINTS");
     }
+
 L484:
     if (jnk->NBCKGD-1 < 0)
     {
-        goto L474;
+        TH=g1->THMIN-g1->STEP;
+        for (I=1; I <= datax->NPTS; ++I)
+        {
+            TH=TH+g1->STEP;
+            THX=TH/g1->BKPOS-1.0;
+            datax->BK[I]=params->GLB_[2-1];
+            for (J=2; J <= 6; ++J) datax->BK[I]=datax->BK[I] + params->GLB_[J+1-1] * pow(THX,J-1);
+        }
+        goto L477;
     }
     else if (jnk->NBCKGD-1 == 0)
     {
-        goto L475;
+        file3.open(file3name.data());
+        I=0;
+        while ( I > datax->NPTS)
+        {
+            getline(file3,s);
+            for (J = 1; J <= 8; ++J)
+            {
+                s1 = s.substr((J-1)*8,7);
+                if ( !s1.empty() )
+                {
+                    ++I;
+                    stringstream(s1) >> datax->BK[I];
+                }
+            }
+        }
+        goto L477;
     }
     else
     {
         goto L476;
     }
-L474:
-    TH=g1->THMIN-g1->STEP;
-    for (I=1; I <= datax->NPTS; ++I)
-    {
-        TH=TH+g1->STEP;
-        THX=TH/g1->BKPOS-1.0;
-        datax->BK[I]=params->GLB_[2-1];
-        for (J=2; J <= 6; ++J) datax->BK[I]=datax->BK[I] + params->GLB_[J+1-1] * pow(THX,J-1);
-    }
-    goto L477;
-L475:
-    file3.open(file3name.data());
-    I=0;
-    while ( I > datax->NPTS)
-    {
-        getline(file3,s);
-        for (J = 1; J <= 8; ++J)
-        {
-            s1 = s.substr((J-1)*8,7);
-            if ( !s1.empty() )
-            {
-                ++I;
-                stringstream(s1) >> datax->BK[I];
-            }
-        }
-    }
-    goto L477;
+
+
+
 L476:
     DIFB=jnk->POS[1]-g1->THMIN;
-    if (DIFB < 0.0) goto L4760; else goto L4761;
-L4761:
-    NBX=static_cast<int>(DIFB/g1->STEP+2.5);
-    for (I=1; I <= NBX; ++I) datax->BK[I]=jnk->BCK[1];
-    NXX=1;
-    goto L4764;
-L4760:
-    NBX=static_cast<int>((jnk->POS[2]-g1->THMIN)/g1->STEP+1.5);
-    datax->BK[1]=jnk->BCK[1]-DIFB/(jnk->POS[2]-jnk->POS[1])*(jnk->BCK[2]-jnk->BCK[1]);
-    BSTEP=g1->STEP/(jnk->POS[2]-jnk->POS[1])*(jnk->BCK[2]-jnk->BCK[1]);
-    for (I=2; I <= NBX; ++I) datax->BK[I]=datax->BK[I-1]+BSTEP;
-    NXX=2;
-L4764:
+    if (DIFB < 0.0)
+    {
+        NBX=static_cast<int>((jnk->POS[2]-g1->THMIN)/g1->STEP+1.5);
+        datax->BK[1]=jnk->BCK[1]-DIFB/(jnk->POS[2]-jnk->POS[1])*(jnk->BCK[2]-jnk->BCK[1]);
+        BSTEP=g1->STEP/(jnk->POS[2]-jnk->POS[1])*(jnk->BCK[2]-jnk->BCK[1]);
+        for (I=2; I <= NBX; ++I) datax->BK[I]=datax->BK[I-1]+BSTEP;
+        NXX=2;
+    }
+    else
+    {
+        NBX=static_cast<int>(DIFB/g1->STEP+2.5);
+        for (I=1; I <= NBX; ++I) datax->BK[I]=jnk->BCK[1];
+        NXX=1;
+    }
+
+
+
+
+
     NBC=jnk->NBCKGD-1;
     if(jnk->POS[jnk->NBCKGD] >= g1->THMAX)goto L4767;
     jnk->POS[jnk->NBCKGD+1]=g1->THMAX;
@@ -10477,6 +8921,7 @@ L4767:
         NBX=N2X;
         if(NBX == datax->NPTS)goto L477;
     }
+
 L477:
     for (K=1; K <= cntrls->NPHASE; ++K) refls->ICR[K]=0;
 
@@ -10486,28 +8931,23 @@ L477:
     {
         // line 11.1
         getline(file5,s);
-        phases[K].PHSNM = s.substr(0,50);
-        file6 << "PHASE " << setw(2) << K << endl << phases[K].PHSNM << endl;
+        phases[K].name = s.substr(0,50);
+        file6 << "PHASE " << setw(2) << K << endl << phases[K].name << endl;
 
         // line 11.2
         getline(file5,s);
-        stringstream(s.substr(0,4)) >> jnk->NATOM[K];
-        stringstream(s.substr(4,4)) >> jnk->NMOL[K];
-        stringstream(s.substr(8,7)) >> multip->SAQF[K];
-        stringstream(s.substr(16,4)) >> jnk->PREF[K][1];
-        stringstream(s.substr(20,4)) >> jnk->PREF[K][2];
-        stringstream(s.substr(24,4)) >> jnk->PREF[K][3];
-        stringstream(s.substr(28,7)) >> multip->WTIS[K];
-        N=jnk->NATOM[K];
-        if (multip->SAQF[K] <= 0.0)
-        {
-            multip->SAQF[K]=1.0;
-            cout << "Particle absorption factor (phase " << setw(2) << K << ") is now 1." << endl;
-        }
+        phases[K].AtomCount = s.substr(0,4);
+        phases[K].NMOL = s.substr(4,4);
+        phases[K].SAQF = s.substr(8,7);
+        stringstream(s.substr(16,4)) >> phases[K].PREF[1];
+        stringstream(s.substr(20,4)) >> phases[K].PREF[2];
+        stringstream(s.substr(24,4)) >> phases[K].PREF[3];
+        stringstream(s.substr(28,7)) >> phases[K].WTIS;
+        N=phases[K].AtomCount;
         ISTEST = cntrls->ISPHASE;
         if (K == cntrls->ISPHASE)
         {
-            if (multip->WTIS[K] == 0.0)
+            if (phases[K].WTIS == 0.0)
             {
                 cntrls->ISPHASE = 0;
                 cout << "WARNING: Internal Standard WT% = ZERO. Check ISWT in line 11.2 for phase "
@@ -10519,45 +8959,39 @@ L477:
                     << "               AMORPHOUS CONTENT WILL NOT BE CALCULATED." << endl;
             }
         }
+
+        file6 << "NUMBER OF ATOMS= " << setw(4) << N << endl
+              << "NUMBER OF FORMULA UNITS PER UNIT CELL= " << setw(4) << phases[K].NMOL << endl
+              << "PARTICLE ABSORPTION FACTOR = " << setw(8) << setprecision(4) << phases[K].SAQF << endl
+              << "PREFERRED ORIENTATION VECTOR= " << setw(8) << setprecision(4) << phases[K].PREF[1] << setw(8) << setprecision(4) << phases[K].PREF[2] << setw(8) << setprecision(4) << phases[K].PREF[3] << endl;
         if (K == cntrls->ISPHASE)
         {
-            file6 << "NUMBER OF ATOMS= " << setw(4) << N << endl
-                << "NUMBER OF FORMULA UNITS PER UNIT CELL= " << setw(4) << jnk->NMOL[K] << endl
-                << "PARTICLE ABSORPTION FACTOR = " << setw(8) << setprecision(4) << multip->SAQF[K] << endl
-                << "PREFERRED ORIENTATION VECTOR= " << setw(8) << setprecision(4) << jnk->PREF[K][1] << setw(8) << setprecision(4) << jnk->PREF[K][2] << setw(8) << setprecision(4) << jnk->PREF[K][3] << endl
-                << "MASS% IN THE SAMPLE= " << setw(7) << setprecision(2) << multip->WTIS[K] << endl;
-        }
-        else
-        {
-            file6 << "NUMBER OF ATOMS= " << setw(4) << N << endl
-                << "NUMBER OF FORMULA UNITS PER UNIT CELL= " << setw(4) << jnk->NMOL[K] << endl
-                << "PARTICLE ABSORPTION FACTOR = " << setw(8) << setprecision(4) << multip->SAQF[K] << endl
-                << "PREFERRED ORIENTATION VECTOR= " << setw(8) << setprecision(4) << jnk->PREF[K][1] << setw(8) << setprecision(4) << jnk->PREF[K][2] << setw(8) << setprecision(4) << jnk->PREF[K][3] << endl;
+            file6 << "MASS% IN THE SAMPLE= " << setw(7) << setprecision(2) << phases[K].WTIS << endl;
         }
 
         // line 11.3
         getline(file5,s);
         phases[K].SYMB = s.substr(0,20);
 
-        SPG = " " + phases[K].SYMB;
+        SPG = " " + phases[K].SYMB.get();
         for (I=1; I <= 20; ++I)
         {
             //C convert lower case to upper case
             for (IK=1; IK <= 26; ++IK) if (SPG[I] == LOWER[IK]) SPG[I]=UPPER[IK];
             // finish conversion
         }
-        if (convert->ICNVT != 1) file6 << "THE SPACE GROUP IS " << SPG << endl;
-        spgcom->SPGP(SPG);
+        phases[K].SYMB.SPGP(SPG);
+
         // getting multiplicity of each phase !cp jun 96)
         simoper->ISIMOP=1;
-        RTMT(&cntrls->IPL1,&K);
+        RTMT(&MULTX_,Y_, &cntrls->IPL1,NCTR_,&K);
         multip->XMLTP[K]=multip->MLTPHASE;
         file6 << "The multiplicity of the general site is " << setw(3) << multip->MLTPHASE << endl;
         //-----READ AND PRINT FOR EACH ATOM
         IOF=0;
         if(K > 1)
         {
-            for (IIPHAS=2; IIPHAS <= K; ++IIPHAS) IOF = IOF + jnk->NATOM[IIPHAS-1];
+            for (IIPHAS=2; IIPHAS <= K; ++IIPHAS) IOF = IOF + phases[IIPHAS-1].AtomCount;
         }
         file6 << "***INITIAL PARAMETERS***" << endl
             << "ATOM    M NTYP              X         Y         Z         B        So" << endl
@@ -10601,6 +9035,7 @@ L477:
             stringstream(s.substr(32,8)) >> params->A[I+IOF][10];
             stringstream(s.substr(40,8)) >> params->A[I+IOF][11];
         }
+
         // convert lower case to upper case
         for (ITN = 1; ITN <= N; ++ITN)
         {
@@ -10608,8 +9043,9 @@ L477:
             {
                 for (IK=1; IK <= 26; ++IK) if (parac->NTYP[ITN+IOF][ITIPO] == LOWER[IK]) parac->NTYP[ITN+IOF][ITIPO]=UPPER[IK];
             }
-        }
+        }        
         // finish conversion
+
         for (I=1; I <= N; ++I)
         {
             file6
@@ -10637,106 +9073,107 @@ L477:
             }
             params->XL[I+IOF][5] = params->XL[I+IOF][5] * multip->MURT[I+IOF] / multip->XMLTP[K];
         }
+
         // params->PAR[K][21] introduced below. It is for the term cot**2 in the pv-5 FWHM !cp Aug 95
         // line 11-5, line 11-6, line 11-7, line 11-8 and line 11-9
         getline(file5,s);			// S  O_B (line 11-5)
-        phases[K-1].PAR_[1-1] = s.substr(0,8);
-        phases[K-1].PAR_[2-1] = s.substr(8,8);
+        phases[K-1].PAR[0] = s.substr(0,8);
+        phases[K-1].PAR[1] = s.substr(8,8);
 
         getline(file5,s);
-        stringstream(s.substr(0,8)) >> phases[K-1].PAR_[1-1].A;
-        stringstream(s.substr(8,8)) >> phases[K-1].PAR_[2-1].A;
+        stringstream(s.substr(0,8)) >> phases[K-1].PAR[0].codeword;
+        stringstream(s.substr(8,8)) >> phases[K-1].PAR[1].codeword;
 
         getline(file5,s);			// FWHM (line 11-6)
-        phases[K-1].PAR_[3-1] = s.substr(0,8);
-        phases[K-1].PAR_[4-1] = s.substr(8,8);
-        phases[K-1].PAR_[5-1] = s.substr(16,8);
-        phases[K-1].PAR_[21-1] = s.substr(24,8);
-        phases[K-1].PAR_[20-1] = s.substr(32,8);
-        phases[K-1].PAR_[15-1] = s.substr(40,8);
-        phases[K-1].PAR_[16-1] = s.substr(48,8);
+        phases[K-1].PAR[2] = s.substr(0,8);
+        phases[K-1].PAR[3] = s.substr(8,8);
+        phases[K-1].PAR[4] = s.substr(16,8);
+        phases[K-1].PAR[20] = s.substr(24,8);
+        phases[K-1].PAR[19] = s.substr(32,8);
+        phases[K-1].PAR[14] = s.substr(40,8);
+        phases[K-1].PAR[15] = s.substr(48,8);
 
         getline(file5,s);
-        stringstream(s.substr(0,8)) >> phases[K-1].PAR_[3-1].A;
-        stringstream(s.substr(8,8)) >> phases[K-1].PAR_[4-1].A;
-        stringstream(s.substr(16,8)) >> phases[K-1].PAR_[5-1].A;
-        stringstream(s.substr(24,8)) >> phases[K-1].PAR_[21-1].A;
-        stringstream(s.substr(32,8)) >> phases[K-1].PAR_[20-1].A;
-        stringstream(s.substr(40,8)) >> phases[K-1].PAR_[15-1].A;
-        stringstream(s.substr(48,8)) >> phases[K-1].PAR_[16-1].A;
+        stringstream(s.substr(0,8)) >> phases[K-1].PAR[2].codeword;
+        stringstream(s.substr(8,8)) >> phases[K-1].PAR[3].codeword;
+        stringstream(s.substr(16,8)) >> phases[K-1].PAR[4].codeword;
+        stringstream(s.substr(24,8)) >> phases[K-1].PAR[20].codeword;
+        stringstream(s.substr(32,8)) >> phases[K-1].PAR[19].codeword;
+        stringstream(s.substr(40,8)) >> phases[K-1].PAR[14].codeword;
+        stringstream(s.substr(48,8)) >> phases[K-1].PAR[15].codeword;
 
         getline(file5,s);
-        phases[K-1].PAR_[6-1] = s.substr(0,8);
-        phases[K-1].PAR_[7-1] = s.substr(8,8);
-        phases[K-1].PAR_[8-1] = s.substr(16,8);
-        phases[K-1].PAR_[9-1] = s.substr(24,8);
-        phases[K-1].PAR_[10-1] = s.substr(32,8);
-        phases[K-1].PAR_[11-1] = s.substr(40,8);
+        phases[K-1].PAR[5] = s.substr(0,8);
+        phases[K-1].PAR[6] = s.substr(8,8);
+        phases[K-1].PAR[7] = s.substr(16,8);
+        phases[K-1].PAR[8] = s.substr(24,8);
+        phases[K-1].PAR[9] = s.substr(32,8);
+        phases[K-1].PAR[10] = s.substr(40,8);
 
         getline(file5,s);			// Unit cell (line 11-7)
-        stringstream(s.substr(0,8)) >> phases[K-1].PAR_[6-1].A;
-        stringstream(s.substr(8,8)) >> phases[K-1].PAR_[7-1].A;
-        stringstream(s.substr(16,8)) >> phases[K-1].PAR_[8-1].A;
-        stringstream(s.substr(24,8)) >> phases[K-1].PAR_[9-1].A;
-        stringstream(s.substr(32,8)) >> phases[K-1].PAR_[10-1].A;
-        stringstream(s.substr(40,8)) >> phases[K-1].PAR_[11-1].A;
+        stringstream(s.substr(0,8)) >> phases[K-1].PAR[5].codeword;
+        stringstream(s.substr(8,8)) >> phases[K-1].PAR[6].codeword;
+        stringstream(s.substr(16,8)) >> phases[K-1].PAR[7].codeword;
+        stringstream(s.substr(24,8)) >> phases[K-1].PAR[8].codeword;
+        stringstream(s.substr(32,8)) >> phases[K-1].PAR[9].codeword;
+        stringstream(s.substr(40,8)) >> phases[K-1].PAR[10].codeword;
 
         getline(file5,s);			// G1 G2 P (line 11-8)
-        phases[K-1].PAR_[12-1] = s.substr(0,8);
-        phases[K-1].PAR_[13-1] = s.substr(8,8);
-        phases[K-1].PAR_[14-1] = s.substr(16,8);
+        phases[K-1].PAR[11] = s.substr(0,8);
+        phases[K-1].PAR[12] = s.substr(8,8);
+        phases[K-1].PAR[13] = s.substr(16,8);
 
         getline(file5,s);
-        stringstream(s.substr(0,8)) >> phases[K-1].PAR_[12-1].A;
-        stringstream(s.substr(8,8)) >> phases[K-1].PAR_[13-1].A;
-        stringstream(s.substr(16,8)) >> phases[K-1].PAR_[14-1].A;
+        stringstream(s.substr(0,8)) >> phases[K-1].PAR[11].codeword;
+        stringstream(s.substr(8,8)) >> phases[K-1].PAR[12].codeword;
+        stringstream(s.substr(16,8)) >> phases[K-1].PAR[13].codeword;
 
         getline(file5,s);			// NA NB NC (line 11-91)
-        phases[K-1].PAR_[17-1] = s.substr(0,8);
-        phases[K-1].PAR_[18-1] = s.substr(8,8);
-        phases[K-1].PAR_[19-1] = s.substr(16,8);
+        phases[K-1].PAR[16] = s.substr(0,8);
+        phases[K-1].PAR[17] = s.substr(8,8);
+        phases[K-1].PAR[18] = s.substr(16,8);
 
         getline(file5,s);
-        stringstream(s.substr(0,8)) >> phases[K-1].PAR_[17-1].A;
-        stringstream(s.substr(8,8)) >> phases[K-1].PAR_[18-1].A;
-        stringstream(s.substr(16,8)) >> phases[K-1].PAR_[19-1].A;
+        stringstream(s.substr(0,8)) >> phases[K-1].PAR[16].codeword;
+        stringstream(s.substr(8,8)) >> phases[K-1].PAR[17].codeword;
+        stringstream(s.substr(16,8)) >> phases[K-1].PAR[18].codeword;
 
         getline(file5,s);			// NA NB NC HS (line 11-93)
-        phases[K-1].PAR_[24-1] = s.substr(0,8);
-        phases[K-1].PAR_[25-1] = s.substr(8,8);
-        phases[K-1].PAR_[26-1] = s.substr(16,8);
+        phases[K-1].PAR[23] = s.substr(0,8);
+        phases[K-1].PAR[24] = s.substr(8,8);
+        phases[K-1].PAR[25] = s.substr(16,8);
 
         getline(file5,s);
-        stringstream(s.substr(0,8)) >> phases[K-1].PAR_[24-1].A;
-        stringstream(s.substr(8,8)) >> phases[K-1].PAR_[25-1].A;
-        stringstream(s.substr(16,8)) >> phases[K-1].PAR_[26-1].A;
+        stringstream(s.substr(0,8)) >> phases[K-1].PAR[23].codeword;
+        stringstream(s.substr(8,8)) >> phases[K-1].PAR[24].codeword;
+        stringstream(s.substr(16,8)) >> phases[K-1].PAR[25].codeword;
 
         getline(file5,s);			// s-PVII (line 11-95);
-        phases[K-1].PAR_[27-1] = s.substr(0,8);
+        phases[K-1].PAR[26] = s.substr(0,8);
 
         getline(file5,s);
-        stringstream(s.substr(0,8)) >> phases[K-1].PAR_[27-1].A;
+        stringstream(s.substr(0,8)) >> phases[K-1].PAR[26].codeword;
 
         // checking for zeros if TCH-PV is being used
         if(cntrls->NPROF == _TCHZ)
         {
-            if(phases[K-1].PAR_[15-1] == 0)phases[K-1].PAR_[15-1]=1e-8;
-            if(phases[K-1].PAR_[16-1] == 0)phases[K-1].PAR_[16-1]=1e-8;
-            if(phases[K-1].PAR_[3-1] == phases[K-1].PAR_[4-1] && phases[K-1].PAR_[4-1] == phases[K-1].PAR_[5-1] && phases[K-1].PAR_[5-1] == phases[K-1].PAR_[20-1] && phases[K-1].PAR_[3-1] == 0) phases[K-1].PAR_[5-1]=1e-8;
+            if(phases[K-1].PAR[14] == 0)phases[K-1].PAR[14]=1e-8;
+            if(phases[K-1].PAR[15] == 0)phases[K-1].PAR[15]=1e-8;
+            if(phases[K-1].PAR[2] == phases[K-1].PAR[3] && phases[K-1].PAR[3] == phases[K-1].PAR[4] && phases[K-1].PAR[4] == phases[K-1].PAR[19] && phases[K-1].PAR[2] == 0) phases[K-1].PAR[4]=1e-8;
         }
         // checking for zeros in PV #5
         if(cntrls->NPROF == _pseudoVoigt)
         {
-            if(phases[K-1].PAR_[17-1] == 0)phases[K-1].PAR_[17-1]=1e-6;
+            if(phases[K-1].PAR[16] == 0)phases[K-1].PAR[16]=1e-6;
         }
-        //      if(int(phases[K-1].PAR_[20-1].APAR/10) != 0 && params->PAR[K][20] == 0)params->PAR[K][20]=1e-9
+        //      if(int(phases[K-1].PAR[19].APAR/10) != 0 && params->PAR[K][20] == 0)params->PAR[K][20]=1e-9
         // !cp Aug 95 introducing params->PAR[K][21]=ct
         // CHECKING FOR NON-REFINABLE PARAMETERS
         //CCC                        FOR  CT  IN TCHZ AND SPVII FUNCTIONS
         if(cntrls->NPROF == _TCHZ || cntrls->NPROF == _SplitPearsonVII)
         {
-            phases[K-1].PAR_[21-1]=0.0;
-            if(phases[K-1].PAR_[21-1].A != 0.0)
+            phases[K-1].PAR[20]=0.0;
+            if(phases[K-1].PAR[20].codeword != 0.0)
             {
                 cout << "NON-REFINABLE PARAMETER TURNED ON (CT) WITH SPLIT PEARSON VII OR TCHZ PROFILE FUNCTION" << endl;
                 file6 << "NON-REFINABLE PARAMETER TURNED ON (CT) WITH SPLIT PEARSON VII OR TCHZ PROFILE FUNCTION" << endl;
@@ -10746,15 +9183,15 @@ L477:
         //CCC                             FOR  X,Y,Z IN NON-TCHZ FUNCTION
         if(cntrls->NPROF != _TCHZ)
         {
-            if(phases[K-1].PAR_[20-1] != 0 || phases[K-1].PAR_[16-1] != 0 || phases[K-1].PAR_[15-1].A != 0)
+            if(phases[K-1].PAR[19] != 0 || phases[K-1].PAR[15] != 0 || phases[K-1].PAR[14].codeword != 0)
             {
                 file6 << "     NON-REFINABLE PARAMETER RESET TO ZERO (Z,X,Y) FOR" << endl
                     << "     NON TCHZ PROFILE FUNCTION" << endl;
-                phases[K-1].PAR_[20-1]=0.0;
-                phases[K-1].PAR_[16-1]=0.0;
-                phases[K-1].PAR_[15-1]=0.0;
+                phases[K-1].PAR[19]=0.0;
+                phases[K-1].PAR[15]=0.0;
+                phases[K-1].PAR[14]=0.0;
             }
-            if(phases[K-1].PAR_[20-1].A != 0 || phases[K-1].PAR_[16-1].A != 0 || phases[K-1].PAR_[15-1].A != 0)
+            if(phases[K-1].PAR[19].codeword != 0 || phases[K-1].PAR[15].codeword != 0 || phases[K-1].PAR[14].codeword != 0)
             {
                 cout << "NON-REFINABLE PARAMETER TURNED ON (Z,X,Y) WITH NOT TCHZ PROFILE FUNCTION" << endl;
                 file6 << "NON-REFINABLE PARAMETER TURNED ON (Z,X,Y) WITH NOT TCHZ PROFILE FUNCTION" << endl;
@@ -10766,12 +9203,12 @@ L477:
         {
             for (KKS=1; KKS <= 3; ++KKS)
             {
-                if(phases[K-1].PAR_[13+KKS-1] != 0.0)
+                if(phases[K-1].PAR[13+KKS-1] != 0.0)
                 {
-                    phases[K-1].PAR_[13+KKS-1]=0.0;
+                    phases[K-1].PAR[13+KKS-1]=0.0;
                     file6 << " RIET_ASYM X Y RESET TO ZERO FOR SPVII FUNCTION" << endl;
                 }
-                if(phases[K-1].PAR_[13+KKS-1].A != 0.0)
+                if(phases[K-1].PAR[13+KKS-1].codeword != 0.0)
                 {
                     cout << "NON-REFINEABLE PARAMETER TURNED ON (X,Y,R/RCF_ASYM)" << endl
                         << ", WITH SPLIT PEARSON VII PROFILE FUNCTION" << endl;
@@ -10782,12 +9219,12 @@ L477:
             }
             for (KKS=1; KKS <= 2; ++KKS)
             {
-                if ( phases[K-1].PAR_[19+KKS-1] != 0.0 )
+                if ( phases[K-1].PAR[19+KKS-1] != 0.0 )
                 {
-                    phases[K-1].PAR_[19+KKS-1]=0.0;
+                    phases[K-1].PAR[19+KKS-1]=0.0;
                     file6 << "CT,Z  RESET TO ZERO FOR SPVII FUNCTION" << endl;
                 }
-                if ( phases[K-1].PAR_[19+KKS-1].A != 0.0 )
+                if ( phases[K-1].PAR[19+KKS-1].codeword != 0.0 )
                 {
                     cout << "NON-REFINEABLE PARAMETER TURNED ON (CT,Z), WITH SPLIT PEARSON VII PROFILE FUNCTION" << endl;
                     file6 << "NON-REFINEABLE PARAMETER TURNED ON (CT,Z), WITH SPLIT PEARSON VII PROFILE FUNCTION" << endl;
@@ -10800,12 +9237,12 @@ L477:
         {
             for (KK=1; KK <= 4; ++KK)
             {
-                if ( phases[K-1].PAR_[23+KK-1] != 0.0 )
+                if ( phases[K-1].PAR[23+KK-1] != 0.0 )
                 {
-                    phases[K-1].PAR_[23+KK-1]=0.0;
+                    phases[K-1].PAR[23+KK-1]=0.0;
                     file6 << "NA NB NC (HIGH SIDE) AND PEARSON ASYMMETRY RESET TO ZERO FOR A, NON-SPLIT PEARSON VII FUNCTION" << endl;
                 }
-                if(phases[K-1].PAR_[23+KK-1] != 0.0)
+                if(phases[K-1].PAR[23+KK-1] != 0.0)
                 {
                     cout << "NA NB NC (HIGH SIDE) AND PEARSON ASYMMETRY ONLY REFINABLE FOR A SPLIT PEARSON VII FUNCTION" << endl;
                     file6 << "NA NB NC (HIGH SIDE) AND PEARSON ASYMMETRY ONLY REFINABLE FOR A SPLIT PEARSON VII FUNCTION" << endl;
@@ -10813,75 +9250,75 @@ L477:
             }
         }
         //CCCCC END OF CHECKING NON-REFINABLE PARAMETERS
-        file6 << "OVERALL SCALE FACTOR=" << scientific << setw(12) << setprecision(6) << phases[K-1].PAR_[1-1] << fixed << endl
-            << "OVERALL TEMP. FACTOR=" << setw(12) << setprecision(5) << phases[K-1].PAR_[2-1] << endl;
+        file6 << "OVERALL SCALE FACTOR=" << scientific << setw(12) << setprecision(6) << phases[K-1].PAR[0] << fixed << endl
+            << "OVERALL TEMP. FACTOR=" << setw(12) << setprecision(5) << phases[K-1].PAR[1] << endl;
 
         file6 << "DIRECT CELL PARAMETERS:" << endl
-        << "a = " << setw(9) << setprecision(4) << phases[K-1].PAR_[6-1] << endl
-        << "b = " << setw(9) << setprecision(4) << phases[K-1].PAR_[7-1] << endl
-        << "c = " << setw(9) << setprecision(4) << phases[K-1].PAR_[8-1] << endl
-        << "α = " << setw(9) << setprecision(4) << phases[K-1].PAR_[9-1] << endl
-        << "β = " << setw(9) << setprecision(4) << phases[K-1].PAR_[10-1] << endl
-        << "γ = " << setw(9) << setprecision(4) << phases[K-1].PAR_[11-1] << endl;
+        << "a = " << setw(9) << setprecision(4) << phases[K-1].PAR[5] << endl
+        << "b = " << setw(9) << setprecision(4) << phases[K-1].PAR[6] << endl
+        << "c = " << setw(9) << setprecision(4) << phases[K-1].PAR[7] << endl
+        << "α = " << setw(9) << setprecision(4) << phases[K-1].PAR[8] << endl
+        << "β = " << setw(9) << setprecision(4) << phases[K-1].PAR[9] << endl
+        << "γ = " << setw(9) << setprecision(4) << phases[K-1].PAR[10] << endl;
 
         file6 << "PREFERRED ORIENTATION PARAMETERS="
-            << setw(7) << setprecision(3) << phases[K-1].PAR_[12-1]
-        << setw(7) << setprecision(3) << phases[K-1].PAR_[13-1] << endl
+            << setw(7) << setprecision(3) << phases[K-1].PAR[11]
+        << setw(7) << setprecision(3) << phases[K-1].PAR[12] << endl
         << "ASYMMETRY PARAMETER="
-            << setw(8) << setprecision(4) << phases[K-1].PAR_[14-1] << endl;
+            << setw(8) << setprecision(4) << phases[K-1].PAR[13] << endl;
 
         //-----CHECK FOR SPLIT PEARSON PROFILE
         if (cntrls->NPROF == _SplitPearsonVII)
         {
             file6 << "LOW SIDE EXPONENT COEFFICIENTS="
-                << setw(12) << setprecision(4) << phases[K-1].PAR_[17-1]
-            << setw(12) << setprecision(4) << phases[K-1].PAR_[18-1]
-            << setw(12) << setprecision(4) << phases[K-1].PAR_[19-1]
+                << setw(12) << setprecision(4) << phases[K-1].PAR[16]
+            << setw(12) << setprecision(4) << phases[K-1].PAR[17]
+            << setw(12) << setprecision(4) << phases[K-1].PAR[18]
             << "HIGH SIDE EXPONENT COEFFICIENTS="
-                << setw(12) << setprecision(4) << phases[K-1].PAR_[24-1]
-            << setw(12) << setprecision(4) << phases[K-1].PAR_[25-1]
-            << setw(12) << setprecision(4) << phases[K-1].PAR_[26-1] << endl
+                << setw(12) << setprecision(4) << phases[K-1].PAR[23]
+            << setw(12) << setprecision(4) << phases[K-1].PAR[24]
+            << setw(12) << setprecision(4) << phases[K-1].PAR[25] << endl
             << "SPLIT PEARSON VII ASYMMETRY PARAMETER="
-                << setw(8) << setprecision(4) << phases[K-1].PAR_[27-1] << endl;
+                << setw(8) << setprecision(4) << phases[K-1].PAR[26] << endl;
         }
         else
         {
             //-----if NOT THE SPLIT PEARSON VII PROFILE
             file6 << "MIXING PARAMETERS = "
                 << scientific
-                << setw(10) << setprecision(3) << phases[K-1].PAR_[17-1] << " "
-                << setw(10) << setprecision(3) << phases[K-1].PAR_[18-1] << " "
-                << setw(10) << setprecision(3) << phases[K-1].PAR_[19-1] << fixed << endl;
+                << setw(10) << setprecision(3) << phases[K-1].PAR[16] << " "
+                << setw(10) << setprecision(3) << phases[K-1].PAR[17] << " "
+                << setw(10) << setprecision(3) << phases[K-1].PAR[18] << fixed << endl;
         }
         file6 << "FWHM PARAMETERS (U,V,W,CT,Z,X,Y)="
-            << setw(9) << setprecision(4) << phases[K-1].PAR_[3-1]
-        << setw(9) << setprecision(4) << phases[K-1].PAR_[4-1]
-        << setw(9) << setprecision(4) << phases[K-1].PAR_[5-1]
-        << setw(9) << setprecision(4) << phases[K-1].PAR_[21-1]
-        << setw(9) << setprecision(4) << phases[K-1].PAR_[20-1]
-        << setw(9) << setprecision(4) << phases[K-1].PAR_[15-1]
-        << setw(9) << setprecision(4) << phases[K-1].PAR_[16-1] << endl;
-        cellx->A=phases[K-1].PAR_[6-1];
-        cellx->B=phases[K-1].PAR_[7-1];
-        cellx->C=phases[K-1].PAR_[8-1];
-        cellx->ALPHA=phases[K-1].PAR_[9-1];
-        cellx->BETA=phases[K-1].PAR_[10-1];
-        cellx->GAMMA=phases[K-1].PAR_[11-1];
+            << setw(9) << setprecision(4) << phases[K-1].PAR[2]
+        << setw(9) << setprecision(4) << phases[K-1].PAR[3]
+        << setw(9) << setprecision(4) << phases[K-1].PAR[4]
+        << setw(9) << setprecision(4) << phases[K-1].PAR[20]
+        << setw(9) << setprecision(4) << phases[K-1].PAR[19]
+        << setw(9) << setprecision(4) << phases[K-1].PAR[14]
+        << setw(9) << setprecision(4) << phases[K-1].PAR[15] << endl;
+        cellx->A=phases[K-1].PAR[5];
+        cellx->B=phases[K-1].PAR[6];
+        cellx->C=phases[K-1].PAR[7];
+        cellx->ALPHA=phases[K-1].PAR[8];
+        cellx->BETA=phases[K-1].PAR[9];
+        cellx->GAMMA=phases[K-1].PAR[10];
         CELL2(K,LAMDAM);
         // ************************************** !cp ap 97 (from It code)
         if(cntrls->FONDO == 1 || cntrls->FONDO == 2)
         {
-            bkgscale->SCABKG[K] = volume->GCOM[K] * phases[K-1].PAR_[1-1];
+            bkgscale->SCABKG[K] = volume->GCOM[K] * phases[K-1].PAR[0];
         }
         // ************************************************************
         file6 << "CELL VOLUME PHASE(" << setw(2) << K << " ) = " << setw(12) << setprecision(4) << volume->VOLI[K] << endl;
-        for (I=1; I <= 6; ++I) dc->SAVE[K][I]=phases[K-1].PAR_[I+5-1];
+        for (I=1; I <= 6; ++I) dc->SAVE[K][I]=phases[K-1].PAR[I+5-1];
 
         // change to reci
-        for (I=1; I <= 3; ++I) phases[K-1].PAR_[I+5-1]=cellx->AL[I][I];			// a,b and c cell parameters
-        phases[K-1].PAR_[9-1]=cellx->AL[2][3];			// alpha cell
-        phases[K-1].PAR_[10-1]=cellx->AL[1][3];			// beta cell
-        phases[K-1].PAR_[11-1]=cellx->AL[1][2];			// gamma cell
+        for (I=1; I <= 3; ++I) phases[K-1].PAR[I+5-1]=cellx->AL[I][I];			// a,b and c cell parameters
+        phases[K-1].PAR[8]=cellx->AL[2][3];			// alpha cell
+        phases[K-1].PAR[9]=cellx->AL[1][3];			// beta cell
+        phases[K-1].PAR[10]=cellx->AL[1][2];			// gamma cell
         file6 << "***Coding of variables***" << endl
             << "ATOM                        X         Y         Z         B         So" << endl
             << "                          B11       B22       B33       B12       B13       B23" << endl;
@@ -10915,79 +9352,79 @@ L477:
             }
         }
         //-----PRINT CODEWORDS FOR PROFILE PARAMETERS
-        file6 << "OVERALL SCALE FACTOR=" << setw(8) << setprecision(2) << phases[K-1].PAR_[1-1].A << endl
-            << "OVERALL TEMP. FACTOR=" << setw(8) << setprecision(2) << phases[K-1].PAR_[2-1].A << endl
+        file6 << "OVERALL SCALE FACTOR=" << setw(8) << setprecision(2) << phases[K-1].PAR[0].codeword << endl
+            << "OVERALL TEMP. FACTOR=" << setw(8) << setprecision(2) << phases[K-1].PAR[1].codeword << endl
             << "DIRECT CELL PARAMETERS="
-            << setw(8) << setprecision(2) << phases[K-1].PAR_[6-1].A
-        << setw(8) << setprecision(2) << phases[K-1].PAR_[7-1].A
-        << setw(8) << setprecision(2) << phases[K-1].PAR_[8-1].A
-        << setw(8) << setprecision(2) << phases[K-1].PAR_[9-1].A
-        << setw(8) << setprecision(2) << phases[K-1].PAR_[10-1].A
-        << setw(8) << setprecision(2) << phases[K-1].PAR_[11-1].A << endl
+            << setw(8) << setprecision(2) << phases[K-1].PAR[5].codeword
+        << setw(8) << setprecision(2) << phases[K-1].PAR[6].codeword
+        << setw(8) << setprecision(2) << phases[K-1].PAR[7].codeword
+        << setw(8) << setprecision(2) << phases[K-1].PAR[8].codeword
+        << setw(8) << setprecision(2) << phases[K-1].PAR[9].codeword
+        << setw(8) << setprecision(2) << phases[K-1].PAR[10].codeword << endl
             << "PREFERRED ORIENTATION PARAMETERS="
-            << setw(8) << setprecision(2) << phases[K-1].PAR_[12-1].A
-        << setw(8) << setprecision(2) << phases[K-1].PAR_[13-1].A << endl
+            << setw(8) << setprecision(2) << phases[K-1].PAR[11].codeword
+        << setw(8) << setprecision(2) << phases[K-1].PAR[12].codeword << endl
             << "ASYMMETRY PARAMETER="
-            << setw(8) << setprecision(4) << phases[K-1].PAR_[14-1].A << endl;
+            << setw(8) << setprecision(4) << phases[K-1].PAR[13].codeword << endl;
 
         // !cp ap 97 (from It code)
-        if(cntrls->FONDO == 1 && (phases[K-1].PAR_[2-1] != 0.0 || phases[K-1].PAR_[2-1].A != 0.0)) goto L88888;
-        if(cntrls->FONDO == 2 && phases[K-1].PAR_[2-1] == 0.0 && phases[K-1].PAR_[2-1].A == 0.0) goto L88889;
+        if(cntrls->FONDO == 1 && (phases[K-1].PAR[1] != 0.0 || phases[K-1].PAR[1].codeword != 0.0)) goto L88888;
+        if(cntrls->FONDO == 2 && phases[K-1].PAR[1] == 0.0 && phases[K-1].PAR[1].codeword == 0.0) goto L88889;
         //-----CHECK FOR SPLIT PEARSON PROFILE
         if (cntrls->NPROF == _SplitPearsonVII)
         {
             file6 << "LOW SIDE EXPONENT COEFFICIENTS="
-                << setw(8) << setprecision(2) << phases[K-1].PAR_[17-1].A
-            << setw(8) << setprecision(2) << phases[K-1].PAR_[18-1].A
-            << setw(8) << setprecision(2) << phases[K-1].PAR_[19-1].A << endl
+                << setw(8) << setprecision(2) << phases[K-1].PAR[16].codeword
+            << setw(8) << setprecision(2) << phases[K-1].PAR[17].codeword
+            << setw(8) << setprecision(2) << phases[K-1].PAR[18].codeword << endl
                 << "HIGH SIDE EXPONENT COEFFICIENTS="
-                << setw(8) << setprecision(2) << phases[K-1].PAR_[24-1].A
-            << setw(8) << setprecision(2) << phases[K-1].PAR_[25-1].A
-            << setw(8) << setprecision(2) << phases[K-1].PAR_[26-1].A << endl
+                << setw(8) << setprecision(2) << phases[K-1].PAR[23].codeword
+            << setw(8) << setprecision(2) << phases[K-1].PAR[24].codeword
+            << setw(8) << setprecision(2) << phases[K-1].PAR[25].codeword << endl
                 << "SPLIT PEARSON VII ASSYMETRY PARAMETER="
-                << setw(8) << setprecision(2) << phases[K-1].PAR_[27-1].A << endl;
+                << setw(8) << setprecision(2) << phases[K-1].PAR[26].codeword << endl;
         }
         else
         {
             //-----if NOT THE SPLIT PEARSON VII PROFILE
             file6
                 << "MIXING PARAMETERS = "
-                << setw(10) << setprecision(3) << phases[K-1].PAR_[17-1].A
-                << setw(10) << setprecision(3) << phases[K-1].PAR_[18-1].A
-                << setw(10) << setprecision(3) << phases[K-1].PAR_[19-1].A << endl;
+                << setw(10) << setprecision(3) << phases[K-1].PAR[16].codeword
+                << setw(10) << setprecision(3) << phases[K-1].PAR[17].codeword
+                << setw(10) << setprecision(3) << phases[K-1].PAR[18].codeword << endl;
         }
         file6
             << "FWHM PARAMETERS (U,V,W,CT,Z,X,Y)="
-            << setw(8) << setprecision(2) << phases[K-1].PAR_[3-1].A
-            << setw(8) << setprecision(2) << phases[K-1].PAR_[4-1].A
-            << setw(8) << setprecision(2) << phases[K-1].PAR_[5-1].A
-            << setw(8) << setprecision(2) << phases[K-1].PAR_[21-1].A
-            << setw(8) << setprecision(2) << phases[K-1].PAR_[20-1].A
-            << setw(8) << setprecision(2) << phases[K-1].PAR_[15-1].A
-            << setw(8) << setprecision(2) << phases[K-1].PAR_[16-1].A << endl;
+            << setw(8) << setprecision(2) << phases[K-1].PAR[2].codeword
+            << setw(8) << setprecision(2) << phases[K-1].PAR[3].codeword
+            << setw(8) << setprecision(2) << phases[K-1].PAR[4].codeword
+            << setw(8) << setprecision(2) << phases[K-1].PAR[20].codeword
+            << setw(8) << setprecision(2) << phases[K-1].PAR[19].codeword
+            << setw(8) << setprecision(2) << phases[K-1].PAR[14].codeword
+            << setw(8) << setprecision(2) << phases[K-1].PAR[15].codeword << endl;
         for (I=1; I <= 27; ++I)
         {
-            X=phases[K-1].PAR_[I-1].A;
+            X=phases[K-1].PAR[I-1].codeword;
             IYY=static_cast<int>(abs(X)/10.0);
-            phases[K-1].PAR_[I-1].L=IYY;
-            phases[K-1].PAR_[I-1].A=(abs(X)-10.*static_cast<double>(IYY))*sign(X);
+            phases[K-1].PAR[I-1].L=IYY;
+            phases[K-1].PAR[I-1].codeword=(abs(X)-10.*static_cast<double>(IYY))*sign(X);
         }
         //L151:
-        LOOKUP(K,jnk->NATOM[K],jnk->NSCAT,IXRAY,cntrls->JOBTYP);
+        LOOKUP(K,phases[K].AtomCount,jnk->NSCAT,IXRAY,cntrls->JOBTYP);
         if(cntrls->FONDO == 1 || cntrls->FONDO == 2) FINDC(K,jnk->NSCAT);
-        g1->U=phases[K-1].PAR_[3-1];
-        g1->V=phases[K-1].PAR_[4-1];
-        g1->W=phases[K-1].PAR_[5-1];
-        g1->ZZZ = phases[K-1].PAR_[20-1];
-        g1->UC = phases[K-1].PAR_[21-1];
+        g1->U=phases[K-1].PAR[2];
+        g1->V=phases[K-1].PAR[3];
+        g1->W=phases[K-1].PAR[4];
+        g1->ZZZ = phases[K-1].PAR[19];
+        g1->UC = phases[K-1].PAR[20];
         if (cntrls->NPROF == _TCHZ)
         {
-            g1->ULOR=phases[K-1].PAR_[15-1];
-            g1->VLOR=phases[K-1].PAR_[16-1];
+            g1->ULOR=phases[K-1].PAR[14];
+            g1->VLOR=phases[K-1].PAR[15];
         }
-        REFGEN(K,params->GLB_[1-1],params->GLB_[10-1],params->GLB_[11-1],jnk->PREF,phases[K-1].PAR_[12-1]);
+        REFGEN(K,params->GLB_[1-1],params->GLB_[10-1],params->GLB_[11-1],phases[K-1].PAR[11],NCTR_);
         simoper->ISIMOP=0;
-        RTMT(&cntrls->IPL1,&K);
+        RTMT(&MULTX_,Y_,&cntrls->IPL1,NCTR_,&K);
         ICY=1;
         ICZ=0;
         for (IIPHAS=1; IIPHAS <= K; ++IIPHAS) ICZ = ICZ + refls->ICR[IIPHAS];
@@ -11020,8 +9457,8 @@ L477:
             }
             else if (cntrls->NPROF == _SplitPearsonVII)
             {
-                refls->FWHM[IXX][1]=2.0*(refls->REFS[IXX][1])*phases[K-1].PAR_[27-1]/(1.0+phases[K-1].PAR_[27-1]);
-                refls->FWHM[IXX][2]=2.0*(refls->REFS[IXX][1])/(1.0+phases[K-1].PAR_[27-1]);
+                refls->FWHM[IXX][1]=2.0*(refls->REFS[IXX][1])*phases[K-1].PAR[26]/(1.0+phases[K-1].PAR[26]);
+                refls->FWHM[IXX][2]=2.0*(refls->REFS[IXX][1])/(1.0+phases[K-1].PAR[26]);
                 if((IX-1 % 60) == 0) file6 << "NO.  CODE    H   K   L  MULT      HWL    HWH     FWHM   POSN    FACTOR" << endl;
                 file6 << setw(4) << IX
                     << setw(4) << IRC << "   "
@@ -11058,15 +9495,15 @@ L479:
     // FIND CODEWORDS FOR GLOBAL PARAMETERS: LGLB(I) & AGLB(I)
     for (I=1; I <= 20; ++I)
     {
-        X=params->GLB_[I-1].A;
+        X=params->GLB_[I-1].codeword;
         IYY=static_cast<int>(abs(X)/10.0);
         params->GLB_[I-1].L=IYY;
-        params->GLB_[I-1].A=(abs(X)-10.*static_cast<double>(IYY))*sign(X);
+        params->GLB_[I-1].codeword=(abs(X)-10.*static_cast<double>(IYY))*sign(X);
     }
     qpainit();
     if (cntrls->JOBTYP > 2) return;
     NATOMS = 0;
-    for (K=1; K <= cntrls->NPHASE; ++K) NATOMS = NATOMS + jnk->NATOM[K];
+    for (K=1; K <= cntrls->NPHASE; ++K) NATOMS = NATOMS + phases[K].AtomCount;
     //     COUNT NO. OF USES OF SAME LOCATION IN NORMAL MATRIX
     for (I=1; I <= cntrls->MAXS; ++I)
     {
@@ -11074,7 +9511,7 @@ L479:
         for (J=1; J <= 20; ++J) if ( I == params->GLB_[J-1].L ) LCOUNT = LCOUNT + 1;
         for (K=1; K <= cntrls->NPHASE; ++K)
         {
-            for (J=1; J <= 27; ++J) if ( I == phases[K-1].PAR_[J-1].L )  LCOUNT = LCOUNT + 1;
+            for (J=1; J <= 27; ++J) if ( I == phases[K-1].PAR[J-1].L )  LCOUNT = LCOUNT + 1;
         }
         for (K=1; K <= NATOMS; ++K)
         {
@@ -11091,7 +9528,7 @@ L479:
         //  HOLES IN PHASE PARAMETER
         for (K=1; K <= cntrls->NPHASE; ++K)
         {
-            for (J=1; J <= 27; ++J) if(I == phases[K-1].PAR_[J-1].L) goto L7200;
+            for (J=1; J <= 27; ++J) if(I == phases[K-1].PAR[J-1].L) goto L7200;
         }
         // HOLES IN ATOMS PARAMETERS
         for (K=1; K <= NATOMS; ++K)
@@ -11119,13 +9556,14 @@ L88888:
     DBWSException("WITH FONDO=1 YOU MUST USE ISOTROPIC THERMAL FACTORS");
 L88889:
     DBWSException("if FONDO=2 YOU MUST USE THE OVERALL THERMAL FACTOR");
-L88088:
-    if (file4.is_open()) file4.close();
-    if (file5.is_open()) file5.close();
-    if (file6.is_open()) file6.close();
-    if (file8o.is_open()) file8o.close(); //	close(8,status='DELETE');
-    if (file8i.is_open()) file8i.close();
-    DBWSException("");
+
+//L88088:
+//    if (file4.is_open()) file4.close();
+//    if (file5.is_open()) file5.close();
+//    if (file6.is_open()) file6.close();
+//    if (file8o.is_open()) file8o.close(); //	close(8,status='DELETE');
+//    if (file8i.is_open()) file8i.close();
+//    DBWSException("");
 }
 
 //ccccc subroutine inpam: To read the amorphous data file !cp may 10 97
