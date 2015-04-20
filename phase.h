@@ -31,6 +31,9 @@ public:
     int ICNTPHS;         // RTMTX
 
     double VOLI,GCOM;   // VOLUME
+    double SCABKG;      // BKGSCALE      background scale
+
+    int ICR;       //REFLS
 };
 
 #endif // PHASE_H
