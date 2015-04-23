@@ -26,7 +26,7 @@ public:
     double WTIS;
 
 
-    int IVEC[192+1];         // RTMTX
+    int IVEC_[192+1];         // RTMTX
     int MLTPHS;         // RTMTX
     int ICNTPHS;         // RTMTX
 
@@ -34,6 +34,12 @@ public:
     double SCABKG;      // BKGSCALE      background scale
 
     int ICR;       //REFLS
+
+    double XMLTP;
+
+    double CSK;
+    double DISK;
+    double DYCDD;
 };
 
 #endif // PHASE_H

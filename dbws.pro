@@ -7,7 +7,8 @@ SOURCES += main.cpp \
     phase.cpp \
     spacegroup.cpp \
     diffractogram.cpp \
-    dbwsexception.cpp
+    dbwsexception.cpp \
+    reflections.cpp
 
 HEADERS += \
     param_inc.h \
@@ -16,5 +17,6 @@ HEADERS += \
     phase.h \
     spacegroup.h \
     diffractogram.h \
-    dbwsexception.h
+    dbwsexception.h \
+    reflections.h
 

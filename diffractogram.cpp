@@ -4,6 +4,26 @@ Diffractogram::Diffractogram()
 {
 }
 
+void Diffractogram::CalcLamdaM(void)
+{
+    LAMDAM=(RATIO[1]*LAMDA[1]+RATIO[2]*LAMDA[2])/(RATIO[1]+RATIO[2]);
+}
+
+int Diffractogram::SearchWavelength(void)
+{
+    int i,tmp = 0;
+
+    for (i=1; i <= 10; ++i)
+    {
+        if(1.03*LAMDA[1] > XRYZ[i])
+        {
+            tmp=i;
+            break;
+        }
+    }
+    return tmp;
+}
+
 void Diffractogram::ReadDBWS(void)
 {
     string s,s1;
@@ -328,8 +348,6 @@ L70:
     //	DBWSException("END OF FILE unit=4");
 }
 
-
-
 void Diffractogram::SIEMENSREAD(void)
 {
     int I;
@@ -486,6 +504,232 @@ L20:
     //	DBWSException("END OF FILE unit=4");
     //L99999:
     //	DBWSException("IS THE FILE NOT RIGAKU FORMATED?");
+}
+
+void Diffractogram::ReadSynchrotronData(void)
+{
+    string s,DATE;
+    int I,J,NRANGE, IPTS;
+    double CHMBRI, ANGMAX, ANGMIN, TAUK, STPTIM, OFSTI0, OFSTI1,FLEET1, FLEET2;
+
+    //       READ DATA FROM SYNCHROTRON SOURCE AND CORRECT DATA FOR DEAD TIME,
+    //      CALCULATE VARIANCE FOR EACH OF THE DATA POINTS
+    //     DATE IS OCT85,FEB86,AUG86,SRS83,SRS91
+    //     NRANGE IS THE NO OF BLOCKS IN WHICH THE DATA ARE GIVEN
+    //     OFSTI0 - DARK BEAM CURRENT, READING WITH NO ELECTRONS IN THE CHAMBER
+    //     OFSTI1 - DETECTOR DARK BEAM CURRENT
+    //     CHMBRI - ALL CURRENTS ARE  NORMALISED TO CHMBRI
+    getline(file4,s);
+    DATE = s.substr(0,5);
+    DATAID = s.substr(5,56);
+    *file6 << "    DATA ID " << DATAID << endl;
+    getline(file4,s);
+    stringstream(s.substr(0*8,8)) >> NRANGE;
+    stringstream(s.substr(1*8,8)) >> CHMBRI;
+    stringstream(s.substr(2*8,10)) >> TAUK;
+
+    //     NPTS IS THE COUNTER FOR TOTAL NO OF POINTS IN ALL THE RANGES
+    NPTS = 0;
+    for (J=1; J <= NRANGE; ++J)
+    {
+        //     READ INFORMATION ABOUT EACH RANGE
+        getline(file4,s);
+        stringstream(s.substr(0*8,8)) >> ANGMIN;
+        stringstream(s.substr(1*8,8)) >> STEP;
+        stringstream(s.substr(2*8,8)) >> ANGMAX;
+        stringstream(s.substr(3*8,8)) >> STPTIM;
+        stringstream(s.substr(4*8,8)) >> OFSTI0;
+        stringstream(s.substr(5*8,8)) >> OFSTI1;
+        IPTS = static_cast<int>((ANGMAX-ANGMIN)/STEP +1.5);
+        //     FIND MAXIMUM AND MINIMUM TWO THETA IN ALL RANGES
+        if (J == 1) THMIN = ANGMIN;
+        if (J == NRANGE) THMAX = ANGMAX;
+        if (J > 1)
+        {
+            getline(file4,s);
+            IPTS = IPTS - 1;
+        }
+        if (NPTS+IPTS > IDSZ)
+        {
+            *file6 << "PROGRAM CAN HANDLE " << setw(5) << IDSZ << "POINTS" << endl
+                << setw(5) << (NPTS+IPTS) << " POINTS WERE INPUT" << endl
+                << "INCREASE IDSZ IN PARAMETER STATEMENT" << endl;
+            DBWSException("TOO MANY DATA POINTS");
+        }
+        //     VAR(I) IS USED FOR TWO QUANTITIES, JUST TO SAVE SOME SPACE.
+        if (DATE == "OCT85")
+        {
+            for (I=1; I <= IPTS; ++I)
+            {
+                getline(file4,s);
+                stringstream(s.substr(24,7)) >> Y[I+NPTS];
+                stringstream(s.substr(32,7)) >> VAR[I+NPTS];
+            }
+        }
+        else if (DATE == "FEB86")
+        {
+            for (I=1; I <= IPTS; ++I)
+            {
+                getline(file4,s);
+                stringstream(s.substr(24,7)) >> Y[I+NPTS];
+                stringstream(s.substr(32,7)) >> VAR[I+NPTS];
+            }
+        }
+        else if (DATE == "AUG86")
+        {
+            for (I=1; I <= IPTS; ++I)
+            {
+                getline(file4,s);
+                stringstream(s.substr(51,10)) >> VAR[I+NPTS];
+                stringstream(s.substr(62,10)) >> Y[I+NPTS];
+            }
+        }
+        else if (DATE == "SRS83")
+        {
+            for (I=1; I <= IPTS; ++I)
+            {
+                getline(file4,s);
+                stringstream(s.substr(37,9)) >> VAR[I+NPTS];
+                stringstream(s.substr(47,9)) >> Y[I+NPTS];
+            }
+        }
+        else if (DATE == "SRS91")
+        {
+            for (I=1; I <= IPTS; ++I)
+            {
+                getline(file4,s);
+                stringstream(s.substr(29,9)) >> VAR[I+NPTS];
+                stringstream(s.substr(48,9)) >> Y[I+NPTS];
+            }
+        }
+        else
+        {
+            *file6 << "    WHEN AND WHERE WERE THESE DATA TAKEN. OCT85,FEB86,AUG86,SRS83,SRS91" << endl;
+        }
+        for (I=NPTS+1; I <= IPTS+NPTS; ++I)
+        {
+            Y[I] = Y[I]/STPTIM;
+            FLEET1 = VAR[I]-OFSTI0;
+            FLEET2= FLEET1/CHMBRI;
+            FLEET2= pow((FLEET2*(1-TAUK*Y[I])) , 2.0);
+            VAR[I] = (STPTIM*Y[I])/FLEET2;
+            Y[I] = STPTIM*(Y[I]/(1-TAUK*Y[I])-OFSTI1)*CHMBRI/FLEET1;
+            if (abs(Y[I]) < 0.01) Y[I]=1.0;
+        }
+        //L530:
+        NPTS=NPTS+IPTS;
+    }
+    *file6 << "DATA RANGE (2THETA):  START = " << setw(8) << setprecision(2) << THMIN
+        << ", STOP =" << setw(8) << setprecision(2) << THMAX
+        << ", STEP =" << setw(8) << setprecision(2) << STEP << endl;
+    cout  << "DATA RANGE (2THETA):  START = " << setw(8) << setprecision(2) << THMIN
+        << ", STOP =" << setw(8) << setprecision(2) << THMAX
+        << ", STEP =" << setw(8) << setprecision(2) << STEP << endl;
+}
+
+void Diffractogram::ReadNeutronData(void)
+{
+    int I,J, IPTS = 0;
+    string s,s1;
+
+    //     BEGIN VARIANCE CALCULATION FOR VARYING NO. OF COUNTERS AT EACH STEP
+    getline(file4,s);
+    stringstream(s.substr(0*8,8)) >> THMIN;
+    stringstream(s.substr(1*8,8)) >> STEP;
+    stringstream(s.substr(2*8,8)) >> THMAX;
+    DATAID = s.substr(3*8,56);
+    *file6 << "    DATA ID " << DATAID << endl;
+    *file6 << "DATA RANGE (2THETA):  START =" << setw(8) << setprecision(2) << THMIN
+        << ", STOP =" << setw(8) << setprecision(2) << THMAX
+        << ", STEP =" << setw(8) << setprecision(2) << STEP << endl;
+    NPTS = static_cast<int>((THMAX-THMIN)/STEP+1.5);
+    if (NPTS > IDSZ)
+    {
+        *file6 << "PROGRAM CAN HANDLE " << setw(5) << IDSZ << "POINTS" << endl
+            << NPTS+IPTS << " POINTS WERE INPUT" << endl
+            << "INCREASE IDSZ IN PARAMETER STATEMENT" << endl;
+        DBWSException("TOO MANY DATA POINTS");
+    }
+    I=0;
+    while ( I > NPTS)
+    {
+        getline(file4,s);
+        for (J = 1; J <= 10; ++J)
+        {
+            s1 = s.substr((J-1)*8,2);
+            if ( !s1.empty() )
+            {
+                ++I;
+                stringstream(s1) >> VAR[I];
+            }
+            s1 = s.substr((J-1)*8+2,6);
+            if ( !s1.empty() )
+            {
+                stringstream(s1) >> Y[I];
+            }
+        }
+    }
+    for (I=1; I <= NPTS; ++I) VAR[I]=Y[I]/VAR[I];
+}
+
+void Diffractogram::ReadFileBackground()
+{
+    int I,J;
+    string s,s1;
+
+    file3.open(file3name.data());
+    I=0;
+    while ( I > NPTS)
+    {
+        getline(file3,s);
+        for (J = 1; J <= 8; ++J)
+        {
+            s1 = s.substr((J-1)*8,7);
+            if ( !s1.empty() )
+            {
+                ++I;
+                stringstream(s1) >> BK[I];
+            }
+        }
+    }
+}
+
+void Diffractogram::InitPolynomialBackground()
+{
+    int I,J, NBX, NBC, NXX, NINC, N2X;
+    double DIFB,BSTEP;
+
+    DIFB=POS[1]-THMIN;
+    if (DIFB < 0.0)
+    {
+        NBX=static_cast<int>((POS[2]-THMIN)/STEP+1.5);
+        BK[1]=BCK[1]-DIFB/(POS[2]-POS[1])*(BCK[2]-BCK[1]);
+        BSTEP=STEP/(POS[2]-POS[1])*(BCK[2]-BCK[1]);
+        for (I=2; I <= NBX; ++I) BK[I]=BK[I-1]+BSTEP;
+        NXX=2;
+    }
+    else
+    {
+        NBX=static_cast<int>(DIFB/STEP+2.5);
+        for (I=1; I <= NBX; ++I) BK[I]=BCK[1];
+        NXX=1;
+    }
+    NBC=NBCKGD-1;
+    if (POS[NBCKGD] < THMAX)
+    {
+        POS[NBCKGD+1]=THMAX;
+        BCK[NBCKGD+1]=BCK[NBCKGD];
+        NBC=NBC+1;
+    }
+    for (J=NXX; J <= NBC; ++J)
+    {
+        BSTEP=STEP*(BCK[J+1]-BCK[J])/(POS[J+1]-POS[J]);
+        NINC=static_cast<int>((POS[J+1]-POS[J])/STEP+1.5);
+        N2X=min(NPTS,NBX+NINC);
+        for (I=NBX; I <= N2X; ++I) BK[I]=BK[I-1]+BSTEP;
+        NBX=N2X;
+        if(NBX == NPTS) break;
+    }
 }
 
 void Diffractogram::readasc(void)
