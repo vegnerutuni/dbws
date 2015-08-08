@@ -7,8 +7,6 @@ QMAKE_CXXFLAGS += -std=c++11
 
 SOURCES += main.cpp
 
-include(deployment.pri)
-qtcAddDeployment()
 
 HEADERS +=
 

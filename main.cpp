@@ -1313,7 +1313,7 @@ struct
 } labels;
 
 string namefile3,namefile4,namefile5,namefile6,namefile11;
-fstream file3,file4,file5,file6,file7,file9,file10,file11,file31,file32,file33,file34,file35,file36,file37,file38;
+fstream file3,file4,file5,file6,file11,file31,file32,file33,file34,file35,file36,file37,file38;
 
 // Lê ou grava um arquivo RIT, por padrão o arquivo com difratograma no DBWS
 class FileRIT
@@ -5887,11 +5887,6 @@ void DBWS::SORT(int IPHASE)
 {
     int I, J, K, L[IRS+1], M,  IC, LL, IZ, LX, IOF, INP, INP1, ITEMP[IRS+1], IIPHAS;
     Refs tmp[IRS+1];
-    int temp_REFS_h[IRS+1];
-    int temp_REFS_k[IRS+1];
-    int temp_REFS_l[IRS+1];
-    int temp_REFS_c[IRS+1];
-    int temp_REFS_phase[IRS+1];
 
     double R,TEMP[IRS+1];
 
@@ -5903,7 +5898,6 @@ void DBWS::SORT(int IPHASE)
     if (IPHASE == 1000)
     {
         IC=0;
-        //        DO 4101 IIPHAS=1,8                !cp 03aug97
         for(IIPHAS=1; IIPHAS <= 99; IIPHAS++) IC = IC  + ICR_[IIPHAS];
     }
     else
@@ -6079,7 +6073,7 @@ void DBWS::ASSIGN()
     }
     cout << "NO REFLECTIONS FOUND" << endl;
     exit (EXIT_FAILURE);
-    // test for detecting the asymmetry model required    !cp ap 16 97
+    // test for detecting the asymmetry model required
     // new code included in line 2 of ICF
     // iasym = 0 (usual Rietveld asymmetry)
     // iasym = 1 (new asymmetry. Riello, Canton & Fagherazzi.PD 10,3,204-206,1997)
@@ -6908,7 +6902,7 @@ void DBWS::CALCUL(int NN)
     }
     FNN=RATIO[refs[NN].lambda]*(CV*CV+AV*AV+DV*DV+BV*BV)*TAV*SR;
 
-    // PREPARING PHASE and struc fact TO BE PRINTED  !cp june 98
+    // PREPARING PHASE and struc fact TO BE PRINTED
     struphase.TAVIX[NN]=TAV;
     struphase.SRIX[NN]=SR;
     if (AV == 0) AV=1e-6;
@@ -7076,14 +7070,15 @@ void DBWS::CALCUL(int NN)
     for(J=3; J <= 5; J++)
     {
         K=refs[NN].phase->PAR[J].codeword.L;
-        if (K == 0) goto L78;
-        DERIV[K]=X*SS+DERIV[K];
-L78:
+        if (K != 0)
+        {
+            DERIV[K]=X*SS+DERIV[K];
+        }
         X=X/TANTH;
     }
     K=refs[NN].phase->PAR[21].codeword.L;
     if (K == 0) goto L9212;
-    //C for cot^2 case                                    !cp nov 29 96
+    //C for cot^2 case
     DERIV[K]=SS/(TANTH*TANTH)+DERIV[K];
     //-----Split Pearson VII Broadening Derivatives
 L9212:
@@ -7289,7 +7284,7 @@ L9214:
         DERIV[K] += refs[NN].h*refs[NN].k*SINTH;
     }
 
-    //-Asymmetry Derivative.  Test for asymmetry model included !cp may 97
+    //-Asymmetry Derivative.  Test for asymmetry model included
     K=refs[NN].phase->PAR[14].codeword.L;
     if ((K != 0) && VERT)
     {
@@ -7544,7 +7539,7 @@ void DBWS::SUMMAT(int IPM,double CSK[], double DISK[], double DYCDD[],double TOT
         //prfx.IPH_=refs[I].iphase;
         IL=IL+1;
         J=MOD(I,NOV)+1;
-        // test for asymmetry function !cp ap 12 97
+        // test for asymmetry function
         if (iasym == 0)
         {
             VERT = REFS[I][2] <= RLIM;
@@ -7578,7 +7573,7 @@ void DBWS::SUMMAT(int IPM,double CSK[], double DISK[], double DYCDD[],double TOT
         if (prfx.DELT/BB > WDT*WDT) goto L33;
         if (VERT)
         {
-            //       test for asymmetry model               !cp may 01 97
+            //       test for asymmetry model
             if (iasym == 0)
             {
                 YX=prfx.DELT*SIGN(1.0,prfx.DELTA);
@@ -7795,7 +7790,6 @@ L11:
         //--------------------------------------------------------------------
         DERIV[LK]=DERIV[LK]+TOTCS/ASS5*DERMON;
     }
-    //   !cp ap 20 97
     LK=GLB[19].codeword.L;
     ASS5=1/(1+GLB[18]*pow(ESSE,GLB[19]));
     if ( LK != 0 )
@@ -7996,9 +7990,6 @@ void DBWS::ESD(double SM[][6+1], double V[], double SUM)
 L3:
         S[I+3]=90.0;
         E[I+3]=0.0;
-        //4       CONTINUE
-        //       if (FNUM > 0.)S(I+3)=180.-S(I+3)
-        //                     !cp ap 23 97
 L4:
         if (FNUM > 0.) S[I+3]=180.0-S[I+3];
         if (SM[ID][ID] == 0.0) E[ID]=0.0;
@@ -8100,18 +8091,14 @@ void DBWS::OUTPTR(int ICYCLE)
                     KM=atoms[I+IOF].AtomPAR[J].codeword.L;
                     if (KM != 0)
                     {
-                        //  !cp jun 96 start
                         if (J ==  5)
                         {
                             DUMMY[KM] = atoms[I+IOF].AtomPAR[J]*multip.XMLTP[IP]/atoms[I+IOF].MURT;
                         }
                         else
                         {
-                            // !cp jun 96 stop
                             DUMMY[KM]  =atoms[I+IOF].AtomPAR[J];
-                            // !cp set 96 start
                         }
-                        // !cp set 96 stop
                     }
                 }
             }
@@ -8120,15 +8107,12 @@ void DBWS::OUTPTR(int ICYCLE)
                 for(J=6; J <= 11; J++)
                 {
                     KM=atoms[I+IOF].AtomPAR[J].codeword.L;
-                    //              if (KM != 0) DUMMY(KM)  =XL(I+IOF,J)
                     if (KM != 0)
                     {
-                        //  !cp jun 96 start
                         if (J ==  5)
                         {
                             DUMMY[KM] = atoms[I+IOF].AtomPAR[J]*multip.XMLTP[IP]/atoms[I+IOF].MURT;
                         }
-                        //c !cp jun 96 stop
                         DUMMY[KM]  =atoms[I+IOF].AtomPAR[J];
                     }
                 }
@@ -8153,7 +8137,6 @@ void DBWS::OUTPTR(int ICYCLE)
                 }
             }
         }
-        //      DO 6019 J=1,13   !cp may 97
         for(J=1; J <= 20; J++)
         {
             //        if (NPROF == 8 && (J == 8 || J == 9)) goto 6019
@@ -8161,7 +8144,7 @@ void DBWS::OUTPTR(int ICYCLE)
             //        if (NPROF == 6 && J == 8) goto 6019
             //        if (nprof == 5 && (j == 8 || j == 9)) goto 6019
             // glb(8) and gkb(9) are now used to surface roughness
-            // and glb(14), glb(15), glb(16) aree unused  !cp may 97
+            // and glb(14), glb(15), glb(16) aree unused
             if (nprof == 8 && (J == 14 || J == 15 || J == 16)) goto L6019;
             if (nprof == 7 && (J == 14 || J == 15 || J == 16)) goto L6019;
             if (nprof == 6 && (J == 14 || J == 15 || J == 16)) goto L6019;
@@ -8171,7 +8154,6 @@ void DBWS::OUTPTR(int ICYCLE)
 L6019:
             ;
         }
-        //vv WRITE (8,ERR=99990) (DUMMY(I),I=1,MAXSX),(DUMMY(I),I=MSZ+1,MSZ+MAXSX),(DUMMY(I),I=2*MSZ+1,2*MSZ+4)
         for(I=1; I <= 4; I++)
         {
             if (MOD(I,2) == 1) allp.ILOC = allp.ILOC + 1;
@@ -8180,7 +8162,6 @@ L6019:
     }
     if (MAXS == 0 && mcycle == 1) return;
     allp.ILOC = 0;
-    //      DO 8127 I=1,8*MSZ
     for(I=1; I <= NFINAL; I++)
     {
         for(J=1; J <= 2; J++) allp.FINAL[I][J] = 0.0;
@@ -8210,7 +8191,6 @@ L6019:
                 if (KM != 0) goto L6;
                 atoms[I+IOF].AtomPAR[J].SY=0.0;
                 atoms[I+IOF].AtomPAR[J].SZ=0.0;
-                //  !cp jun 97 start
                 if (J == 5)
                 {
                     allp.FINAL[allp.ILOC][1] = atoms[I+IOF].AtomPAR[J]*multip.XMLTP[IP]/atoms[I+IOF].MURT;
@@ -8219,12 +8199,10 @@ L6019:
                 {
                     allp.FINAL[allp.ILOC][1] = atoms[I+IOF].AtomPAR[J];
                 }
-                //  !cp jun 97 stop
                 goto  L5;
 L6:
                 atoms[I+IOF].AtomPAR[J].SZ = sqrt(abs(f1.matrix[KM][KM]));
                 atoms[I+IOF].AtomPAR[J].SY = f1.VX[KM]*atoms[I+IOF].AtomPAR[J].codeword*RELAX[1];
-                //  !cp jun 96 start
                 if (J ==  5)
                 {
                     DUMMY[KM] = atoms[I+IOF].AtomPAR[J]*multip.XMLTP[IP]/atoms[I+IOF].MURT;
@@ -8235,7 +8213,6 @@ L6:
                 }
                 else
                 {
-                    // !cp jun 96 stop
                     DUMMY[KM]  = atoms[I+IOF].AtomPAR[J];
                     atoms[I+IOF].AtomPAR[J]=atoms[I+IOF].AtomPAR[J] + atoms[I+IOF].AtomPAR[J].SY;
                     DUMMY[KM+MSZ]  = atoms[I+IOF].AtomPAR[J].SY;
@@ -8246,7 +8223,6 @@ L6:
 L5:
                 ;
             }
-            // !cp jun 96 start
             file6 << atoms[I + IOF].ATEXT << "  ";
             for (J = 1; J <= 4; ++J)
             {
@@ -8272,7 +8248,6 @@ L5:
 L9:
                 atoms[I+IOF].AtomPAR[J].SZ = sqrt(abs(f1.matrix[KM][KM]));
                 atoms[I+IOF].AtomPAR[J].SY = f1.VX[KM]*atoms[I+IOF].AtomPAR[J].codeword*RELAX[2];
-                //  !cp jun 96 start
                 if (J ==  5)
                 {
                     DUMMY[KM] = atoms[I+IOF].AtomPAR[J]*multip.XMLTP[IP]/atoms[I+IOF].MURT;
@@ -8289,7 +8264,6 @@ L9:
                     allp.FINAL[allp.ILOC][1] = atoms[I+IOF].AtomPAR[J];
                     allp.FINAL[allp.ILOC][2] = atoms[I+IOF].AtomPAR[J].SZ;
                 }
-                // !cp jun 96 stop
 L8:
                 ;
             }
@@ -8314,7 +8288,6 @@ L8:
             }
             allp.ILOC = allp.ILOC + 1;
             if ( J == 6 ) ILOC1 = allp.ILOC;
-            //         if (J == 11) ILOC2 = ILOC
             KM = phases[IP].PAR[J].codeword.L;
             if ( KM == 0 )
             {
@@ -8482,7 +8455,7 @@ L8:
 
         //-----Modification introduced by Carlos O. Paiva-Santos to perform
         //-----Quantitative phase analysis, 03/94. Added 05/94, T.S. Moss
-        //-----CHANGES TO INCORPORATE THE REFINED OCCUPANCY. Paiva-Santos (Feb-Mar/95)
+        //-----CHANGES TO INCORPORATE THE REFINED OCCUPANCY.
         for(I=1; I <= N; I++)
         {
             ICOCO=atoms[I+IOF].PTR;
@@ -8499,7 +8472,6 @@ L8:
         DCSM[6][6] = DCSM[6][6] * XFAC;
         //-----Calculations of VOLUME and SVZM (=W) for each phase
         //-----and respectives standard deviations
-        //-----New standard deviation code introduced in nov 96 !cp
         ARGCOS= 1-pow((cos(DCV[4])),2)-pow((cos(DCV[5])),2)-pow((cos(DCV[6])),2) + 2 * (cos(DCV[4])) * (cos(DCV[5])) * (cos(DCV[6]));
         V0 = DCV[1] * DCV[2] * DCV[3];
         VOL[IP] = V0 * sqrt(ARGCOS);
@@ -8508,7 +8480,7 @@ L8:
         ARG2 = VOSQ*(2 * cos(DCV[5]) * sin(DCV[5]) - 2*sin(DCV[5]) *cos(DCV[4]) *cos(DCV[6])) *DCSM[5][5];
         ARG3 = VOSQ*(2 * cos(DCV[6]) * sin(DCV[6]) - 2*sin(DCV[6]) *cos(DCV[4]) *cos(DCV[5])) *DCSM[6][6];
         DVOL[IP] = sqrt(pow((VOL[IP] * DCSM[1][1] / DCV[1]),2) + pow((VOL[IP] * DCSM[2][2] / DCV[2]),2) + pow((VOL[IP] * DCSM[3][3] / DCV[3]),2) + pow(ARG1,2) + pow(ARG2,2) + pow(ARG3,2));
-        // standard deviations are calculed below                      !cp nov 96
+        // standard deviations are calculed below
         W[IP] = phases[IP].PAR[1] * multip.TMASSA[IP] * VOL[IP]/phases[IP].SAQF;
         DW[IP] =  (phases[IP].PAR[1].SZ/phases[IP].PAR[1]) + (DVOL[IP]/VOL[IP]) + (STMASSA[IP]/multip.TMASSA[IP])/phases[IP].SAQF;
         //   end of std
@@ -8534,7 +8506,6 @@ L8:
     }
     for(I = 1; I <= nphase; I++)
     {
-        //      !cp nov 10 96
         if (nphase == 1)
         {
             XMASS[I] = 100.0 * W[I] / WTOTAL;
@@ -8545,9 +8516,6 @@ L8:
             XMASS[I] = 100.0 * W[I] / WTOTAL;
             DMASS[I] = 100*DW[I];
         }
-        // Print comand below is for testing the codes. !cp 13junho98
-        //      print '(a,f12.5,2x,a,f12.5)', ' xmass = ',xmass(i),'+/-',
-        //     ! dmass(i)
     }
     IINNMOL = 0;
     for(I = 1; I <= nphase; I++)
@@ -8649,13 +8617,11 @@ L8:
 
 
 
-    // !cp ap 20 97  !from It. codes
     file6 << " AMORPHOUS SCALE (SCAM):"
           << setw(8) << setprecision(4) << fixed << GLB[20]
           << setw(8) << setprecision(4) << fixed << GLB[20].SY
           << setw(8) << setprecision(4) << fixed << GLB[20].SZ << endl;
 
-    // !cp ap 20 97   !from It. codes
     file6 << endl << "MONOCROMATOR BANDPASS PARAMETERS (PMONI)"
           << setw(8) << setprecision(4) << fixed << GLB[18]
           << setw(8) << setprecision(4) << fixed << GLB[18].SY
@@ -9285,7 +9251,6 @@ void DBWS::ITER()
 
             g3.TH=g3.TH+STEP;
 
-            // !cp jun 97 test for bck option
             if (cntrls.IBGD == 1)
             {
                 CSK[1] = 1;
@@ -10432,7 +10397,6 @@ L124:
           << setw(8) << setprecision(4) << fixed << GLB[13].codeword
           << " CODEWORDS" << endl;
 
-    // new lines in the ICF !cp may 10 97 and (ibgd test) !cp jun 97
     if (cntrls.IBGD == 1) goto L4600;
     //      if (iax == 0) then
     // line 10.2
@@ -10489,9 +10453,8 @@ L477:
 
         // line 11-3
         file5 <<  phases[K].SpaceGroup << "                                     SPACE GROUP" << endl;
-        // Changing N to 'so' !cp oct 96
+        // Changing N to 'so'
         for(ISOF=1; ISOF <= N; ISOF++) atoms[ISOF+IOF].AtomPAR[5]=atoms[ISOF+IOF].AtomPAR[5]*multip.XMLTP[K]/atoms[ISOF+IOF].MURT;
-        // !cp oct 96 #6 murt parametrs included below. FORMAT modified...
         for (I = 1; I <= N; ++I)
         {
             file5 << atoms[I + IOF].ATEXT << " " << setw(4) << atoms[I + IOF].MURT << " "
@@ -10592,11 +10555,6 @@ L477:
     }
 
     if (r_ipl != 0) file5 << setw(8) << ISCALE << setw(8) << IDIF << "                                         LINE PRINTER INFO" << endl;
-    // lines commented to avoid LINE 13 in the ICF    !cp jul 97
-    //      if (IPL2 != 0)WRITE(5,171)IFY,IFYC,IFM,IFD,IFB,EXPAND
-    //      if (IPL2 == 0)WRITE(5,171)  2,   1,  1,  1,0,0.95
-    //171   FORMAT(5I1,3X,F8.4,41x,'CALCOMP INFO')
-    //                       JOBTYP  must be reproduced !!!
 l151:
     jobtyp=jobtyp+1;
 }
@@ -10678,18 +10636,6 @@ L37:
 
     if (r_ipc == 0) goto L36;
 
-    file9.open ("plotinfo.bin", ios::out);
-    file10.open ("plotinfo.bin", ios::out | ios::binary);
-    for (I = 1; I <= NPTS; ++I)
-    {
-        file10 << BK_[I];
-    }
-    file9 << title << endl;
-    file9 << "NO. OF PHASESZ  " << setw(4) << nphase << endl
-          << "NO. OF REFLECTIONS IN EACH PHASEQ  ";
-    for (IIPHAS = 1; IIPHAS <= nphase; ++IIPHAS) file9 << setw(4) << ICR_[IIPHAS];
-    file9 << endl;
-    file9 << "BRAGG POSITIONSZ" << endl;
 
     for (K = 1; K <= nphase; ++K)
     {
@@ -10697,7 +10643,6 @@ L37:
         if (MOD(K,2) == 1) allp.ILOC = allp.ILOC + 1;
         //       GAM1=PAR(K,17)
         file6 << endl << "PHASE NO. = " << setw(3) << K << "     PHASE NAME " << phases[K].name << endl;
-        file9 << phases[K].name << endl;
         T2OBS=0.0;
         TDOBS=0.0;
         RFNMR=0.0;
@@ -10726,7 +10671,7 @@ L37:
                     if ((REFS[IX][2]+SHIFT+GLB[1]) >= (ALOW[J]-WDT*REFS[IX][1]) && (REFS[IX][2]+SHIFT+GLB[1]) <= (AHIGH[J]+WDT*REFS[IX][1])) goto L481;
                 }
             }
-            IXXX=IXXX+1;                       //teste !cp 29 jun 98
+            IXXX=IXXX+1;
             //----CHECK FOR THE SPLIT PEARSON VII PROFILE
             //-----IF SO CHANGE THE PROFILE LIMITS
             if (nprof+1 == 5)
@@ -10825,7 +10770,6 @@ L410:
             }
             TIC   = TIC   * FMGNTD[IX]/prfx.TL;
             TIOBS = TIOBS * FMGNTD[IX]/prfx.TL;
-            // ! FROM ITALIAN CODE  !cp ap 97
             //        ***************************************************************
             //        NEXT LINE IS FOR NOT EVALUATING R-BRAGG FOR REFLECTIONS
             //        WHICH ARE OUTSIDE THE MEASUREMENTS RANGE BUT WHOSE TAILS ARE
@@ -10835,12 +10779,6 @@ L410:
             {
                 T2OBS = T2OBS+TIOBS;
                 TDOBS = TDOBS + abs(TIOBS-TIC);
-                //  below is to correct the Fobs and Fcal for alpha_2 !cp 24.maio.98
-                //          if (irc == 1) then
-                //                  xlor=1.0
-                //                   else
-                //                  xlor=ratio(2)
-                //          end if
                 if (r_ipc == 2 ||r_ipc == 3)
                 {
                     TFCAL= sqrt(abs(TIC/REFS[IX][3]/phases[K].PAR[1]/struphase.TAVIX[IX]/struphase.SRIX[IX]));
@@ -10849,7 +10787,6 @@ L410:
                     BFCAL=TFCAL*sin(struphase.APHASE[IX]);
                     AFOBS=TFOBS*cos(struphase.APHASE[IX]);
                     BFOBS=TFOBS*sin(struphase.APHASE[IX]);
-                    //        Line below also from italian code   !cp ap 97
                     if (REFS[IX][2] <= THMAX)
                     {
                         RFNMR = RFNMR + abs(TFOBS-TFCAL);
@@ -10939,12 +10876,6 @@ L410:
                           << setw(10) << setprecision(0) << fixed << TIOBS << endl;
                 }
             }
-            file9 << setw(8) << setprecision(3) << fixed << REFS[IX][2] + GLB[1] + SHIFT
-                  << " K" << setw(1) << refs[IX].lambda << " "
-                  << setw(4) << setprecision(3) << fixed << refs[IX].l
-                  << setw(4) << setprecision(3) << fixed << refs[IX].k
-                  << setw(4) << setprecision(3) << fixed << refs[IX].l
-                  << setw(10) << setprecision(4) << scientific << FMGNTD[IX] << endl;
             goto L481;
 L9221:
             if (MOD(IXXX-1,60) == 0)
@@ -11029,13 +10960,6 @@ L9221:
                           << setw(10) << setprecision(0) << fixed << TIOBS << endl;
                 }
             }
-            //      write (9,8147) refs(ix,2)+params.GLB(1)+shift
-            file9 << setw(8) << setprecision(3) << fixed << REFS[IX][2] + GLB[1] + SHIFT
-                  << " K" << setw(1) << refs[IX].lambda << " "
-                  << setw(4) << setprecision(3) << fixed << refs[IX].l
-                  << setw(4) << setprecision(3) << fixed << refs[IX].k
-                  << setw(4) << setprecision(3) << fixed << refs[IX].l
-                  << setw(10) << setprecision(4) << scientific << FMGNTD[IX] << endl;
             goto L481;
 L9222:
             if (MOD(IXXX-1,60) == 0)
@@ -11139,15 +11063,8 @@ L9222:
                 }
             }
 L4810:
-            file9 << setw(8) << setprecision(3) << fixed << REFS[IX][2] + GLB[1] + SHIFT
-                  << "  " << setw(1) << refs[IX].lambda << " "
-                  << setw(4) << setprecision(3) << fixed << refs[IX].l
-                  << setw(4) << setprecision(3) << fixed << refs[IX].k
-                  << setw(4) << setprecision(3) << fixed << refs[IX].l
-                  << setw(10) << setprecision(4) << scientific << FMGNTD[IX] << endl;
 L481:
             ;
-            //vvv write(10) (phs(i),i=1,npts)
         }
         TDOBS=100.0*TDOBS/T2OBS;
         file6 << "DERIVED BRAGG R-FACTOR = " << setw(8) << setprecision(2) << fixed << TDOBS << endl;
@@ -11156,19 +11073,10 @@ L481:
     }
 L36:
     ;
-    file9 << " NPTSZ" << setw(5) << NPTS << endl
-          << " THMINZ" << setw(8) << setprecision(3) << fixed << THMIN << endl
-          << " STEPZ" << setw(8) << setprecision(3) << fixed << STEP << endl
-          << " YOBS    YCALCZ" << endl;
     for(I=1; I <= NPTS; I++)
     {
         BK_[I]=THMIN+double(I-1)*STEP;
-        file9 << " "
-              << setw(8) << setprecision(0) << fixed << Y_[I]
-              << setw(8) << setprecision(0) << fixed << YC_[I] << endl;
     }
-    if(file9.is_open()) file9.close();
-    if(file10.is_open()) file10.close();
 
     if (r_iploss == 1 && r_ipbig == 0) write_file31();              //     IT BUILDS THE OBSERVED DATA FILE CORRECTED FOR ABSORPTION
     if (r_iplcal == 1 && r_ipbig == 0) write_file32();              //     IT BUILDS THE CALCULATED DATA FILE (BRAGG+COMPTON+DISORDINE+AMORPHOUS)
@@ -11274,7 +11182,6 @@ L45:
         file6 << endl << "PARAMETERS IN EACH CYCLE" << endl;
         for(J=1; J <= NPAGES; J++)
         {
-            //vv REWIND 8
             ISTART = 1 + (J-1)*12;
             IFINIS  = min(MAXS,12 + (J-1)*12);
             file6 << "CYCLE";
@@ -11282,19 +11189,16 @@ L45:
             file6 << endl;
             for(K=1; K <= INUMB; K++)
             {
-                //vv READ  (8,ERR=99992) (DUMMY(I),I=1,2*MAXS+4)
                 file6 << " " << setw(2) << K-1 << ")  ";
                 for(I=ISTART; I <= IFINIS; I++) file6 << setw(10) << setprecision(4) << scientific << DUMMY[I];
                 file6 << endl;
             }
         }
         //     LIST R-VALUES  IN EACH CYCLE
-        //vv REWIND 8
         file6 << "R-VALUE VARIATION WITH CYCLE" << endl;
         file6 << "CYCLE    R-P     R-WP      S      D-W D" << endl;
         for(K=1; K <= INUMB; K++)
         {
-            //vv READ  (8,ERR=99992) (DUMMY(I),I=1,2*MAXS+4)
             file6 << setw(2) << K-1 << ")  ";
             for(I=2*MAXS+1; I <= 2*MAXS+4; I++) file6 << setw(8) << setprecision(2) << fixed << DUMMY[I];
             file6 << endl;
@@ -11304,7 +11208,6 @@ L45:
         file6 << "APPLIED PARAMETER SHIFT IN EACH CYCLE" << endl;
         for(J=1; J <= NPAGES; J++)
         {
-            //vv REWIND 8
             ISTART = 1 + MAXS+ (J-1)*12;
             IFINIS = min(2*MAXS,12 + MAXS+ (J-1)*12);
             file6 << "CYCLE";
@@ -11312,7 +11215,6 @@ L45:
             file6 << endl;
             for(K=1; K <= INUMB-1; K++)
             {
-                //vv READ  (8,ERR=99992) (DUMMY(I),I=1,2*MAXS+4)
                 if (K == 1) goto L7964;
 L7964:
                 file6 << " " << setw(2) << K << ")  ";
@@ -11446,7 +11348,7 @@ L97:
     //     PRINT *,'THMAX=',THMAX
     //      THMAX1=(U*(TAN(THMAX*RAD))**2+V*TAN(THMAX*RAD)+W+ZZZ*(1+
     //     *(TAN(THMAX*RAD))**2))
-    // also incorporating the cotg^2 term  !cp may 01 97
+    // also incorporating the cotg^2 term
     THMAX1=(g1.U*pow((tan(THMAX*RAD)),2)+g1.V*tan(THMAX*RAD)+g1.W+g1.ZZZ*(1+pow((tan(THMAX*RAD)),2)) + g1.UC/(tan(THMAX*RAD)));
     if ( THMAX1 > 0.0 )
     {
@@ -11816,7 +11718,7 @@ L4000:
         }
         else
         {
-            REFS[IC][1]=(g1.U*TAN2+g1.V*TANX+g1.W+g1.ZZZ*(1+TAN2)+g1.UC/TAN2);              // incorporating cotg^2  !cp may 01 97
+            REFS[IC][1]=(g1.U*TAN2+g1.V*TANX+g1.W+g1.ZZZ*(1+TAN2)+g1.UC/TAN2);              // incorporating cotg^2
         }
         if (REFS[IC][1] > 0.0)
         {
@@ -12098,7 +12000,7 @@ void DBWS::INPTR()
         break;
     }
 
-    /*  asymmetry correction  Test for asymmetry model included !cp ap 97 */
+    //  asymmetry correction  Test for asymmetry model included
     if (iasym == 0) {
         file6 << "IASYM=0, Usual Rietveld Asymmetry" << endl;
     }
@@ -12189,7 +12091,6 @@ void DBWS::INPTR()
 
 
 
-    //        !cp ap 21 97
     RATIO[1] = 1.0;
     LAMDAM=calc_lambdam();          // Calcula λ médio
 
@@ -12809,7 +12710,7 @@ void DBWS::INPTR()
 
         SPGP(phases[K].SpaceGroup);
 
-        // getting multiplicity of each phase !cp jun 96)
+        // getting multiplicity of each phase
         simoper.ISIMOP=1;
         RTMT(r_ipl1,K);
         multip.XMLTP[K]=multip.MLTPHASE;
@@ -12826,7 +12727,7 @@ void DBWS::INPTR()
               << "                           B11       B22       B33       B12       B13       B23" << endl;
         // line 11-4i
         // READ and WRITE, and respectives FORMAT command lines below were
-        // changed to incorporate the parameter MURT(I+IOF) * !cp jun 96
+        // changed to incorporate the parameter MURT(I+IOF)
         for (i = 1; i <= phases[K].NATOM; ++i)
         {
             getline(file5,line);
@@ -12864,13 +12765,13 @@ void DBWS::INPTR()
                   << setw(10) << setprecision(5) << fixed << atoms[i + IOF].AtomPAR[10]
                   << setw(10) << setprecision(5) << fixed << atoms[i + IOF].AtomPAR[11] << endl;
         }
-        //  !cp jun 96 ... (CONVERT sof MULTIPLICITY)(also changed in OUTPTR)
+        //  (CONVERT sof MULTIPLICITY)(also changed in OUTPTR)
         for(i=1; i <= phases[K].NATOM; i++)
         {
             if (int(atoms[i+IOF].AtomPAR[5].codeword/10) != 0 && atoms[i+IOF].AtomPAR[5] == 0) atoms[i+IOF].AtomPAR[5]=1E-6;
             atoms[i+IOF].AtomPAR[5] = atoms[i+IOF].AtomPAR[5] * atoms[i+IOF].MURT / multip.XMLTP[K];
         }
-        // par(k,21) introduced below. It is for the term cot**2 in the pv-5 FWHM !cp Aug 95
+        // par(k,21) introduced below. It is for the term cot**2 in the pv-5 FWHM
         // line 11-5, line 11-6, line 11-7, line 11-8 and line 11-9
         // S  O_B (line 11-5)
         getline(file5,line);
@@ -12963,7 +12864,6 @@ void DBWS::INPTR()
             if (phases[K].PAR[17] == 0) phases[K].PAR[17] = 1e-6;
         }
         //      if (int(apar(k,20)/10) != 0 && par(k,20) == 0)par(k,20)=1e-9
-        // !cp Aug 95 introducing par(k,21)=ct
         // CHECKING FOR NON-REFINABLE PARAMETERS
         //CCC                        FOR  CT  IN TCHZ AND SPVII FUNCTIONS
         if (nprof == 8 || nprof == 5)
@@ -13096,13 +12996,10 @@ void DBWS::INPTR()
         cellx.gamma = phases[K].PAR[11];
 
         CELL2(K,LAMDAM);
-        // ************************************** !cp ap 97 (from It code)
         if (fondo == 1 || fondo == 2)
         {
             bkgscale.SCABKG[K] = volume.GCOM[K] * phases[K].PAR[1];
         }
-        // ************************************************************
-        //        WRITE(6,68) K,VOLi(K),K,GCOM(K)
         file6 << " CELL VOLUME PHASE(" << K << " ) = " << setw(12) << setprecision(4) << fixed << volume.VOLI[K] << endl;
         for (i = 1; i <= 6; ++i) dc.SAVE[K][i] = phases[K].PAR[i + 5];
         for (i = 1; i <= 3; ++i) phases[K].PAR[i + 5] = cellx.AL[i][i];
@@ -13156,7 +13053,6 @@ void DBWS::INPTR()
               << " ASYMMETRY PARAMETER=" << " " << phases[K-1].PAR[14].codeword << endl;
 
 
-        // !cp ap 97 (from It code)
         if (fondo == 1 && (phases[K].PAR[2] != 0.0 || phases[K].PAR[2].codeword != 0.0)) goto L88888;
         if (fondo == 2 && phases[K].PAR[2] == 0.0 && phases[K].PAR[2].codeword == 0.0) goto L88889;
         //-----CHECK FOR SPLIT PEARSON PROFILE
@@ -13378,7 +13274,6 @@ L88088:
 
 
 
-//cccc subroutine inpam: To read the amorphous data file !cp may 10 97
 void DBWS::INPAM()
 {
     string line,s;
@@ -13551,14 +13446,6 @@ bool readcomandline(int argc,  char **argv)
         }
     }
 
-
-
-    error = false;
-    namefile6 = "f.txt";
-    namefile4 = "f.dat";
-    namefile5 = "f.icf";
-
-    /*
     if (error)
     {
         cout << "Error on the command line." << endl;
@@ -13587,7 +13474,7 @@ bool readcomandline(int argc,  char **argv)
             namefile4 = datafilename;
         }
     }
-    */
+
     return error;
 }
 
@@ -13630,7 +13517,7 @@ int main(int argc, char* *argv)
                     dbws.INPTR();
 
                     //      if(icnvt.eq.1) goto 800
-                    // Canton et all code starts here !cp may 03 97
+                    // Canton et all code starts here
                     //-----OPEN,IF NECESSARY, FILE CONTAINING AMORPHOUS SCATTERING
 
                     if( dbws.GLB[20] != 0.0 || dbws.GLB[20].codeword != 0.0) dbws.INPAM();
