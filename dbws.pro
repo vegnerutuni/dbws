@@ -1,22 +1,14 @@
 TEMPLATE = app
 CONFIG += console
+CONFIG -= app_bundle
 CONFIG -= qt
 
-SOURCES += main.cpp \
-    parameter.cpp \
-    phase.cpp \
-    spacegroup.cpp \
-    diffractogram.cpp \
-    dbwsexception.cpp \
-    reflections.cpp
+QMAKE_CXXFLAGS += -std=c++11
 
-HEADERS += \
-    param_inc.h \
-    tabelas.h \
-    parameter.h \
-    phase.h \
-    spacegroup.h \
-    diffractogram.h \
-    dbwsexception.h \
-    reflections.h
+SOURCES += main.cpp
+
+include(deployment.pri)
+qtcAddDeployment()
+
+HEADERS +=
 
