@@ -54,6 +54,40 @@ const int NFINAL=1635;
 
 
 
+
+// Define pi/180. Lembre que pi = 3.1415... é definido em math.h
+
+const double _pi_180  = M_PI / 180.0;
+
+const double _180_pi  = 180.0 / M_PI;
+
+const double M_PI_2_3 = 1.5 * M_PI;
+
+const double _180_pi_sqr = _180_pi*_180_pi;
+
+
+const double C0 = 4*M_LN2;          // 4*ln(2)
+
+const double C0_1 = sqrt(C0/M_PI);
+
+const double _4_SQRT2_1 = 4.0*(sqrt(2.0)-1);// 4(sqrt(2)-1)
+
+const double _4_SQRT223_1 = 4.0*(sqrt( pow(2.0,2.0/3.0) )-1);// 4(sqrt(2^(2/3))-1)
+
+
+// Converte graus decimais em graus radianos
+double degtorad(const double deg)
+{
+    return deg * _pi_180;
+}
+
+// Converte graus radianos em graus decimais
+double radtodeg(const double rad)
+{
+    return _180_pi * rad;
+}
+
+
 // 2 lines below were commented to include the code from Ian madsen
 //      DATA XRYZ(1),XRYZ(2),XRYZ(3),XRYZ(4),XRYZ(5)
 //     * /2.28962,1.93597,1.54051,0.70926,0.556363/
@@ -1214,10 +1248,6 @@ struct
     double VOLI[99+1], GCOM[99+1];
 } volume;
 
-struct
-{
-    double matrix[MSZ+1][MSZ+1], VX[MSZ+1];
-} f1;
 
 struct
 {
@@ -1279,11 +1309,6 @@ struct
     double RL, DA1L, DA2L, DA3L, DA4L, DA5L, DA6L, DA7L, RH, DA1H, DA2H, DA3H,
           DA4H, DA5H, DA6H, DA7H;
 } spvii;
-
-struct
-{
-    double APHASE[IRS+1], TAVIX[IRS+1], SRIX[IRS+1];
-} struphase;
 
 struct
 {
@@ -1685,7 +1710,8 @@ ostream& operator<< (ostream& stream, const Codeword& v)
 class Parameter : public Variable
 {
 public:
-    double SY,SZ;
+    double error;                                               // Old SY. O erro associado a variavel, δf1/δx1
+    double increase;                                            // Old SZ. O incremento do vetor F(x) no metodo de Newton-Rhapson
 
     Codeword codeword;                                           // Old APAR
     Parameter& operator=(const Parameter&);
@@ -1773,6 +1799,12 @@ public:
     Phase* phase;
     int h,k,l;
     int lambda;
+    double refs[3+1];  // refs[2] = 2teta
+    double FMGNTD;           // O fator de estrutura do hkl
+    double HALFL, HALFG, GAM;
+    double FWHM[2+1];
+    double APHASE;
+    double TAVIX, SRIX;
     Refs& operator=(const Refs&);
 };
 
@@ -1784,6 +1816,18 @@ Refs& Refs::operator=(const Refs& v)
     k = v.k;
     l = v.l;
     lambda = v.lambda;
+    refs[1] = v.refs[1];
+    refs[2] = v.refs[2];
+    refs[3] = v.refs[3];
+    FMGNTD = v.FMGNTD;
+    HALFL = v.HALFL;
+    HALFG = v.HALFG;
+    GAM = v.GAM;
+    FWHM[1] = v.FWHM[1];
+    FWHM[2] = v.FWHM[2];
+    APHASE = v.APHASE;
+    TAVIX = v.TAVIX;
+    SRIX = v.SRIX;
     return *this;
 }
 
@@ -1879,20 +1923,10 @@ public:
 
 
     Refs refs[IRS+1];
-    double REFS[IRS+1][3+1];
-    double FMGNTD[IRS+1];           // O fator de estrutura do hkl
-    double HALFL[IRS+1], HALFG[IRS+1], GAM[IRS+1], FWHM[IRS+1][2+1];
-
-
     int ICR_[99+1];
 
-    //int REFS_h[IRS+1];
-    //int REFS_k[IRS+1];
-    //int REFS_l[IRS+1];
-    //int REFS_c[IRS+1];
-    //int REFS_phase[IRS+1];
 
-
+    double matrix[MSZ+1][MSZ+1], Fx[MSZ+1];  // Jacobian matrix
 
     DBWS();
     void read_icf_line1(string&);
@@ -1968,7 +2002,7 @@ public:
     void MSPVII(double A, double W);
     double PROFIL(int N, double X);
     void SUMMAT(int IPM,double CSK[], double DISK[], double DYCDD[],double TOTCS);
-    double DPINV(double A1[][MSZ+1], double B1[], int N);
+    double DPINV(int N);
     void outscr(int I, double R2, double R3, double X);
     double ERROR(double A[][6+1],double B[],double OMEGA);
     void ESD(double SM[][6+1], double V[], double SUM);
@@ -5915,7 +5949,7 @@ void DBWS::SORT(int IPHASE)
             {
                 INP=L[I]+IOF;
                 INP1=L[I+1]+IOF;
-                R=REFS[INP1][2]-REFS[INP][2];
+                R=refs[INP1].refs[2]-refs[INP].refs[2];
                 if (R < 0) {
                     IZ=L[I];
                     L[I]=L[I+1];
@@ -5937,42 +5971,8 @@ void DBWS::SORT(int IPHASE)
         refs[I] = tmp[LX];
 
     }
-    for(J=1; J <= 3; J++)
-    {
-        for(I=1; I <= IC; I++) TEMP[I]=REFS[I+IOF][J];
-        for(I=1; I <= IC; I++)
-        {
-            LX=L[I];
-            REFS[I+IOF][J]=TEMP[LX];
-        }
-    }
-    for(I=1; I <= IC; I++)  ITEMP[I]=FMGNTD[I+IOF];
-    for(I=1; I <= IC; I++)
-    {
-        LX=L[I];
-        FMGNTD[I+IOF]=ITEMP[LX];
-    }
-    if (nprof == 8)
-    {
-        for(I=1; I <= IC; I++) TEMP[I]=HALFL[I+IOF];
-        for(I=1; I <= IC; I++)
-        {
-            LX=L[I];
-            HALFL[I+IOF]=TEMP[LX];
-        }
-        for(I=1; I <= IC; I++) TEMP[I]=HALFG[I+IOF];
-        for(I=1; I <= IC; I++)
-        {
-            LX=L[I];
-            HALFG[I+IOF]=TEMP[LX];
-        }
-        for(I=1; I <= IC; I++) TEMP[I]=GAM[I+IOF];
-        for(I=1; I <= IC; I++)
-        {
-            LX=L[I];
-            GAM[I+IOF]=TEMP[LX];
-        }
-    }
+
+
 }
 
 void DBWS::ASSIGN()
@@ -5996,8 +5996,8 @@ void DBWS::ASSIGN()
             if (MOD(I-1,60) == 0) file6 << "NO.  CODE    H   K   L  PHASE  HW       POSN              " << endl;
             file6 << " " << setw(4) << I << setw(4) << refs[I].lambda << "   "
                   << setw(4) <<  refs[I].h << setw(4) << refs[I].k << setw(4) << refs[I].l << setw(6) << refs[I].iphase
-                  << setw(8) << setprecision(3) << fixed << REFS[I][1]
-                  << setw(8) << setprecision(3) << fixed << REFS[I][2] << endl;
+                  << setw(8) << setprecision(3) << fixed << refs[I].refs[1]
+                  << setw(8) << setprecision(3) << fixed << refs[I].refs[2] << endl;
         }
     }
 
@@ -6005,13 +6005,13 @@ void DBWS::ASSIGN()
     {
         if (nprof == 5)
         {
-            RMIN=REFS[I][2]-WDT*FWHM[I][1];
-            RMAX=REFS[I][2]+WDT*FWHM[I][2];
+            RMIN=refs[I].refs[2]-WDT*refs[I].FWHM[1];
+            RMAX=refs[I].refs[2]+WDT*refs[I].FWHM[2];
         }
         else
         {
-            RMIN=REFS[I][2]-WDT*REFS[I][1];
-            RMAX=REFS[I][2]+WDT*REFS[I][1];
+            RMIN=refs[I].refs[2]-WDT*refs[I].refs[1];
+            RMAX=refs[I].refs[2]+WDT*refs[I].refs[1];
         }
         for(K=(min(max(int((RMIN-THMIN)/STEP+1.5),1),NPTS)); K <= (min(int((RMAX-THMIN)/STEP+1.5),NPTS)); K++)
         {
@@ -6081,7 +6081,7 @@ L603:
     if (iasym == 0)
     {
         // THE FOLLOWING TEST IS REALLY ONLY VALID FOR THE SINGLE PHASE CASE
-        if (REFS[KRR_[1][I]][2] >= RLIM && phases[1].PAR[14].codeword.L != 0)
+        if (refs[KRR_[1][I]].refs[2] >= RLIM && phases[1].PAR[14].codeword.L != 0)
         {
             file6 << " ASYMMETRY PARAMETER USAGE INVALID" << endl;
             cout << "ASYMMETRY PARAMETER USAGE INVALID" << endl;
@@ -6090,7 +6090,7 @@ L603:
     }
     else
     {
-        if (REFS[KRR_[1][I]][2] >= (90.0-RLIM) && phases[1].PAR[14].codeword.L != 0)
+        if (refs[KRR_[1][I]].refs[2] >= (90.0-RLIM) && phases[1].PAR[14].codeword.L != 0)
         {
             file6 << " ASYMMETRY PARAMETER USAGE INVALID" << endl;
             cout << "ASYMMETRY PARAMETER USAGE INVALID" << endl;
@@ -6341,8 +6341,10 @@ void DBWS::DISORDER(int K,double STH,int IDERIV,double *SDK,double *DYC,int FOND
             }
         }
     }
+
     //-----COMPUTE SDK = SCATTERING DISORDER DUE TO THE K-TH PHASE
     *SDK = RATIO[1] * DIS[1] + RATIO[2] * DIS[2];
+
     //-----COMPUTE  DERIVATIVE OF YC RESPECT TO ISOTROPIC THERMAL FACTORS
     //                   XL(I+IOF,4) IN THE K-TH PHASE
     if (FONDO == 1)
@@ -6359,6 +6361,7 @@ void DBWS::DISORDER(int K,double STH,int IDERIV,double *SDK,double *DYC,int FOND
             }
         }
     }
+
     //-----COMPUTE  DERIVATIVE OF YC RESPECT TO OVERALL THERMAL FACTOR
     //                   PAR(K,2) IN THE K-TH PHASE
     if (FONDO == 2)
@@ -6613,10 +6616,10 @@ L1002:
 
 void DBWS::CALCUL(int NN)
 {
-    double DPRECORX, H__[3+1],T[3+1], X, B1, B2, BB, AL[3+1][3+1], EH,
-           AV, PI, XI[14], SM[3+1][3+1], CV,DV, BV,TR, SS, TT, SR,
-          YY,DA1, DA3, DA4, DA5, BNI, ARG, HNN[3+1],
-          PAK, TAV, TLR, SAI, SBI, ARG2, FFX, FNN, DER, SRD,
+    double DPRECORX, H[3+1],T[3+1], X, B1, B2, BB, AL[3+1][3+1], EH,
+           AV, XI[14], SM[3+1][3+1], CV,DV, BV,TR, SS, TT, SR,
+          YY,DA1, DA3, DA4, DA5, BNI, ARG,
+          PAK, TAV, TLR, SBI, ARG2, FFX, DER, SRD,
           TLG, TLL, COSA, SINA, SITH,
           SSNN, SNXI, SUMA, SUMB, DHDHG, DHDHL, PAKNN, DERIV[MSZ+1], SINTH, COSTH,
           TANTH, PREXP,
@@ -6626,8 +6629,6 @@ void DBWS::CALCUL(int NN)
     bool PAC,VERT;
 
 
-
-    PI = 90.0/atan(1.0);              // 360./3.14159265359
     IOF = 0;
     if ( refs[NN].iphase > 1 )
     {
@@ -6671,6 +6672,7 @@ void DBWS::CALCUL(int NN)
     AL[1][3]=AL[3][1];
     AL[2][1]=refs[NN].phase->PAR[11];
     AL[1][2]=AL[2][1];
+
     if (nprof == 6)
     {
         EH=refs[NN].phase->PAR[21];
@@ -6680,7 +6682,7 @@ void DBWS::CALCUL(int NN)
     NM=MOD(NN,NOV)+1;
     SLABDA=LAMDA[refs[NN].lambda]*LAMDA[refs[NN].lambda]/4.0;
     N=refs[NN].phase->NATOM;
-    FMGNTD[NN]=0.0;
+    refs[NN].FMGNTD=0.0;
     PAKNN=0.0;
     PRECOR=1.0;
     TR=0.0;
@@ -6718,8 +6720,15 @@ void DBWS::CALCUL(int NN)
                 for(J=I; J <= 3; J++) PAK = refs[NN].phase->PREF[I]*AL[I][J]*double(hklctl.IHKL[J][IJ])+PAK;     // GSAS CA
             }
             PAK = PAK*PAK/(TT*SS);
-            PAKNN = pow((PI/2.0),2);
-            if (PAK != 0) PAKNN=pow(atan( sqrt(abs( (1.0-PAK) / PAK)) ) , 2);
+
+            if (PAK != 0)
+            {
+                PAKNN=pow(atan( sqrt(abs( (1.0-PAK) / PAK)) ) , 2);
+            }
+            else
+            {
+                PAKNN = _180_pi_sqr;
+            }
             if (ipref == 0)
             {
                 PREXPX = exp(B1*PAKNN);
@@ -6735,12 +6744,10 @@ void DBWS::CALCUL(int NN)
             PREXP = PREXP+PREXPX;
             PRECOR = PRECOR+PRECORX;
             DPRECOR = DPRECOR+DPRECORX;
-            //         print '(5x,3f10.5,i3)',prexpx,precorx,dprecorx,ij     ! ******
         }
         PREXP = PREXP/double(hklctl.ICHKL[refs[NN].iphase]);
         PRECOR = PRECOR/double(hklctl.ICHKL[refs[NN].iphase]);
         DPRECOR = DPRECOR/double(hklctl.ICHKL[refs[NN].iphase]);
-        //       write (6,*) 'Precor=',precor,' DPrecor=',dprecor        !ACL debug 980520
     }
     SINTL[NM] = sqrt(SS);
     SSNN = 0.25*SS;
@@ -6749,87 +6756,94 @@ void DBWS::CALCUL(int NN)
     COSTH = 1.0-SINTH;
     TANTH = sqrt(SINTH/COSTH);
     g4.TANN[NM] = TANTH;
+
     //   Correction of microabsorption
-    if (iabsr == 1)
-    {
+    switch (iabsr) {
+    case 1:
         ISITH=(1.0)/(sqrt(SINTH));
-        SR = GLB[12]*(1.0-GLB[8]*exp(-GLB[9])+GLB[8]*exp(-GLB[9]/
-                             sqrt(SINTH)))+(1.0-GLB[12])*(1+GLB[13]*(asin(sqrt(SINTH)))-1.5707963268);
-    }
-    else if (iabsr == 2)
-    {
+        SR = GLB[12]*(1.0-GLB[8]*exp(-GLB[9])+GLB[8]*exp(-GLB[9]/sqrt(SINTH)))+(1.0-GLB[12])*(1+GLB[13]*(asin(sqrt(SINTH)))-M_PI_2);
+        break;
+    case 2:
         SITH = sqrt(SINTH);
-        SR = 1.0-GLB[13]*(asin(SITH)-1.5707963268);
-    }
-    else if (iabsr == 3)
-    {
+        SR = 1.0-GLB[13]*(asin(SITH)-M_PI_2);
+        break;
+    case 3:
         ISITH=(1.0)/(sqrt(SINTH));
         SR = 1.0-GLB[8]*exp(-GLB[9])+GLB[8]*exp(-GLB[9]*ISITH);
-    }
-    else if (iabsr == 4)
-    {
+        break;
+    case 4:
         ISITH=(1.0)/(sqrt(SINTH));
         SR = 1.0-GLB[8]*GLB[9]*(1.0-GLB[9])-ISITH*GLB[8]*GLB[9]*(1.0-GLB[9]*ISITH);
+        break;
     }
 
-    REFS[NN][2]=atan(TANTH)*PI;
-    HALFG[NN]=(
+
+    refs[NN].refs[2]= 2.0 * radtodeg( atan(TANTH) );
+
+    refs[NN].HALFG=(
                 refs[NN].phase->PAR[3]*
                 TANTH*TANTH+
                 refs[NN].phase->PAR[4]*
                 TANTH+refs[NN].phase->PAR[5]+refs[NN].phase->PAR[20]/COSTH+EH/(TANTH*TANTH));
-    if (HALFG[NN] > 0.0)
+
+    if (refs[NN].HALFG > 0.0)
     {
-        HALFG[NN] = sqrt(HALFG[NN]);
+        refs[NN].HALFG = sqrt(refs[NN].HALFG);
     }
     else
     {
-        file6 << endl << "SQUARE OF FWHM NEGATIVE AT TWO-THETA=" << setw(8) << setprecision(3) << REFS[NN][2] << "FOR PHASE NO. " << refs[NN].iphase << endl;
-        cout << endl << "SQUARE OF FWHM NEGATIVE AT TWO-THETA=" << setw(8) << setprecision(3) << REFS[NN][2] << "FOR PHASE NO. " << refs[NN].iphase << endl;
+        file6 << endl << "SQUARE OF FWHM NEGATIVE AT TWO-THETA=" << setw(8) << setprecision(3) << refs[NN].refs[2] << "FOR PHASE NO. " << refs[NN].iphase << endl;
+        cout << endl << "SQUARE OF FWHM NEGATIVE AT TWO-THETA=" << setw(8) << setprecision(3) << refs[NN].refs[2] << "FOR PHASE NO. " << refs[NN].iphase << endl;
         exit(EXIT_FAILURE);
     }
+
     if (nprof == 8)
     {
-        HALFL[NN] =
+        refs[NN].HALFL =
                 refs[NN].phase->PAR[15]
                 * TANTH +
                 refs[NN].phase->PAR[16]
                 *sqrt(1.0+TANTH*TANTH);
-        BB = pow(( pow(HALFG[NN],5.0) + 2.69269*
-                   pow(HALFG[NN],4.0) * HALFL[NN]+ 2.42843*
-                   pow(HALFG[NN],3.0) *
-                   pow(HALFL[NN],2.0)+4.47163*
-                   pow(HALFG[NN],2.0)*
-                   pow(HALFL[NN],3.0) + 0.07842*HALFG[NN]*
-                   pow(HALFL[NN],4.0) + pow(HALFL[NN],5.0)) ,0.2);
-        TLR = HALFL[NN]/BB;
-        GAM[NN] = 1.36603*TLR-0.47719*TLR*TLR+0.11116* pow(TLR,3.0);
+        BB = pow(( pow(refs[NN].HALFG,5.0) + 2.69269*
+                   pow(refs[NN].HALFG,4.0) * refs[NN].HALFL+ 2.42843*
+                   pow(refs[NN].HALFG,3.0) *
+                   pow(refs[NN].HALFL,2.0)+4.47163*
+                   pow(refs[NN].HALFG,2.0)*
+                   pow(refs[NN].HALFL,3.0) + 0.07842*refs[NN].HALFG*
+                   pow(refs[NN].HALFL,4.0) + pow(refs[NN].HALFL,5.0)) ,0.2);
+        TLR = refs[NN].HALFL/BB;
+        refs[NN].GAM = 1.36603*TLR-0.47719*TLR*TLR+0.11116* pow(TLR,3.0);
     }
     else
     {
-        BB = HALFG[NN];
+        BB = refs[NN].HALFG;
     }
+
+
     prfx.TL=BB;
-    REFS[NN][1]=BB;
+    refs[NN].refs[1]=BB;
     BB=BB*BB;
 
     //-----VERT=.TRUE. IF ASYMMETRY CORRECTION IS TO BE CALCULATED
     VERT=false;
     if (iasym == 0)
     {
-        if (REFS[NN][2] <= RLIM && nprof != 5)VERT=true;
+        if (refs[NN].refs[2] <= RLIM && nprof != 5)VERT=true;
     }
     else
     {
-        if (abs(REFS[NN][2]-90.0) >= RLIM) VERT=true;
+        if (abs(refs[NN].refs[2]-90.0) >= RLIM) VERT=true;
     }
 
-    //-----CALCULATION OF COS(H.X),SIN(H.X) AND TEMP. FACTOR FOR EACH ATOM
+
+
+    // Calculation of cos(h.x),sin(h.x) and temp. factor for each atom
+
     for(I=1; I <= N; I++)
     {
         SNXI=0.0;
-        SAI=0.0;
-        SBI=0.0;
+        atoms[I].SA = 0.0;
+        //SBI=0.0;
         for(J=1; J <= 11; J++) XI[J]=atoms[I+IOF].AtomPAR[J];
         for(IR=1; IR <= IRL; IR++)
         {
@@ -6846,44 +6860,45 @@ void DBWS::CALCUL(int NN)
 
 
             X=T[1]*refs[NN].h+T[2]*refs[NN].k+T[3]*refs[NN].l;
-            H__[1]=SM[1][1]*refs[NN].h+SM[2][1]*refs[NN].k+SM[3][1]*refs[NN].l;
-            H__[2]=SM[1][2]*refs[NN].h+SM[2][2]*refs[NN].k+SM[3][2]*refs[NN].l;
-            H__[3]=SM[1][3]*refs[NN].h+SM[2][3]*refs[NN].k+SM[3][3]*refs[NN].l;
+            H[1]=SM[1][1]*refs[NN].h+SM[2][1]*refs[NN].k+SM[3][1]*refs[NN].l;
+            H[2]=SM[1][2]*refs[NN].h+SM[2][2]*refs[NN].k+SM[3][2]*refs[NN].l;
+            H[3]=SM[1][3]*refs[NN].h+SM[2][3]*refs[NN].k+SM[3][3]*refs[NN].l;
 
             TR=X;
-            ARG=TR;
-            for(J=1; J <= 3; J++) ARG=H__[J]*XI[J]+ARG;
-            ARG=6.28318530718*ARG;
-            ARG2=H__[1]*H__[1]*XI[6]+H__[2]*H__[2]*XI[7]+H__[3]*H__[3]*XI[8]+2.0*H__[1]*H__[2]*XI[9]+2.0*H__[1]*H__[3]*XI[10]+2.0*H__[2]*H__[3]*XI[11];
+
+            ARG = 6.28318530718*(TR + H[1]*XI[1]+H[2]*XI[2]+H[3]*XI[3]);
+            ARG2=H[1]*H[1]*XI[6]+H[2]*H[2]*XI[7]+H[3]*H[3]*XI[8]+2.0*H[1]*H[2]*XI[9]+2.0*H[1]*H[3]*XI[10]+2.0*H[2]*H[3]*XI[11];
+
             EXPARG=exp(-ARG2);
             COSA=cos(ARG)*EXPARG;
             SINA=sin(ARG)*EXPARG;
-            SAI=SAI+COSA;
-            if (ICENT == 1) SBI=SINA+SBI;
+
+            atoms[I].SA += COSA;
+            if (ICENT == 1) atoms[I].SB += SINA;
             for(JJ=1; JJ <= 3; JJ++)
             {
-                atoms[I].SUMAX[JJ] += H__[JJ]*SINA;
-                if (ICENT == 1) atoms[I].SUMBX[JJ] += H__[JJ]*COSA;
+                atoms[I].SUMAX[JJ] += H[JJ]*SINA;
+                if (ICENT == 1) atoms[I].SUMBX[JJ] += H[JJ]*COSA;
             }
-            atoms[I].SUMAX[4] += H__[1]*H__[1]*COSA;
-            atoms[I].SUMAX[5] += H__[2]*H__[2]*COSA;
-            atoms[I].SUMAX[6] += H__[3]*H__[3]*COSA;
-            atoms[I].SUMAX[7] += H__[1]*H__[2]*COSA;
-            atoms[I].SUMAX[8] += H__[1]*H__[3]*COSA;
-            atoms[I].SUMAX[9] += H__[2]*H__[3]*COSA;
+            atoms[I].SUMAX[4] += H[1]*H[1]*COSA;
+            atoms[I].SUMAX[5] += H[2]*H[2]*COSA;
+            atoms[I].SUMAX[6] += H[3]*H[3]*COSA;
+            atoms[I].SUMAX[7] += H[1]*H[2]*COSA;
+            atoms[I].SUMAX[8] += H[1]*H[3]*COSA;
+            atoms[I].SUMAX[9] += H[2]*H[3]*COSA;
             if (ICENT == 1)
             {
-                atoms[I].SUMBX[4] += H__[1]*H__[1]*SINA;
-                atoms[I].SUMBX[5] += H__[2]*H__[2]*SINA;
-                atoms[I].SUMBX[6] += H__[3]*H__[3]*SINA;
-                atoms[I].SUMBX[7] += H__[1]*H__[2]*SINA;
-                atoms[I].SUMBX[8] += H__[1]*H__[3]*SINA;
-                atoms[I].SUMBX[9] += H__[2]*H__[3]*SINA;
+                atoms[I].SUMBX[4] += H[1]*H[1]*SINA;
+                atoms[I].SUMBX[5] += H[2]*H[2]*SINA;
+                atoms[I].SUMBX[6] += H[3]*H[3]*SINA;
+                atoms[I].SUMBX[7] += H[1]*H[2]*SINA;
+                atoms[I].SUMBX[8] += H[1]*H[3]*SINA;
+                atoms[I].SUMBX[9] += H[2]*H[3]*SINA;
             }
         }
         atoms[I].TEMP=exp(-atoms[I+IOF].AtomPAR[4]*SSNN);
-        atoms[I].SA=SAI;
-        atoms[I].SB=SBI;
+        //atoms[I].SA=SAI;
+        //atoms[I].SB=SBI;
         NI=atoms[I+IOF].PTR;
         BNI=DFPP[NI];
         FFX=DFP[NI];
@@ -6893,415 +6908,435 @@ void DBWS::CALCUL(int NN)
         SNXI=BNI*atoms[I+IOF].AtomPAR[5]*atoms[I].TEMP;
 
         //-----CALCULATE A AND B OF F
-        AV=SNEXI*SAI+AV;
-        BV=SNEXI*SBI+BV;
+        AV += SNEXI*atoms[I].SA;
+        BV += SNEXI*atoms[I].SB;
         atoms[I].SNEX=2.0*SNEXI*TAV*RATIO[refs[NN].lambda];
         atoms[I].SNX=2.0*SNXI*TAV*RATIO[refs[NN].lambda];
-        CV=CV+SNXI*SAI;
-        DV=DV+SNXI*SBI;
+        CV += SNXI*atoms[I].SA;
+        DV += SNXI*atoms[I].SB;
     }
-    FNN=RATIO[refs[NN].lambda]*(CV*CV+AV*AV+DV*DV+BV*BV)*TAV*SR;
+
+    refs[NN].FMGNTD=RATIO[refs[NN].lambda]*(CV*CV+AV*AV+DV*DV+BV*BV)*TAV*SR;
 
     // PREPARING PHASE and struc fact TO BE PRINTED
-    struphase.TAVIX[NN]=TAV;
-    struphase.SRIX[NN]=SR;
+    refs[NN].TAVIX=TAV;
+    refs[NN].SRIX=SR;
     if (AV == 0) AV=1e-6;
-    struphase.APHASE[NN]=atan(BV/AV);
-    if (AV < 0 && BV > 0) struphase.APHASE[NN] =struphase.APHASE[NN]+3.1415927359;
-    if (AV < 0 && BV < 0) struphase.APHASE[NN] =struphase.APHASE[NN]+3.1415927359;
-    if (AV < 0 && BV == 0)struphase.APHASE[NN] =-3.1415927359;
-    if (AV > 0 && BV == 0)struphase.APHASE[NN] =0.00;
-    if (BV < 0 && AV == 0)struphase.APHASE[NN] =1.5*3.1415927359;
-    if (BV > 0 && AV == 0)struphase.APHASE[NN] =0.5*3.1415927359;
-    FMGNTD[NN]=FNN;
-    if (MAXS == 0) return;
+    refs[NN].APHASE=atan(BV/AV);
+    if (AV < 0 && BV > 0) refs[NN].APHASE =refs[NN].APHASE + M_PI;
+    if (AV < 0 && BV < 0) refs[NN].APHASE =refs[NN].APHASE + M_PI;
+    if (AV < 0 && BV == 0)refs[NN].APHASE = -M_PI;
+    if (AV > 0 && BV == 0)refs[NN].APHASE = 0.00;
+    if (BV < 0 && AV == 0)refs[NN].APHASE = M_PI_2_3;
+    if (BV > 0 && AV == 0)refs[NN].APHASE = M_PI_2;
+
     //-----CALCULATE DERIVATIVES
-    for(I=1; I <= N; I++)
+    if (MAXS != 0)
     {
-        SNEXI=atoms[I].SNEX;
-        SNXI=atoms[I].SNX;
-        SAI=atoms[I].SA;
-        SBI=atoms[I].SB;
-        for(J=1; J <= 11; J++)
+        for(I=1; I <= N; I++)
         {
-            K=atoms[I+IOF].AtomPAR[J].codeword.L;
-            if (K != 0)
+            SNEXI=atoms[I].SNEX;
+            SNXI=atoms[I].SNX;
+            //SAI=atoms[I].SA;
+            //SBI=atoms[I].SB;
+            for(J=1; J <= 11; J++)
             {
-                if (J > 5)
+                K=atoms[I+IOF].AtomPAR[J].codeword.L;
+                if (K != 0)
                 {
-                    SUMA=atoms[I].SUMAX[J-2];
-                    SUMB=atoms[I].SUMBX[J-2];
-                    DER=-((AV*SUMA+BV*SUMB)*SNEXI+(CV*SUMA+DV*SUMB)*SNXI);
-                    if (J >= 9) DER=2.0*DER;
-                }
-                else if (J > 3)
-                {
-                    if (J > 4)
+                    if (J > 5)
                     {
-                        DER=((SAI*AV+SBI*BV)*SNEXI+(SAI*CV+SBI*DV)*SNXI)/atoms[I+IOF].AtomPAR[5];
+                        SUMA=atoms[I].SUMAX[J-2];
+                        SUMB=atoms[I].SUMBX[J-2];
+                        DER=-((AV*SUMA+BV*SUMB)*SNEXI+(CV*SUMA+DV*SUMB)*SNXI);
+                        if (J >= 9) DER=2.0*DER;
+                    }
+                    else if (J > 3)
+                    {
+                        if (J > 4)
+                        {
+                            DER=((atoms[I].SA*AV+atoms[I].SB*BV)*SNEXI+(atoms[I].SA*CV+atoms[I].SB*DV)*SNXI)/atoms[I+IOF].AtomPAR[5];
+                        }
+                        else
+                        {
+                            DER=-((atoms[I].SA*AV+atoms[I].SB*BV)*SNEXI+(atoms[I].SA*CV+atoms[I].SB*DV)*SNXI)*SSNN;
+                        }
                     }
                     else
                     {
-                        DER=-((SAI*AV+SBI*BV)*SNEXI+(SAI*CV+SBI*DV)*SNXI)*SSNN;
+                        SUMA=atoms[I].SUMAX[J];
+                        SUMB=atoms[I].SUMBX[J];
+                        DER=-((AV*SUMA-BV*SUMB)*SNEXI+(CV*SUMA-DV*SUMB)*SNXI)*6.2831853071;
                     }
+                    DERIV[K] = SIGN(1.0,atoms[I+IOF].AtomPAR[J].codeword)*DER+DERIV[K];
+                }
+
+            }
+        }
+        //-----CALCULATE DERIVATIVES
+        //-----Preferred Orientation Derivatives
+        K = refs[NN].phase->PAR[12].codeword.L;
+        if ( K != 0 )
+        {
+            DERIV[K] += refs[NN].FMGNTD *DPRECOR;
+            //         print '(3x,i3,3f10.5)',k,fnn,dprecor,deriv(k)         ! ********
+        }
+        K = refs[NN].phase->PAR[13].codeword.L;
+        if (ipref == 0)
+        {
+            if (K != 0) DERIV[K]=DERIV[K]+(1.0-PREXP)* refs[NN].FMGNTD /PRECOR;
+        }
+        else
+        {
+            if (K != 0)
+            {
+                file6 << "G2 IS NOT A REFINABLE PARAMETER FOR IPREF = 1" << endl;
+                exit(EXIT_FAILURE);
+            }
+        }
+        //-----Derivatives for microabsorption parameter
+        if (iabsr == 1)
+        {
+            K = GLB[13].codeword.L;
+            if (K != 0)
+            {
+                SRD = (1.0-GLB[12])*(asin(sqrt(SINTH))-M_PI_2);
+                DERIV[K] += SRD* refs[NN].FMGNTD /SR;
+            }
+
+            K = GLB[12].codeword.L;
+            if (K != 0)
+            {
+                SRD = 1.0 -GLB[8]*exp(-GLB[9])+GLB[8]*exp(-GLB[9]/sqrt(SINTH))-1.0-GLB[13]*(asin(sqrt(SINTH))-M_PI_2);
+                DERIV[K] += SRD* refs[NN].FMGNTD /SR;
+            }
+
+            K = GLB[9].codeword.L;
+            if (K != 0)
+            {
+                SRD = GLB[8]*GLB[12]*(exp(-GLB[9])-exp(-GLB[9]/sqrt(SINTH))/sqrt(SINTH));
+                DERIV[K] += SRD* refs[NN].FMGNTD /SR;
+            }
+
+            K = GLB[8].codeword.L;
+            if (K != 0)
+            {
+                SRD = -GLB[12]*(exp(-GLB[9])+exp(-GLB[9]/sqrt(SINTH)));
+                DERIV[K] += SRD* refs[NN].FMGNTD /SR;
+            }
+        }
+        else if (iabsr == 2)
+        {
+            KKL = GLB[12].codeword.L;
+            K  = GLB[9].codeword.L;
+            KL = GLB[8].codeword.L;
+            if (K != 0 || KL != 0 || KKL != 0)
+            {
+                file6 << "P AND/OR Q AND/OR R ARE NOT REFINABLE PARAMETERS FOR IABSR=2" << endl;
+                cout << "P AND/OR Q AND/OR R ARE NOT REFINABLE PARAMETERS FOR IABSR=2" << endl;
+                exit(EXIT_FAILURE);
+            }
+            K = GLB[13].codeword.L;
+            SRD = M_PI_2 - asin(sqrt(SINTH));
+            if (K != 0) DERIV[K] += SRD* refs[NN].FMGNTD /SR;
+        }
+        else if (iabsr == 3)
+        {
+            KKL = GLB[13].codeword.L;
+            K = GLB[12].codeword.L;
+            if (K != 0 || KKL != 0)
+            {
+                file6 << "R AND/OR T IS NOT A REFINABLE PARAMETER FOR THE IABSR CHOICE" << endl;
+                cout << "R AND/OR T IS NOT A REFINABLE PARAMETER FOR THE IABSR CHOICE" << endl;
+                exit(EXIT_FAILURE);
+            }
+            K = GLB[9].codeword.L;
+            SRD = GLB[8]*exp(-GLB[9])-GLB[8]*ISITH*exp(-GLB[9]*ISITH);
+            if (K != 0) DERIV[K] += SRD* refs[NN].FMGNTD ;
+            K = GLB[8].codeword.L;
+            SRD = -exp(-GLB[9])+exp(-GLB[9]*ISITH);
+            if (K != 0) DERIV[K] += SRD* refs[NN].FMGNTD ;
+        }
+        else if (iabsr == 4)
+        {
+            KKL = GLB[13].codeword.L;
+            K = GLB[12].codeword.L;
+            if (K != 0 || KKL != 0)
+            {
+                file6 << "R AND/OR T IS NOT A REFINABLE PARAMETER FOR THE IABSR CHOICE" << endl;
+                cout << "R AND/OR T IS NOT A REFINABLE PARAMETER FOR THE IABSR CHOICE" << endl;
+                exit(EXIT_FAILURE);
+            }
+            K = GLB[9].codeword.L;
+            SRD = GLB[8]*(2*GLB[9]-1)+GLB[8]*ISITH*(2*GLB[9]*ISITH-1);
+            if (K != 0) DERIV[K] += SRD* refs[NN].FMGNTD /SR;
+            K = GLB[8].codeword.L;
+            SRD = GLB[9]*(GLB[9]-1)-GLB[9]*ISITH*(1-GLB[9]*ISITH);
+            if (K != 0) DERIV[K] += SRD* refs[NN].FMGNTD /SR;
+        }
+        //----Overall Temperature and Scale Factor
+        K=refs[NN].phase->PAR[2].codeword.L;
+        if (K != 0) DERIV[K]=DERIV[K]-2.0*SSNN* refs[NN].FMGNTD ;
+        K=refs[NN].phase->PAR[1].codeword.L;
+        if (K != 0) DERIV[K]=DERIV[K]+ refs[NN].FMGNTD /refs[NN].phase->PAR[1];
+        SINTH = 2 * radtodeg(  refs[NN].FMGNTD *SLABDA/(sqrt(SINTH*COSTH)*BB) );
+        SS= refs[NN].FMGNTD /prfx.TL;
+        X=TANTH*TANTH;
+        //-----Broadening Derivatives
+        if (nprof != 5 && nprof != 8)
+        {
+            for(J=3; J <= 5; J++)
+            {
+                K=refs[NN].phase->PAR[J].codeword.L;
+                if (K != 0)
+                {
+                    DERIV[K]=X*SS+DERIV[K];
+                }
+                X=X/TANTH;
+            }
+            K=refs[NN].phase->PAR[21].codeword.L;
+            if (K != 0)
+            {
+                //C for cot^2 case
+                DERIV[K]=SS/(TANTH*TANTH)+DERIV[K];
+            }
+        }
+
+        //-----Split Pearson VII Broadening Derivatives
+        if (nprof == 5)
+        {
+            if (prfx.DELTA < 0.0)
+            {
+                DA3 = spvii.DA3L;
+                DA1 = spvii.DA1L;
+            }
+            else
+            {
+                DA3 = spvii.DA3H;
+                DA1 = spvii.DA1H;
+            }
+            for(J=3; J <= 5; J++)
+            {
+                K=refs[NN].phase->PAR[J].codeword.L;
+                if (K != 0)
+                {
+                    DERIV[K]=DERIV[K]+X*SS*((DA3*prfx.DELT/(1.0+DA1*prfx.DELT))-(1.0/prfx.TL));
+                }
+                X=X/TANTH;
+            }
+        }
+
+        //-----TCHZ Broadening Derivatives
+        if (nprof == 8)
+        {
+            prfx.TL = refs[NN].refs[1];
+            TLG = refs[NN].HALFG;
+            TLL = refs[NN].HALFL;
+            DHDHG = 0.2/pow(prfx.TL,4.0)*(5.0*pow(TLG,4.0)+10.77076*pow(TLG,3.0)*TLL+
+                                          7.28529*TLG*TLG*TLL*TLL+8.94326*TLG*pow(TLL,3.0) + 0.07842*pow(TLL,4.0));
+            DHDHL = 0.2/pow(prfx.TL,4.0)*(2.69269*pow(TLG,4.0)+ 4.85686*pow(TLG,3.0)*TLL
+                                          +13.41489*TLG*TLG*TLL*TLL + 0.31368*TLG*pow(TLL,3.0)+5.0*pow(TLL,4.0));
+            for(J=3; J <= 5; J++)
+            {
+                K=refs[NN].phase->PAR[J].codeword.L;
+                if (K != 0)
+                {
+                    DERIV[K]=DHDHG*X*SS+DERIV[K];
+                }
+                X=X/TANTH;
+            }
+            K=refs[NN].phase->PAR[20].codeword.L;
+            if  (K != 0) DERIV[K]=DHDHG*SS/COSTH+DERIV[K];
+            K = refs[NN].phase->PAR[15].codeword.L;
+            if (K != 0)
+            {
+                DERIV[K] = 2.0* refs[NN].FMGNTD *DHDHL*TANTH+DERIV[K];
+            }
+            K = refs[NN].phase->PAR[16].codeword.L;
+            if (K != 0)
+            {
+                DERIV[K] = 2.0* refs[NN].FMGNTD *DHDHL/sqrt(COSTH) + DERIV[K];
+            }
+        }
+
+        //-----Profile Shape Derivatives
+        K = refs[NN].phase->PAR[17].codeword.L;
+        if (K != 0 && (nprof == 6 || nprof == 7)) DERIV[K]=DERIV[K]+  refs[NN].FMGNTD ;
+
+        K = refs[NN].phase->PAR[18].codeword.L;
+        if (K != 0 && nprof == 6) DERIV[K]=DERIV[K]+  refs[NN].FMGNTD  * refs[NN].refs[2];
+        if (K != 0 && nprof == 7) DERIV[K]=DERIV[K]+  refs[NN].FMGNTD  / refs[NN].refs[2];
+
+        K = refs[NN].phase->PAR[19].codeword.L;
+        if (K != 0 && nprof == 7) DERIV[K]=DERIV[K]+ refs[NN].FMGNTD /refs[NN].refs[2]/refs[NN].refs[2];
+
+        //-----Split Pearson VII Shape Derivative
+        if (nprof == 5)
+        {
+            K = refs[NN].phase->PAR[17].codeword.L;
+            if (K != 0.0)
+            {
+                if (prfx.DELTA < 0.0)
+                {
+                    DERIV[K] +=  refs[NN].FMGNTD *(-log(1.0+spvii.DA1L*prfx.DELT/BB)+spvii.DA7L*prfx.DELT/BB/(1.0+spvii.DA1L*prfx.DELT/BB));
                 }
                 else
                 {
-                    SUMA=atoms[I].SUMAX[J];
-                    SUMB=atoms[I].SUMBX[J];
-                    DER=-((AV*SUMA-BV*SUMB)*SNEXI+(CV*SUMA-DV*SUMB)*SNXI)*6.2831853071;
+                    DERIV[K] +=  refs[NN].FMGNTD *spvii.DA6L;
                 }
-                DERIV[K] = SIGN(1.0,atoms[I+IOF].AtomPAR[J].codeword)*DER+DERIV[K];
             }
+            K = refs[NN].phase->PAR[18].codeword.L;
+            if (K != 0.0)
+            {
+                if (prfx.DELTA < 0.0)
+                {
+                    DERIV[K] +=  refs[NN].FMGNTD *(-log(1.0+spvii.DA1L*prfx.DELT/BB)+spvii.DA7L*prfx.DELT/BB/(1.0+spvii.DA1L*prfx.DELT/BB))/refs[NN].refs[2];
+                }
+                else
+                {
+                    DERIV[K] +=  refs[NN].FMGNTD *spvii.DA6L/refs[NN].refs[2];
+                }
+            }
+            K = refs[NN].phase->PAR[19].codeword.L;
+            if (K != 0.0)
+            {
+                if (prfx.DELTA < 0.0)
+                {
+                    DERIV[K] +=  refs[NN].FMGNTD *(-log(1.0+spvii.DA1L*prfx.DELT/BB)+spvii.DA7L*prfx.DELT/BB/(1.0+spvii.DA1L*prfx.DELT/BB))/refs[NN].refs[2]/refs[NN].refs[2];
+                }
+                else
+                {
+                    DERIV[K] +=  refs[NN].FMGNTD *spvii.DA6L/refs[NN].refs[2]/refs[NN].refs[2];
+                }
+            }
+            K = refs[NN].phase->PAR[24].codeword.L;
+            if (K != 0.0)
+            {
+                if (prfx.DELTA < 0.0)
+                {
+                    DERIV[K] +=  refs[NN].FMGNTD *spvii.DA6H;
+                }
+                else
+                {
+                    DERIV[K] +=  refs[NN].FMGNTD *(-log(1.0+spvii.DA1H*prfx.DELT/BB)+spvii.DA7H*prfx.DELT/BB/(1.0+spvii.DA1H*prfx.DELT/BB));
+                }
+            }
+            K = refs[NN].phase->PAR[25].codeword.L;
+            if (K != 0.0)
+            {
+                if (prfx.DELTA < 0.0)
+                {
+                    DERIV[K] +=  refs[NN].FMGNTD *spvii.DA6H/refs[NN].refs[2];
+                }
+                else
+                {
+                    DERIV[K] +=  refs[NN].FMGNTD *(-log(1.0+spvii.DA1H*prfx.DELT/BB)+spvii.DA7H*prfx.DELT/BB/(1.0+spvii.DA1H*prfx.DELT/BB))/refs[NN].refs[2];
+                }
+            }
+            K = refs[NN].phase->PAR[26].codeword.L;
+            if (K != 0.0)
+            {
+                if (prfx.DELTA < 0.0)
+                {
+                    DERIV[K] +=  refs[NN].FMGNTD *spvii.DA6H/refs[NN].refs[2]/refs[NN].refs[2];
+                }
+                else
+                {
+                    DERIV[K] +=  refs[NN].FMGNTD *(-log(1.0+spvii.DA1H*prfx.DELT/BB)+spvii.DA7H*prfx.DELT/BB/(1.0+spvii.DA1H*prfx.DELT/BB))/refs[NN].refs[2]/refs[NN].refs[2];
+                }
+            }
+        }
 
-        }
-    }
-    //-----CALCULATE DERIVATIVES
-    //-----Preferred Orientation Derivatives
-    K = refs[NN].phase->PAR[12].codeword.L;
-    if ( K != 0 )
-    {
-        DERIV[K] += FNN*DPRECOR;
-        //         print '(3x,i3,3f10.5)',k,fnn,dprecor,deriv(k)         ! ********
-    }
-    K = refs[NN].phase->PAR[13].codeword.L;
-    if (ipref == 0)
-    {
-        if (K != 0) DERIV[K]=DERIV[K]+(1.0-PREXP)*FNN/PRECOR;
-    }
-    else
-    {
-        if (K != 0)
-        {
-            file6 << "G2 IS NOT A REFINABLE PARAMETER FOR IPREF = 1" << endl;
-            exit(EXIT_FAILURE);
-        }
-    }
-    //-----Derivatives for microabsorption parameter
-    if (iabsr == 1)
-    {
-        K = GLB[13].codeword.L;
-        if (K != 0)
-        {
-            SRD = (1.0-GLB[12])*(asin(sqrt(SINTH))-1.5707963268);
-            DERIV[K] += SRD*FNN/SR;
-        }
-
-        K = GLB[12].codeword.L;
-        if (K != 0)
-        {
-            SRD = 1.0 -GLB[8]*exp(-GLB[9])+GLB[8]*exp(-GLB[9]/sqrt(SINTH))-1.0-GLB[13]*(asin(sqrt(SINTH))-1.5707963268);
-            DERIV[K] += SRD*FNN/SR;
-        }
-
-        K = GLB[9].codeword.L;
-        if (K != 0)
-        {
-            SRD = GLB[8]*GLB[12]*(exp(-GLB[9])-exp(-GLB[9]/sqrt(SINTH))/sqrt(SINTH));
-            DERIV[K] += SRD*FNN/SR;
-        }
-
-        K = GLB[8].codeword.L;
-        if (K != 0)
-        {
-            SRD = -GLB[12]*(exp(-GLB[9])+exp(-GLB[9]/sqrt(SINTH)));
-            DERIV[K] += SRD*FNN/SR;
-        }
-    }
-    else if (iabsr == 2)
-    {
-        KKL = GLB[12].codeword.L;
-        K  = GLB[9].codeword.L;
-        KL = GLB[8].codeword.L;
-        if (K != 0 || KL != 0 || KKL != 0)
-        {
-            file6 << "P AND/OR Q AND/OR R ARE NOT REFINABLE PARAMETERS FOR IABSR=2" << endl;
-            cout << "P AND/OR Q AND/OR R ARE NOT REFINABLE PARAMETERS FOR IABSR=2" << endl;
-            exit(EXIT_FAILURE);
-        }
-        K = GLB[13].codeword.L;
-        SRD = 1.5707963268 - asin(sqrt(SINTH));
-        if (K != 0) DERIV[K] += SRD*FNN/SR;
-    }
-    else if (iabsr == 3)
-    {
-        KKL = GLB[13].codeword.L;
-        K = GLB[12].codeword.L;
-        if (K != 0 || KKL != 0)
-        {
-            file6 << "R AND/OR T IS NOT A REFINABLE PARAMETER FOR THE IABSR CHOICE" << endl;
-            cout << "R AND/OR T IS NOT A REFINABLE PARAMETER FOR THE IABSR CHOICE" << endl;
-            exit(EXIT_FAILURE);
-        }
-        K = GLB[9].codeword.L;
-        SRD = GLB[8]*exp(-GLB[9])-GLB[8]*ISITH*exp(-GLB[9]*ISITH);
-        if (K != 0) DERIV[K] += SRD*FNN;
-        K = GLB[8].codeword.L;
-        SRD = -exp(-GLB[9])+exp(-GLB[9]*ISITH);
-        if (K != 0) DERIV[K] += SRD*FNN;
-    }
-    else if (iabsr == 4)
-    {
-        KKL = GLB[13].codeword.L;
-        K = GLB[12].codeword.L;
-        if (K != 0 || KKL != 0)
-        {
-            file6 << "R AND/OR T IS NOT A REFINABLE PARAMETER FOR THE IABSR CHOICE" << endl;
-            cout << "R AND/OR T IS NOT A REFINABLE PARAMETER FOR THE IABSR CHOICE" << endl;
-            exit(EXIT_FAILURE);
-        }
-        K = GLB[9].codeword.L;
-        SRD = GLB[8]*(2*GLB[9]-1)+GLB[8]*ISITH*(2*GLB[9]*ISITH-1);
-        if (K != 0) DERIV[K] += SRD*FNN/SR;
-        K = GLB[8].codeword.L;
-        SRD = GLB[9]*(GLB[9]-1)-GLB[9]*ISITH*(1-GLB[9]*ISITH);
-        if (K != 0) DERIV[K] += SRD*FNN/SR;
-    }
-    //----Overall Temperature and Scale Factor
-    K=refs[NN].phase->PAR[2].codeword.L;
-    if (K != 0) DERIV[K]=DERIV[K]-2.0*SSNN*FNN;
-    K=refs[NN].phase->PAR[1].codeword.L;
-    if (K != 0) DERIV[K]=DERIV[K]+FNN/refs[NN].phase->PAR[1];
-    SINTH=FNN*PI*SLABDA/(sqrt(SINTH*COSTH)*BB);
-    SS=FNN/prfx.TL;
-    X=TANTH*TANTH;
-    //-----Broadening Derivatives
-    if (nprof == 5 || nprof == 8) goto L9212;
-    for(J=3; J <= 5; J++)
-    {
-        K=refs[NN].phase->PAR[J].codeword.L;
-        if (K != 0)
-        {
-            DERIV[K]=X*SS+DERIV[K];
-        }
-        X=X/TANTH;
-    }
-    K=refs[NN].phase->PAR[21].codeword.L;
-    if (K == 0) goto L9212;
-    //C for cot^2 case
-    DERIV[K]=SS/(TANTH*TANTH)+DERIV[K];
-    //-----Split Pearson VII Broadening Derivatives
-L9212:
-    if (nprof == 5)
-    {
+        //-----Split Pearson VII Asymmetry Derivative
+        K = refs[NN].phase->PAR[27].codeword.L;
         if (prfx.DELTA < 0.0)
         {
-            DA3 = spvii.DA3L;
             DA1 = spvii.DA1L;
+            DA4 = spvii.DA4L;
+            DA5 = spvii.DA5L;
         }
         else
         {
-            DA3 = spvii.DA3H;
             DA1 = spvii.DA1H;
+            DA4 = spvii.DA4H;
+            DA5 = spvii.DA5H;
         }
-        for(J=3; J <= 5; J++)
+        if (K != 0 && nprof == 5)
         {
-            K=refs[NN].phase->PAR[J].codeword.L;
-            if (K == 0) goto L780;
-            DERIV[K]=DERIV[K]+X*SS*((DA3*prfx.DELT/(1.0+DA1*prfx.DELT))-(1.0/prfx.TL));
-L780:
-            X=X/TANTH;
+            DERIV[K]=DERIV[K]+ refs[NN].FMGNTD *(DA4+DA5*prfx.DELT/BB/(1.0+DA1*prfx.DELT/BB));
         }
-    }
-    //L9211:
-    //-----TCHZ Broadening Derivatives
-    if (nprof == 8)
-    {
-        prfx.TL = REFS[NN][1];
-        TLG = HALFG[NN];
-        TLL = HALFL[NN];
-        DHDHG = 0.2/pow(prfx.TL,4.0)*(5.0*pow(TLG,4.0)+10.77076*pow(TLG,3.0)*TLL+
-                                      7.28529*TLG*TLG*TLL*TLL+8.94326*TLG*pow(TLL,3.0) + 0.07842*pow(TLL,4.0));
-        DHDHL = 0.2/pow(prfx.TL,4.0)*(2.69269*pow(TLG,4.0)+ 4.85686*pow(TLG,3.0)*TLL
-                                      +13.41489*TLG*TLG*TLL*TLL + 0.31368*TLG*pow(TLL,3.0)+5.0*pow(TLL,4.0));
-        for(J=3; J <= 5; J++)
+
+        //-----Zero, Displacement, and Transparancy Derivatives
+        K=GLB[1].codeword.L;
+        if (K != 0) DERIV[K]=DERIV[K]+2.0* refs[NN].FMGNTD /BB;
+
+        K=GLB[10].codeword.L;
+        if (K != 0) DERIV[K]=DERIV[K]+2.0* refs[NN].FMGNTD /BB*sqrt(COSTH);
+
+        K=GLB[11].codeword.L;
+        if (K != 0) DERIV[K]=DERIV[K]+2.0* refs[NN].FMGNTD /BB*sin(refs[NN].refs[2]/57.2958);
+
+
+
+        //-----Lattice Parameter Derivatives
+
+        K=refs[NN].phase->PAR[6].codeword.L;
+        if (K != 0)
         {
-            K=refs[NN].phase->PAR[J].codeword.L;
-            if (K == 0) goto L9078;
-            DERIV[K]=DHDHG*X*SS+DERIV[K];
-L9078:
-            X=X/TANTH;
+            DERIV[K] += refs[NN].h*refs[NN].h*SINTH;
         }
-        K=refs[NN].phase->PAR[20].codeword.L;
-        if  (K != 0) DERIV[K]=DHDHG*SS/COSTH+DERIV[K];
-        K = refs[NN].phase->PAR[15].codeword.L;
-        if (K == 0) goto L9213;
-        DERIV[K] = 2.0*FNN*DHDHL*TANTH+DERIV[K];
-L9213:
-        K = refs[NN].phase->PAR[16].codeword.L;
-        if (K == 0) goto L9214;
-        DERIV[K] = 2.0*FNN*DHDHL/sqrt(COSTH) + DERIV[K];
-L9214:
-        ;
-    }
-    //-----Profile Shape Derivatives
-    K = refs[NN].phase->PAR[17].codeword.L;
-    if (K != 0 && (nprof == 6 || nprof == 7)) DERIV[K]=DERIV[K]+ FNN;
-    K = refs[NN].phase->PAR[18].codeword.L;
-    if (K != 0 && nprof == 6) DERIV[K]=DERIV[K]+ FNN * REFS[NN][2];
-    if (K != 0 && nprof == 7) DERIV[K]=DERIV[K]+ FNN / REFS[NN][2];
-    K = refs[NN].phase->PAR[19].codeword.L;
-    if (K != 0 && nprof == 7) DERIV[K]=DERIV[K]+FNN/REFS[NN][2]/REFS[NN][2];
-    //-----Split Pearson VII Shape Derivative
-    if (nprof == 5)
-    {
-        K = refs[NN].phase->PAR[17].codeword.L;
-        if (K != 0.0)
+
+        K=refs[NN].phase->PAR[7].codeword.L;
+        if (K != 0)
         {
-            if (prfx.DELTA < 0.0)
+            DERIV[K] += refs[NN].k*refs[NN].k*SINTH;
+        }
+
+        K=refs[NN].phase->PAR[8].codeword.L;
+        if (K != 0)
+        {
+            DERIV[K] += refs[NN].l*refs[NN].l*SINTH;
+        }
+
+        K=refs[NN].phase->PAR[9].codeword.L;
+        if (K != 0)
+        {
+            DERIV[K] += refs[NN].k*refs[NN].l*SINTH;
+        }
+
+        K=refs[NN].phase->PAR[10].codeword.L;
+        if (K != 0)
+        {
+            DERIV[K] += refs[NN].h*refs[NN].l*SINTH;
+        }
+
+        K=refs[NN].phase->PAR[11].codeword.L;
+        if (K != 0)
+        {
+            DERIV[K] += refs[NN].h*refs[NN].k*SINTH;
+        }
+
+        //-Asymmetry Derivative.  Test for asymmetry model included
+        K=refs[NN].phase->PAR[14].codeword.L;
+        if ((K != 0) && VERT)
+        {
+            if (iasym == 0)
             {
-                DERIV[K] += FNN*(-log(1.0+spvii.DA1L*prfx.DELT/BB)+spvii.DA7L*prfx.DELT/BB/(1.0+spvii.DA1L*prfx.DELT/BB));
+                DERIV[K]=- refs[NN].FMGNTD /TANTH+DERIV[K];
             }
             else
             {
-                DERIV[K] += FNN*spvii.DA6L;
+                TANTHE=TANTH;
+                if (TANTHE >= 1.0) TANTHE=tan(atan( TANTHE - M_PI_2 ));
+                DERIV[K]=- refs[NN].FMGNTD /TANTH+DERIV[K];
             }
         }
-        K = refs[NN].phase->PAR[18].codeword.L;
-        if (K != 0.0)
-        {
-            if (prfx.DELTA < 0.0)
-            {
-                DERIV[K] += FNN*(-log(1.0+spvii.DA1L*prfx.DELT/BB)+spvii.DA7L*prfx.DELT/BB/(1.0+spvii.DA1L*prfx.DELT/BB))/REFS[NN][2];
-            }
-            else
-            {
-                DERIV[K] += FNN*spvii.DA6L/REFS[NN][2];
-            }
-        }
-        K = refs[NN].phase->PAR[19].codeword.L;
-        if (K != 0.0)
-        {
-            if (prfx.DELTA < 0.0)
-            {
-                DERIV[K] += FNN*(-log(1.0+spvii.DA1L*prfx.DELT/BB)+spvii.DA7L*prfx.DELT/BB/(1.0+spvii.DA1L*prfx.DELT/BB))/REFS[NN][2]/REFS[NN][2];
-            }
-            else
-            {
-                DERIV[K] += FNN*spvii.DA6L/REFS[NN][2]/REFS[NN][2];
-            }
-        }
-        K = refs[NN].phase->PAR[24].codeword.L;
-        if (K != 0.0)
-        {
-            if (prfx.DELTA < 0.0)
-            {
-                DERIV[K] += FNN*spvii.DA6H;
-            }
-            else
-            {
-                DERIV[K] += FNN*(-log(1.0+spvii.DA1H*prfx.DELT/BB)+spvii.DA7H*prfx.DELT/BB/(1.0+spvii.DA1H*prfx.DELT/BB));
-            }
-        }
-        K = refs[NN].phase->PAR[25].codeword.L;
-        if (K != 0.0)
-        {
-            if (prfx.DELTA < 0.0)
-            {
-                DERIV[K] += FNN*spvii.DA6H/REFS[NN][2];
-            }
-            else
-            {
-                DERIV[K] += FNN*(-log(1.0+spvii.DA1H*prfx.DELT/BB)+spvii.DA7H*prfx.DELT/BB/(1.0+spvii.DA1H*prfx.DELT/BB))/REFS[NN][2];
-            }
-        }
-        K = refs[NN].phase->PAR[26].codeword.L;
-        if (K != 0.0)
-        {
-            if (prfx.DELTA < 0.0)
-            {
-                DERIV[K] += FNN*spvii.DA6H/REFS[NN][2]/REFS[NN][2];
-            }
-            else
-            {
-                DERIV[K] += FNN*(-log(1.0+spvii.DA1H*prfx.DELT/BB)+spvii.DA7H*prfx.DELT/BB/(1.0+spvii.DA1H*prfx.DELT/BB))/REFS[NN][2]/REFS[NN][2];
-            }
-        }
+
+        //-----STORE DERIVATIVES FOR LIMO REFLECTIONS AT A TIME
+        for(I=1; I <= MAXS; I++) g4.DERSTO[NM][I]=DERIV[I];
     }
-    //-----Split Pearson VII Asymmetry Derivative
-    K = refs[NN].phase->PAR[27].codeword.L;
-    if (prfx.DELTA < 0.0)
-    {
-        DA1 = spvii.DA1L;
-        DA4 = spvii.DA4L;
-        DA5 = spvii.DA5L;
-    }
-    else
-    {
-        DA1 = spvii.DA1H;
-        DA4 = spvii.DA4H;
-        DA5 = spvii.DA5H;
-    }
-    if (K != 0 && nprof == 5)
-    {
-        DERIV[K]=DERIV[K]+FNN*(DA4+DA5*prfx.DELT/BB/(1.0+DA1*prfx.DELT/BB));
-    }
-    //-----Zero, Displacement, and Transparancy Derivatives
-    K=GLB[1].codeword.L;
-    if (K != 0) DERIV[K]=DERIV[K]+2.0*FNN/BB;
-    K=GLB[10].codeword.L;
-    if (K != 0) DERIV[K]=DERIV[K]+2.0*FNN/BB*sqrt(COSTH);
-    K=GLB[11].codeword.L;
-    if (K != 0) DERIV[K]=DERIV[K]+2.0*FNN/BB*sin(REFS[NN][2]/57.2958);
 
 
-
-    //-----Lattice Parameter Derivatives
-
-    K=refs[NN].phase->PAR[6].codeword.L;
-    if (K != 0)
-    {
-        DERIV[K] += refs[NN].h*refs[NN].h*SINTH;
-    }
-
-    K=refs[NN].phase->PAR[7].codeword.L;
-    if (K != 0)
-    {
-        DERIV[K] += refs[NN].k*refs[NN].k*SINTH;
-    }
-
-    K=refs[NN].phase->PAR[8].codeword.L;
-    if (K != 0)
-    {
-        DERIV[K] += refs[NN].l*refs[NN].l*SINTH;
-    }
-
-    K=refs[NN].phase->PAR[9].codeword.L;
-    if (K != 0)
-    {
-        DERIV[K] += refs[NN].k*refs[NN].l*SINTH;
-    }
-
-    K=refs[NN].phase->PAR[10].codeword.L;
-    if (K != 0)
-    {
-        DERIV[K] += refs[NN].h*refs[NN].l*SINTH;
-    }
-
-    K=refs[NN].phase->PAR[11].codeword.L;
-    if (K != 0)
-    {
-        DERIV[K] += refs[NN].h*refs[NN].k*SINTH;
-    }
-
-    //-Asymmetry Derivative.  Test for asymmetry model included
-    K=refs[NN].phase->PAR[14].codeword.L;
-    if ((K != 0) && VERT)
-    {
-        if (iasym == 0)
-        {
-            DERIV[K]=-FNN/TANTH+DERIV[K];
-        }
-        else
-        {
-            TANTHE=TANTH;
-            if (TANTHE >= 1.0) TANTHE=tan(atan(TANTHE-3.14159265359/2));
-            DERIV[K]=-FNN/TANTH+DERIV[K];
-        }
-    }
-    //-----STORE DERIVATIVES FOR LIMO REFLECTIONS AT A TIME
-    for(I=1; I <= MAXS; I++) g4.DERSTO[NM][I]=DERIV[I];
-    //L48:;
 }
 
 double DBWS::GAMMA(double X)
@@ -7315,12 +7350,11 @@ double DBWS::GAMMA(double X)
             goto L21;
         } else {
             if (X - 8.0 <= 0.0) {
-                for (I = 1; I <= 8; ++I) {
+                for (I = 1; I <= 8; ++I)
+                {
                     IN = I;
                     GX = X - (double) I;
-                    if (GX >= 1.0 && GX <= 2.0) {
-                        goto L21;
-                    }
+                    if (GX >= 1.0 && GX <= 2.0) break;
                 }
                 goto L21;
             } else {
@@ -7339,7 +7373,6 @@ double DBWS::GAMMA(double X)
             goto L99;
         }
     }
-
 
 
 L21:
@@ -7405,8 +7438,7 @@ void DBWS::PRSVII(double T)
                        0.54989,0.543743,0.538044,0.532381,
                        0.526905,0.521578,0.5164,0.511296
                       };
-    double PIG = 3.1415926;
-    double AL2 = 0.6931472;
+
 
     int I, N1,IT;
     double DG, RG, FT,FL1;
@@ -7432,10 +7464,10 @@ void DBWS::PRSVII(double T)
         }
     }
     pvii.TF1=sqrt( pow(2.0,(1.0/T))-1.0);
-    pvii.C4=2.0*RG*pvii.TF1/sqrt(PIG);
-    pvii.TF2=AL2*pow(2.0,(1.0/T))/(2.0*pow(pvii.TF1,2));
+    pvii.C4=2.0*RG*pvii.TF1 / sqrt(M_PI);
+    pvii.TF2= M_LN2l * pow(2.0,(1.0/T))/(2.0*pow(pvii.TF1,2));
     //     DC4DT= 2./SQRT(PIG)*(TF1*DG - RG*TF2/T**2)
-    pvii.TF4=4.0*AL2*pow(2.0,(1.0/T))/T;
+    pvii.TF4=4.0* M_LN2l *pow(2.0,(1.0/T))/T;
     pvii.TF6=4.0*T*pow(pvii.TF1,2);
     pvii.TF8=DG/RG-pvii.TF2/pow(T,2);
     pvii.TF9=4.0*pow(pvii.TF1,2);
@@ -7454,7 +7486,7 @@ void DBWS::MSPVII(double A, double W)
     DHD = GAMMA(spvii.RH-0.5+0.001)/(sqrt( pow(2.0,(1.0/(spvii.RH+0.001))) -1.0)*GAMMA(spvii.RH+0.001));
     spvii.DA1L = ( pow( ((1.0+A)/A),2.0) )*(  pow(2.0,(1.0/spvii.RL)) -1.0);
     spvii.DA1H = ( pow((1.0+A),2.0) )*( pow(2.0,(1/spvii.RH)) -1.0);
-    spvii.DA2L = 1.128379167*(1.0+A)*(1.0/(A*DL+DH))/W;
+    spvii.DA2L = M_2_SQRTPI*(1.0+A)*(1.0/(A*DL+DH))/W;
     spvii.DA2H = spvii.DA2L;
     spvii.DA3L = 2.0*spvii.RL*spvii.DA1L/W;
     spvii.DA3H = 2.0*spvii.RH*spvii.DA1H/W;
@@ -7475,16 +7507,28 @@ double DBWS::PROFIL(int N, double X)
 
     switch (N) {
     case 1:
-        value = 0.939437279*exp(-2.772588722*X);
-        prfx.PRFDER=2.772588722;
+        /*
+         *  Gaussian function.
+         *
+         *  As constantes C0 e C0_1 são tais que a integral da função seja normalizada, igual  a 1.
+         *
+         *  F() = (√C0/ (Hk * √π)) exp( -C0( 2Θi - 2Θk )²/ (Hk)² )
+         *
+         *  C0   = 4*ln(2)
+         *
+         *  C0_1 =  sqrt(C0/π)
+         *
+         */
+        value = C0_1 * exp(- C0 *X);
+        prfx.PRFDER =C0;
         return value;
     case 2:
-        value=0.636619772/(1.0+4.0*X);
+        value=M_2_PI/(1.0+4.0*X);
         prfx.PRFDER=4.0/(1.0+4.0*X);
         return value;
     case 3:
         value=0.819449653/pow((1.0+1.0656854248*X),2.0);
-        prfx.PRFDER=3.313708496/(1.0+1.656854248*X);
+        prfx.PRFDER=3.313708496/(1.0+_4_SQRT2_1*X);
         return value;
     case 4:
         value=0.766420937/ pow((1.0+2.349604208*X),1.5);
@@ -7503,16 +7547,16 @@ double DBWS::PROFIL(int N, double X)
         }
         return value;
     case 6:
-        value=prfx.GAM1*0.636619772/(1.0+4.0*X)+(1-prfx.GAM1)*0.939437279*exp(-2.772588722*X);
-        prfx.PRFDER=(prfx.GAM1*2.546479088/pow((1.0+4.0*X),2) +(1-prfx.GAM1)*2.6046732048*exp(-2.772588722*X))/value;
+        value=prfx.GAM1*M_2_PI/(1.0+4.0*X)+(1-prfx.GAM1)*0.939437279*exp(-C0*X);
+        prfx.PRFDER=(prfx.GAM1*2.546479088/pow((1.0+4.0*X),2) +(1-prfx.GAM1)*2.6046732048*exp(-C0*X))/value;
         return value;
     case 7:
         value=pvii.C4/pow((1.0+4.0*(pow(2,(1.0/prfx.GAM1))-1)*X),prfx.GAM1);
         prfx.PRFDER=pvii.TF6*prfx.GAM1/(1.0+4.0*( pow(2,(1.0/prfx.GAM1))-1)*X);
         return value;
     case 8:
-        value=prfx.GAM1*0.636619772/(1.0+4.0*X)+(1-prfx.GAM1)*0.939437279*exp(-2.772588722*X);
-        prfx.PRFDER=(prfx.GAM1*2.546479088/pow((1.0+4.0*X),2)+(1-prfx.GAM1)*2.6046732048*exp(-2.772588722*X))/value;
+        value=prfx.GAM1*M_2_PI/(1.0+4.0*X)+(1-prfx.GAM1)*0.939437279*exp(-C0*X);
+        prfx.PRFDER=(prfx.GAM1*2.546479088/pow((1.0+4.0*X),2)+(1-prfx.GAM1)*2.6046732048*exp(-C0*X))/value;
         return value;
     }
     cout << "ILLEGAL PROFILE FUNCTION REQUEST" << endl;
@@ -7542,374 +7586,378 @@ void DBWS::SUMMAT(int IPM,double CSK[], double DISK[], double DYCDD[],double TOT
         // test for asymmetry function
         if (iasym == 0)
         {
-            VERT = REFS[I][2] <= RLIM;
+            VERT = refs[I].refs[2] <= RLIM;
         }
         else
         {
-            VERT = abs(REFS[I][2]-90.0 ) >= RLIM;
+            VERT = abs(refs[I].refs[2]-90.0 ) >= RLIM;
         }
-        SHIFT = GLB[10] * cos(REFS[I][2]/2./57.2958) + GLB[11] * sin(REFS[I][2]/57.2958);
-        prfx.DELTA=g3.TH-REFS[I][2]-GLB[1]-SHIFT;
-        TANTH=tan(g3.TH*3.14159265359/360.0);
+        SHIFT = GLB[10] * cos(refs[I].refs[2]/2./57.2958) + GLB[11] * sin(refs[I].refs[2]/57.2958);
+        prfx.DELTA=g3.TH- refs[I].refs[2] -GLB[1]-SHIFT;
+        TANTH = tan( degtorad( 2.0 * g3.TH ) );
         prfx.DELT=prfx.DELTA*prfx.DELTA;
-        prfx.TL=REFS[I][1];
-        if (nprof == 6) prfx.GAM1 = refs[I].phase->PAR[17] + refs[I].phase->PAR[18] * REFS[I][2];
-        if (nprof == 7) prfx.GAM1 = refs[I].phase->PAR[17] + refs[I].phase->PAR[18] / REFS[I][2] + refs[I].phase->PAR[19]/REFS[I][2]/REFS[I][2];
+        prfx.TL=refs[I].refs[1];
+        if (nprof == 6) prfx.GAM1 = refs[I].phase->PAR[17] + refs[I].phase->PAR[18] * refs[I].refs[2];
+        if (nprof == 7) prfx.GAM1 = refs[I].phase->PAR[17] + refs[I].phase->PAR[18] / refs[I].refs[2] + refs[I].phase->PAR[19]/refs[I].refs[2]/refs[I].refs[2];
         if (nprof == 7) PRSVII(prfx.GAM1);
         if (nprof == 5)
         {
-            spvii.RL=refs[I].phase->PAR[17]+(refs[I].phase->PAR[18]+refs[I].phase->PAR[19]/REFS[I][2])/REFS[I][2];
-            spvii.RH=refs[I].phase->PAR[24]+(refs[I].phase->PAR[25]+refs[I].phase->PAR[26]/REFS[I][2])/REFS[I][2];
+            spvii.RL=refs[I].phase->PAR[17]+(refs[I].phase->PAR[18]+refs[I].phase->PAR[19]/refs[I].refs[2])/refs[I].refs[2];
+            spvii.RH=refs[I].phase->PAR[24]+(refs[I].phase->PAR[25]+refs[I].phase->PAR[26]/refs[I].refs[2])/refs[I].refs[2];
             MSPVII(refs[I].phase->PAR[27],prfx.TL);
         }
         if (nprof == 8)
         {
-            TLL = HALFL[I];
-            prfx.GAM1 = GAM[I];
+            TLL = refs[I].HALFL;
+            prfx.GAM1 = refs[I].GAM;
             TLR = TLL/prfx.TL;
         }
         BB= prfx.TL* prfx.TL;
         //-----NEXT LINE IS NECESSEARY FOR 2 PHASES WITH VERY DIFFERENT FWHM.
-        if (prfx.DELT/BB > WDT*WDT) goto L33;
-        if (VERT)
+        if (prfx.DELT/BB <= WDT*WDT)
         {
-            //       test for asymmetry model
-            if (iasym == 0)
+            if (VERT)
             {
-                YX=prfx.DELT*SIGN(1.0,prfx.DELTA);
-                Z=1.0-refs[I].phase->PAR[14]*YX/g4.TANN[J];
-                if ( Z <= 0.0 ) Z=0.0001;
+                //       test for asymmetry model
+                if (iasym == 0)
+                {
+                    YX=prfx.DELT*SIGN(1.0,prfx.DELTA);
+                    Z=1.0-refs[I].phase->PAR[14]*YX/g4.TANN[J];
+                    if ( Z <= 0.0 ) Z=0.0001;
+                }
+                else
+                {
+                    YX=SIGN(1.0,prfx.DELTA)*prfx.DELTA/(2*prfx.TL);
+                    TANNJ=g4.TANN[J];
+                    if (TANNJ >= 1.0)
+                    {
+                        TANNJ= tan( atan(TANNJ)- M_PI_2 );
+                    }
+                    Z=(refs[I].phase->PAR[14]/TANNJ) * (2.0*(prfx.DELTA/(2*prfx.TL))*exp(-YX));
+                    Z=1+Z;
+                    if ( Z <= 0.0 ) Z=.0001;
+                }
             }
             else
             {
-                YX=SIGN(1.0,prfx.DELTA)*prfx.DELTA/(2*prfx.TL);
-                TANNJ=g4.TANN[J];
-                if (TANNJ >= 1.0)
-                {
-                    TANNJ=tan(atan(TANNJ)-3.14159265359/2);
-                }
-                Z=(refs[I].phase->PAR[14]/TANNJ) * (2.0*(prfx.DELTA/(2*prfx.TL))*exp(-YX));
-                Z=1+Z;
-                if ( Z <= 0.0 ) Z=.0001;
+                Z=1.0;
             }
-        }
-        else
-        {
-            Z=1.0;
-        }
-        PRTEMP = PROFIL(nprof,prfx.DELT/BB);
-        if (nprof == 5)
-        {
-            OMEGA = REFS[I][3]*Z*PRTEMP*refs[I].phase->PAR[1];
-        }
-        else
-        {
-            OMEGA = REFS[I][3]*Z*PRTEMP*refs[I].phase->PAR[1]/prfx.TL;
-        }
-
-        YCALC = YCALC+OMEGA*FMGNTD[I];
-
-
-        if ( jobtyp > 2 ) goto L33;
-        X = prfx.PRFDER*2.0*prfx.DELT/BB-1.0;
-        for(K=1; K <= MAXS; K++)
-        {
-            DER=1.0;
-            //-----Broadening Coeficients Derivatives
-            if (nprof != 5)
+            PRTEMP = PROFIL(nprof,prfx.DELT/BB);
+            if (nprof == 5)
             {
-                for(M=3; M <= 5; M++) if (refs[I].phase->PAR[M].codeword.L == K) DER=X/prfx.TL/2.0;
+                OMEGA = refs[I].refs[3]*Z*PRTEMP*refs[I].phase->PAR[1];
             }
-            if (refs[I].phase->PAR[20].codeword.L == K) DER=X/prfx.TL/2.0;
-            X1=0.0;
-            //-----Asymmetry Derivative
-            if (VERT)
+            else
             {
-                if (iasym == 0)
-                {
-                    X1=refs[I].phase->PAR[14]*SIGN(1.0,prfx.DELTA)*BB/g4.TANN[J]/Z;
-                }
-                else
-                {
-                    X1=-refs[I].phase->PAR[14]*exp(-YX)*(prfx.TL/(2*prfx.DELTA)-SIGN(1.0,prfx.DELTA)*1.0/4)/TANNJ/Z;
-                }
-            }
-            //-----Zero, Displacement, and Transparancy Derivative
-            if ( GLB[1].codeword.L == K ) DER=prfx.DELTA*(prfx.PRFDER+X1);
-            if ( GLB[10].codeword.L == K ) DER=prfx.DELTA*(prfx.PRFDER+X1);
-            if ( GLB[11].codeword.L == K ) DER=prfx.DELTA*(prfx.PRFDER+X1);
-            if ( (refs[I].phase->PAR[14].codeword.L == K)  &&  VERT )
-            {
-                if (iasym == 0 )
-                {
-                    DER = YX/Z;
-                }
-                else
-                {
-                    DER = -2.0*(prfx.DELTA/(2.0*prfx.TL))*exp(-YX)/Z;
-                }
-            }
-            if ( nprof == 8 ) goto L8;
-            //-----Pseudo-Voigt Shape Derivatives
-            if (nprof == 6)
-            {
-                if (K == refs[I].phase->PAR[17].codeword.L)
-                {
-                    DER=(0.636619772/(1.0+4.0*prfx.DELT/BB)-0.939437279*exp(-2.772588722*prfx.DELT/BB))/PRTEMP;
-                }
-                if (K == refs[I].phase->PAR[18].codeword.L)
-                {
-                    DER=(0.636619772/(1.0+4.0*prfx.DELT/BB)-0.939437279*exp(-2.772588722*prfx.DELT/BB))/PRTEMP;
-                }
-            }
-            //-----Pearson VII Shape Derivatives
-            if (nprof == 7)
-            {
-                if (K == refs[I].phase->PAR[17].codeword.L)
-                {
-                    DER=-log(1.0+pvii.TF9*prfx.DELT/BB)+pvii.TF4*(prfx.DELT/BB)/(1.0+pvii.TF9*prfx.DELT/BB)+pvii.TF8;
-                }
-                if (K == refs[I].phase->PAR[18].codeword.L)
-                {
-                    DER=-log(1.0+pvii.TF9*prfx.DELT/BB)+pvii.TF4*(prfx.DELT/BB)/(1.0+pvii.TF9*prfx.DELT/BB)+pvii.TF8;
-                }
-                if (K == refs[I].phase->PAR[19].codeword.L)
-                {
-                    DER=-log(1.0+pvii.TF9*prfx.DELT/BB)+pvii.TF4*(prfx.DELT/BB)/(1.0+pvii.TF9*prfx.DELT/BB)+pvii.TF8;
-                }
+                OMEGA = refs[I].refs[3]*Z*PRTEMP*refs[I].phase->PAR[1]/prfx.TL;
             }
 
-L8:
-            //-----Lattice Parameter Derivatives
-            for(M=6; M <= 11; M++) if (refs[I].phase->PAR[M].codeword.L == K) DER=(prfx.PRFDER+X1)*prfx.DELTA;
-            DERIV[K]=g4.DERSTO[J][K]*DER*OMEGA+DERIV[K];
-        }
-        //----TCHZ Profile Derivatives
-        if (nprof == 8)
-        {
-            OMEGA8 = Z*refs[I].phase->PAR[1]*REFS[I][3]/prfx.TL;
-            for(K = 1; K <= MAXS; K++)
+            YCALC += OMEGA*refs[I].FMGNTD;
+
+
+            if ( jobtyp <= 2 )
             {
-                for(M=3; M <= 5; M++)
+                X = prfx.PRFDER*2.0*prfx.DELT/BB-1.0;
+                for(K=1; K <= MAXS; K++)
                 {
-                    if (refs[I].phase->PAR[M].codeword.L == K)
+                    DER=1.0;
+                    //-----Broadening Coeficients Derivatives
+                    if (nprof != 5)
                     {
-                        DERIV[K] +=  OMEGA8*g4.DERSTO[J][K]/2.0* (0.939437279*exp(-2.772588722*prfx.DELT/BB) - 0.636619772/(1.0+4.0*prfx.DELT/BB)) *
-                                   (1.36603*TLR/prfx.TL-0.95438*TLR*TLR/prfx.TL+0.33348*pow(TLR,3.0)/prfx.TL);
+                        for(M=3; M <= 5; M++) if (refs[I].phase->PAR[M].codeword.L == K) DER=X/prfx.TL/2.0;
+                    }
+                    if (refs[I].phase->PAR[20].codeword.L == K) DER=X/prfx.TL/2.0;
+                    X1=0.0;
+                    //-----Asymmetry Derivative
+                    if (VERT)
+                    {
+                        if (iasym == 0)
+                        {
+                            X1=refs[I].phase->PAR[14]*SIGN(1.0,prfx.DELTA)*BB/g4.TANN[J]/Z;
+                        }
+                        else
+                        {
+                            X1=-refs[I].phase->PAR[14]*exp(-YX)*(prfx.TL/(2*prfx.DELTA)-SIGN(1.0,prfx.DELTA)*1.0/4)/TANNJ/Z;
+                        }
+                    }
+                    //-----Zero, Displacement, and Transparancy Derivative
+                    if ( GLB[1].codeword.L == K ) DER=prfx.DELTA*(prfx.PRFDER+X1);
+                    if ( GLB[10].codeword.L == K ) DER=prfx.DELTA*(prfx.PRFDER+X1);
+                    if ( GLB[11].codeword.L == K ) DER=prfx.DELTA*(prfx.PRFDER+X1);
+                    if ( (refs[I].phase->PAR[14].codeword.L == K)  &&  VERT )
+                    {
+                        if (iasym == 0 )
+                        {
+                            DER = YX/Z;
+                        }
+                        else
+                        {
+                            DER = -2.0*(prfx.DELTA/(2.0*prfx.TL))*exp(-YX)/Z;
+                        }
+                    }
+                    if ( nprof != 8 )
+                    {
+                        //-----Pseudo-Voigt Shape Derivatives
+                        if (nprof == 6)
+                        {
+                            if (K == refs[I].phase->PAR[17].codeword.L)
+                            {
+                                DER=(M_2_PI/(1.0+4.0*prfx.DELT/BB)-0.939437279*exp(-2.772588722*prfx.DELT/BB))/PRTEMP;
+                            }
+                            if (K == refs[I].phase->PAR[18].codeword.L)
+                            {
+                                DER=(M_2_PI/(1.0+4.0*prfx.DELT/BB)-0.939437279*exp(-2.772588722*prfx.DELT/BB))/PRTEMP;
+                            }
+                        }
+                        //-----Pearson VII Shape Derivatives
+                        if (nprof == 7)
+                        {
+                            if (K == refs[I].phase->PAR[17].codeword.L)
+                            {
+                                DER=-log(1.0+pvii.TF9*prfx.DELT/BB)+pvii.TF4*(prfx.DELT/BB)/(1.0+pvii.TF9*prfx.DELT/BB)+pvii.TF8;
+                            }
+                            if (K == refs[I].phase->PAR[18].codeword.L)
+                            {
+                                DER=-log(1.0+pvii.TF9*prfx.DELT/BB)+pvii.TF4*(prfx.DELT/BB)/(1.0+pvii.TF9*prfx.DELT/BB)+pvii.TF8;
+                            }
+                            if (K == refs[I].phase->PAR[19].codeword.L)
+                            {
+                                DER=-log(1.0+pvii.TF9*prfx.DELT/BB)+pvii.TF4*(prfx.DELT/BB)/(1.0+pvii.TF9*prfx.DELT/BB)+pvii.TF8;
+                            }
+                        }
+                    }
+
+                    //-----Lattice Parameter Derivatives
+                    for(M=6; M <= 11; M++) if (refs[I].phase->PAR[M].codeword.L == K) DER=(prfx.PRFDER+X1)*prfx.DELTA;
+                    DERIV[K]=g4.DERSTO[J][K]*DER*OMEGA+DERIV[K];
+                }
+                //----TCHZ Profile Derivatives
+                if (nprof == 8)
+                {
+                    OMEGA8 = Z*refs[I].phase->PAR[1]*refs[I].refs[3]/prfx.TL;
+                    for(K = 1; K <= MAXS; K++)
+                    {
+                        for(M=3; M <= 5; M++)
+                        {
+                            if (refs[I].phase->PAR[M].codeword.L == K)
+                            {
+                                DERIV[K] +=  OMEGA8*g4.DERSTO[J][K]/2.0* (0.939437279*exp(-2.772588722*prfx.DELT/BB) - M_2_PI/(1.0+4.0*prfx.DELT/BB)) *
+                                           (1.36603*TLR/prfx.TL-0.95438*TLR*TLR/prfx.TL+0.33348*pow(TLR,3.0)/prfx.TL);
+                            }
+                        }
+                        if (refs[I].phase->PAR[20].codeword.L == K)
+                        {
+                            DERIV[K] += OMEGA8*g4.DERSTO[J][K]/2.0* (0.939437279*exp(-2.772588722*prfx.DELT/BB) - M_2_PI/(1.0+4.0*prfx.DELT/BB)) * (1.36603*TLR/prfx.TL-0.95438*TLR*TLR/prfx.TL+0.33348*pow(TLR,3.0)/prfx.TL);
+                        }
+                        if (refs[I].phase->PAR[15].codeword.L == K)
+                        {
+                            DERIV[K] += DERIV[K]+ OMEGA8* (0.939437279*exp(-2.772588722*prfx.DELT/BB)-M_2_PI/(1.0+4.0*prfx.DELT/BB))*
+                                        ((1.36603*TLR/prfx.TL-0.95438*TLR*TLR/prfx.TL+0.33348*pow(TLR,3.0)/prfx.TL)*g4.DERSTO[J][K]/2.0-refs[I].FMGNTD*g4.TANN[J]*(1.36603/prfx.TL-0.95438*TLR/prfx.TL+0.33348*TLR*TLR/prfx.TL));
+                        }
+
+                        if (refs[I].phase->PAR[16].codeword.L == K)
+                        {
+                            DERIV[K] +=  OMEGA8*(0.939437279*exp(-2.772588722*prfx.DELT/BB)-M_2_PI/(1.0+4.0*prfx.DELT/BB)) *
+                                       ((1.36603*TLR/prfx.TL-0.95438*TLR*TLR/prfx.TL+0.33348*pow(TLR,3.0)/prfx.TL)* g4.DERSTO[J][K]/2.0 - refs[I].FMGNTD*
+                                        sqrt(1+g4.TANN[J]*g4.TANN[J])*(1.36603/prfx.TL-0.95438*TLR/prfx.TL+0.33348*TLR*TLR/prfx.TL));
+                        }
+
                     }
                 }
-                if (refs[I].phase->PAR[20].codeword.L == K)
-                {
-                    DERIV[K] += OMEGA8*g4.DERSTO[J][K]/2.0* (0.939437279*exp(-2.772588722*prfx.DELT/BB) - 0.636619772/(1.0+4.0*prfx.DELT/BB)) * (1.36603*TLR/prfx.TL-0.95438*TLR*TLR/prfx.TL+0.33348*pow(TLR,3.0)/prfx.TL);
-                }
-                if (refs[I].phase->PAR[15].codeword.L == K)
-                {
-                    DERIV[K] += DERIV[K]+ OMEGA8* (0.939437279*exp(-2.772588722*prfx.DELT/BB)-0.636619772/(1.0+4.0*prfx.DELT/BB))*
-                                ((1.36603*TLR/prfx.TL-0.95438*TLR*TLR/prfx.TL+0.33348*pow(TLR,3.0)/prfx.TL)*g4.DERSTO[J][K]/2.0-FMGNTD[I]*g4.TANN[J]*(1.36603/prfx.TL-0.95438*TLR/prfx.TL+0.33348*TLR*TLR/prfx.TL));
-                }
-
-                if (refs[I].phase->PAR[16].codeword.L == K)
-                {
-                    DERIV[K] +=  OMEGA8*(0.939437279*exp(-2.772588722*prfx.DELT/BB)-0.636619772/(1.0+4.0*prfx.DELT/BB)) *
-                               ((1.36603*TLR/prfx.TL-0.95438*TLR*TLR/prfx.TL+0.33348*pow(TLR,3.0)/prfx.TL)* g4.DERSTO[J][K]/2.0 - FMGNTD[I]*
-                                sqrt(1+g4.TANN[J]*g4.TANN[J])*(1.36603/prfx.TL-0.95438*TLR/prfx.TL+0.33348*TLR*TLR/prfx.TL));
-                }
-
             }
         }
-L33:
-        ;
     }
 
     //-----FORM SUMS
 L12:
-    if (nbckgd != 0) goto L11;
-    for(II=2; II <= 7; II++)
+    if (nbckgd == 0)
     {
-        if(GLB[II].codeword.L == 0.0)goto L10;
-        KM=GLB[II].codeword.L;
-        if (II == 2)DERIV[KM]=DERIV[KM]+1.0;
-        if (II == 2) goto L10;
-        DERIV[KM]=DERIV[KM]+ pow( ((THMIN+double(IPM-1)*STEP)/BKPOS-1.0) , (II-2));
-L10:
-        ;
+        for(II=2; II <= 7; II++)
+        {
+            if(GLB[II].codeword.L != 0.0)
+            {
+                KM=GLB[II].codeword.L;
+                if (II == 2)DERIV[KM] += 1.0;
+                if (II != 2)
+                {
+                    DERIV[KM] += pow( ((THMIN+double(IPM-1)*STEP)/BKPOS-1.0) , (II-2));
+                }
+            }
+        }
     }
-L11:
+
+
     YC_[IPM]=YCALC;
-    if (jobtyp > 2) goto L20;
 
-
-    for(K = 1; K <= nphase; K++)
+    if (jobtyp <= 2)
     {
-        LK1  = phases[K].PAR[1].codeword.L;
-        LK2  = phases[K].PAR[2].codeword.L;
-
-        //-----UPDATING GLOBAL SCALE DERIVATE FOR BKG CONTRIBUTE
-
-        if (fondo == 1 || fondo == 2)
+        for(K = 1; K <= nphase; K++)
         {
-            if (LK1 != 0) DERIV[LK1]=DERIV[LK1]+volume.GCOM[K]*CSK[K]+volume.GCOM[K]*DISK[K];
-        }
-
-        //-----UPDATING DERIVATE OF Q OVERALL FOR BKG CONTRIBUTE
-
-        if (fondo == 2)
-        {
-            if (LK2 != 0) DERIV[LK2] = DERIV[LK2] +  DYCDD[K];
-        }
-
-        //-----UPDATING DERIVATE OF ISOTROPIC THERMAL PARAMETERS FOR BKG CONTRIBUTE
-
-        if (fondo == 1)
-        {
-            IOF = 0;
-            if (K > 1)
+            //-----UPDATING GLOBAL SCALE DERIVATE FOR BKG CONTRIBUTE
+            if (fondo == 1 || fondo == 2)
             {
-                for(I = 2; I <= K; I++) IOF = IOF + phases[I-1].NATOM;
+                LK1  = phases[K].PAR[1].codeword.L;
+                if (LK1 != 0) DERIV[LK1] += volume.GCOM[K]*CSK[K]+volume.GCOM[K]*DISK[K];
             }
-            for(I = 1; I <= phases[K].NATOM; I++)
+
+            //-----UPDATING DERIVATE OF Q OVERALL FOR BKG CONTRIBUTE
+            if (fondo == 2)
             {
-                IISO=atoms[I+IOF].AtomPAR[4].codeword.L;
-                if (IISO != 0) DERIV[IISO] = DERIV[IISO] + atoms[I+IOF].ISODER;
-                atoms[I+IOF].ISODER=0.0;
+                LK2  = phases[K].PAR[2].codeword.L;
+                if (LK2 != 0) DERIV[LK2] += DYCDD[K];
+            }
+
+            //-----UPDATING DERIVATE OF ISOTROPIC THERMAL PARAMETERS FOR BKG CONTRIBUTE
+            if (fondo == 1)
+            {
+                IOF = 0;
+                if (K > 1)
+                {
+                    for(I = 2; I <= K; I++) IOF = IOF + phases[I-1].NATOM;
+                }
+                for(I = 1; I <= phases[K].NATOM; I++)
+                {
+                    IISO=atoms[I+IOF].AtomPAR[4].codeword.L;
+                    if (IISO != 0) DERIV[IISO] = DERIV[IISO] + atoms[I+IOF].ISODER;
+                    atoms[I+IOF].ISODER=0.0;
+                }
             }
         }
-    }
-    //-----DYC RESPECT TO AMORPHOUS SCALE FACTOR
-    LK = GLB[20].codeword.L;
-    if (LK != 0) DERIV[LK] = DERIV[LK] + AMORPHOUS_[IPM];
-    //-----MONOCHROMATOR PARAMETERS DERIVATIVES
-    LAMBDAM=(LAMDA[1]*RATIO[1]+LAMDA[2]*RATIO[2])/(RATIO[1]+RATIO[2]);
-    ESSE=2*sin((g3.TH-GLB[1]-SHIFT)*0.00872665)/LAMBDAM;
-    LK=GLB[18].codeword.L;
-    if ( LK != 0 )
-    {
-        //-------NEXT LINE FOR A LORENTZIAN MONOCHROMATOR BASS-BAND  FUNCTION
+
+        //-----DYC RESPECT TO AMORPHOUS SCALE FACTOR
+        LK = GLB[20].codeword.L;
+        if (LK != 0) DERIV[LK] += AMORPHOUS_[IPM];
+
+        //-----MONOCHROMATOR PARAMETERS DERIVATIVES
+        LAMBDAM=(LAMDA[1]*RATIO[1]+LAMDA[2]*RATIO[2])/(RATIO[1]+RATIO[2]);
+        ESSE=2*sin( degtorad( 2.0*(g3.TH-GLB[1]-SHIFT) ) )/LAMBDAM;
+        LK=GLB[18].codeword.L;
+        if ( LK != 0 )
+        {
+            //-------NEXT LINE FOR A LORENTZIAN MONOCHROMATOR BASS-BAND  FUNCTION
+            ASS5=1/(1+GLB[18]*pow(ESSE,GLB[19]));
+            DERMON=-(pow(ESSE,(GLB[19])))/ (  pow((1+GLB[18]*pow(ESSE,GLB[19])),2)  );
+            DERIV[LK] += TOTCS/ASS5*DERMON;
+        }
+
+        LK=GLB[19].codeword.L;
         ASS5=1/(1+GLB[18]*pow(ESSE,GLB[19]));
-        DERMON=-(pow(ESSE,(GLB[19])))/ (  pow((1+GLB[18]*pow(ESSE,GLB[19])),2)  );
-        //--------------------------------------------------------------------
-        DERIV[LK]=DERIV[LK]+TOTCS/ASS5*DERMON;
+        if ( LK != 0 )
+        {
+            DERMON=-GLB[18]*log(ESSE)*(pow(ESSE,GLB[19]))/ pow((1+GLB[18]*(pow(ESSE,GLB[19]))) , 2);
+            DERIV[LK] += TOTCS/ASS5*DERMON;
+        }
+
+        //-----FORM THE UPPER TRIANGULAR OF "RJAC" = MATRIX OF NORMAL EQUATIONS
+        prfx.DELTA = Y_[IPM]-BK_[IPM]-YCALC;
+        for(J=1; J <= MAXS; J++)
+        {
+            X = DERIV[J]/(VAR_[IPM]);
+            Fx[J] = Fx[J]+prfx.DELTA*X;
+            for(KK=J; KK <= MAXS; KK++) matrix[J][KK] = matrix[J][KK]+X*DERIV[KK];
+        }
     }
-    LK=GLB[19].codeword.L;
-    ASS5=1/(1+GLB[18]*pow(ESSE,GLB[19]));
-    if ( LK != 0 )
-    {
-        DERMON=-GLB[18]*log(ESSE)*(pow(ESSE,GLB[19]))/ pow((1+GLB[18]*(pow(ESSE,GLB[19]))) , 2);
-        DERIV[LK]=DERIV[LK]+TOTCS/ASS5*DERMON;
-    }
-    //-----FORM THE UPPER TRIANGULAR OF "RJAC" = MATRIX OF NORMAL EQUATIONS
-    prfx.DELTA = Y_[IPM]-BK_[IPM]-YCALC;
-    for(J=1; J <= MAXS; J++)
-    {
-        X = DERIV[J]/(VAR_[IPM]);
-        f1.VX[J] = f1.VX[J]+prfx.DELTA*X;
-        for(KK=J; KK <= MAXS; KK++) f1.matrix[J][KK] = f1.matrix[J][KK]+X*DERIV[KK];
-    }
-L20:
-    ;
 }
 
-double DBWS::DPINV(double A1[][MSZ+1], double B1[], int N)
+double DBWS::DPINV(int N)
 {
     double C,D,T,S,A[MSZ+1][MSZ+1],B[MSZ+1],U[MSZ+1];
     int I, J, K, M[MSZ+1],I1, MI, MJ, MI1, MK1;
     double value;
 
-    if ( N != 1 ) goto L50;
-    A1[1][1] = 1.0/A1[1][1];
-    B1[1] = B1[1]*A1[1][1];
-    value = 1;
-    goto L99;
-L50:
-    value = 0;
-    for(I=1; I <= N; I++)
+    if ( N == 1 )
     {
-        B[I]=B1[I];
-        for(J=1; J <= N; J++) A[I][J]=A1[I][J];
+        matrix[1][1] = 1.0/matrix[1][1];
+        Fx[1] = Fx[1]*matrix[1][1];
+        value = 1;
     }
-    for(I=1; I <= N; I++)
+    else
     {
-        U[I]=abs(A[I][1]);
-        C=U[I];
-        for(J=2; J <= N; J++)
+        value = 0;
+        for(I=1; I <= N; I++)
         {
-            U[I]=max(U[I],abs(A[I][J]));
-            C=C+abs(A[I][J]);
+            B[I]=Fx[I];
+            for(J=1; J <= N; J++) A[I][J]=matrix[I][J];
         }
-        value=max(value,C);
-        M[I]=I;
-        B[I]=B[I]/U[I];
-        for(J=1; J <= N; J++) A[I][J]=A[I][J]/U[I];
-    }
-    for(I=1; I <= N; I++)
-    {
-        if (I == N)goto L15;
-        J=I;
-        I1=I+1;
-        MI=M[I];
-        S=abs(A[MI][I]);
-        for(K=I1; K <= N; K++)
+        for(I=1; I <= N; I++)
         {
-            MI=M[K];
-            if (abs(A[MI][I]) <= S)goto L4;
-            S=abs(A[MI][I]);
-            J=K;
-L4:
-            ;
-        }
-        MK1=M[J];
-        M[J]=M[I];
-        M[I]=MK1;
-L15:
-        MI1=M[I];
-        A[MI1][I]=1.0/A[MI1][I];
-        B[MI1]=B[MI1]*A[MI1][I];
-        for(J=1; J <= N; J++)
-        {
-            if (I == J)goto L20;
-            A[MI1][J]=A[MI1][J]*A[MI1][I];
-L20:
-            ;
-        }
-        for(J=1; J <= N; J++)
-        {
-            if (J == I)goto L30;
-            MJ=M[J];
-            T=A[MJ][I];
-            MI1=M[I];
-            B[MJ]=B[MJ]-T*B[MI1];
-            A[MJ][I]=-T*A[MI1][I];
-            for(K=1; K <= N; K++)
+            U[I]=abs(A[I][1]);
+            C=U[I];
+            for(J=2; J <= N; J++)
             {
-                if (K == I)goto L40;
-                A[MJ][K]=A[MJ][K]-T*A[MI1][K];
-L40:
-                ;
+                U[I]=max(U[I],abs(A[I][J]));
+                C=C+abs(A[I][J]);
             }
-L30:
-            ;
+            value=max(value,C);
+            M[I]=I;
+            B[I]=B[I]/U[I];
+            for(J=1; J <= N; J++) A[I][J]=A[I][J]/U[I];
         }
-    }
-    for(I=1; I <= N; I++)
-    {
-        MI1=M[I];
-        B1[I]=B[MI1];
-        for(J=1; J <= N; J++)
+        for(I=1; I <= N; I++)
         {
-            MJ=M[J];
-            A1[I][MJ]=A[MI1][J]/U[MJ];
+            if (I != N)
+            {
+                J=I;
+                I1=I+1;
+                MI=M[I];
+                S=abs(A[MI][I]);
+                for(K=I1; K <= N; K++)
+                {
+                    MI=M[K];
+                    if (abs(A[MI][I]) > S)
+                    {
+                        S=abs(A[MI][I]);
+                        J=K;
+                    }
+                }
+                MK1=M[J];
+                M[J]=M[I];
+                M[I]=MK1;
+            }
+
+            MI1=M[I];
+            A[MI1][I]=1.0/A[MI1][I];
+            B[MI1]=B[MI1]*A[MI1][I];
+            for(J=1; J <= N; J++)
+            {
+                if (I != J) A[MI1][J]=A[MI1][J]*A[MI1][I];
+            }
+            for(J=1; J <= N; J++)
+            {
+                if (J != I)
+                {
+                    MJ=M[J];
+                    T=A[MJ][I];
+                    MI1=M[I];
+                    B[MJ]=B[MJ]-T*B[MI1];
+                    A[MJ][I]=-T*A[MI1][I];
+                    for(K=1; K <= N; K++)
+                    {
+                        if (K != I) A[MJ][K]=A[MJ][K]-T*A[MI1][K];
+                    }
+                }
+            }
         }
+        for(I=1; I <= N; I++)
+        {
+            MI1=M[I];
+            Fx[I]=B[MI1];
+            for(J=1; J <= N; J++)
+            {
+                MJ=M[J];
+                matrix[I][MJ]=A[MI1][J]/U[MJ];
+            }
+        }
+        C=0;
+        for(I=1; I <= N; I++)
+        {
+            D=abs(matrix[I][1]);
+            for(J=2; J <= N; J++) D=D+abs(matrix[I][J]);
+            C=max(C,D);
+        }
+        value=value*C;
     }
-    C=0;
-    for(I=1; I <= N; I++)
-    {
-        D=abs(A1[I][1]);
-        for(J=2; J <= N; J++) D=D+abs(A1[I][J]);
-        C=max(C,D);
-    }
-    value=value*C;
-L99:
-    ;
+
     return value;
 }
 
@@ -7983,15 +8031,17 @@ void DBWS::ESD(double SM[][6+1], double V[], double SUM)
         R[IE]=2.0*FNUM*DENL*(V[IP]*DEN-FNUM*(V[IE]*V[IP]*V[IP]-4.0*V[IA]*V[IB]*V[IE]));
         R[IP]=2.0*FNUM*DENL*(V[IE]*DEN-FNUM*(V[IE]*V[IE]*V[IP]-4.0*V[IC]*V[IA]*V[IP]));
         E[I+3]=ERROR(SM,R,SUM);
-        if (S[I+3] == 0.0) goto L3;
-        E[I+3]=E[I+3]/(2.0*sqrt(S[I+3]*(1.0-S[I+3])))*180.0/3.14159265359;
-        S[I+3]=atan(sqrt((1.0-S[I+3])/S[I+3]))*180.0/3.14159265359;
-        goto L4;
-L3:
-        S[I+3]=90.0;
-        E[I+3]=0.0;
-L4:
-        if (FNUM > 0.) S[I+3]=180.0-S[I+3];
+        if (S[I+3] == 0.0)
+        {
+            S[I+3]=90.0;
+            E[I+3]=0.0;
+        }
+        else
+        {
+            E[I+3]= radtodeg( E[I+3]/(2.0*sqrt(S[I+3]*(1.0-S[I+3]))) );
+            S[I+3]= radtodeg( atan(sqrt((1.0-S[I+3])/S[I+3])) );
+        }
+        if (FNUM > 0.0) S[I+3]=180.0-S[I+3];
         if (SM[ID][ID] == 0.0) E[ID]=0.0;
     }
     if (abs(S[1]-S[2]) < 0.00008) E[1]=E[2];
@@ -8011,16 +8061,23 @@ void DBWS::DIRECT(double SM[][6+1],double V[], int IPH)
     for(J=1; J <= 6; J++)
     {
         V[J]=phases[IPH].PAR[J+5];
-        K=phases[IPH].PAR[J+5].codeword.L;
-        X=phases[IPH].PAR[J+5].codeword;
-        if (K == 0) X=0.0;
+        K=phases[IPH].PAR[J+5].codeword.L;        
+        if (K == 0)
+        {
+            X=0.0;
+        }
+        else
+        {
+            X=phases[IPH].PAR[J+5].codeword;
+        }
         for(L=J; L <= 6; L++)
         {
             M=phases[IPH].PAR[L+5].codeword.L;
             SM[L][J]=0.0;
-            if ((M == 0) || (K == 0)) goto L1;
-            SM[L][J]=f1.matrix[M][K]*X*phases[IPH].PAR[L+5].codeword;
-L1:
+            if ( (M != 0) && (K != 0) )
+            {
+                SM[L][J]=matrix[M][K]*X*phases[IPH].PAR[L+5].codeword;
+            }
             SM[J][L]=SM[L][J];
         }
     }
@@ -8030,9 +8087,8 @@ L1:
 void DBWS::OUTPTR(int ICYCLE)
 {
     int I, J, N,IP, KM,IOF, MMM,ILOC1, ILOC2, MATCH, ICOCO,IIPHAS,IINNMOL;
-    //int JJ, KK,LL, MM;
     double W[99+1], X, V0,FR[99+1],DW[99+1], FT, DCV[6+1], DFR[99+1],
-          FRP[99+1], VOL[99+1], ARG1, ARG2, ARG3, XFAC, DCSM[6+1][6+1], DVOL[99+1], VOSQ,
+          FRP[99+1], VOL[99+1], ARG1, ARG2, ARG3, DCSM[6+1][6+1], DVOL[99+1], VOSQ,
           DMASS[99+1], SMASS[99+1], DUMMY[2*MSZ+4+1], XMASS[99+1],ARGCOS, WTOTAL,
           STMASSA[99+1], DWTOTAL;
 
@@ -8188,51 +8244,52 @@ L6019:
             {
                 allp.ILOC =allp. ILOC + 1;
                 KM=atoms[I+IOF].AtomPAR[J].codeword.L;
-                if (KM != 0) goto L6;
-                atoms[I+IOF].AtomPAR[J].SY=0.0;
-                atoms[I+IOF].AtomPAR[J].SZ=0.0;
-                if (J == 5)
+                if (KM != 0)
                 {
-                    allp.FINAL[allp.ILOC][1] = atoms[I+IOF].AtomPAR[J]*multip.XMLTP[IP]/atoms[I+IOF].MURT;
+                    atoms[I+IOF].AtomPAR[J].increase = sqrt(abs(matrix[KM][KM]));
+                    atoms[I+IOF].AtomPAR[J].error = Fx[KM]*atoms[I+IOF].AtomPAR[J].codeword*RELAX[1];
+                    if (J ==  5)
+                    {
+                        DUMMY[KM] = atoms[I+IOF].AtomPAR[J]*multip.XMLTP[IP]/atoms[I+IOF].MURT;
+                        atoms[I+IOF].AtomPAR[J]=atoms[I+IOF].AtomPAR[J] + atoms[I+IOF].AtomPAR[J].error;
+                        DUMMY[KM+MSZ]  = atoms[I+IOF].AtomPAR[J].error * multip.XMLTP[IP]/atoms[I+IOF].MURT;
+                        allp.FINAL[allp.ILOC][1] = atoms[I+IOF].AtomPAR[J]*multip.XMLTP[IP]/atoms[I+IOF].MURT;
+                        allp.FINAL[allp.ILOC][2] = atoms[I+IOF].AtomPAR[J].increase * multip.XMLTP[IP]/atoms[I+IOF].MURT;
+                    }
+                    else
+                    {
+                        DUMMY[KM]  = atoms[I+IOF].AtomPAR[J];
+                        atoms[I+IOF].AtomPAR[J]=atoms[I+IOF].AtomPAR[J] + atoms[I+IOF].AtomPAR[J].error;
+                        DUMMY[KM+MSZ]  = atoms[I+IOF].AtomPAR[J].error;
+                        allp.FINAL[allp.ILOC][1] = atoms[I+IOF].AtomPAR[J];
+                        allp.FINAL[allp.ILOC][2] = atoms[I+IOF].AtomPAR[J].increase;
+                        SMASS[IP] = atoms[I+IOF].AtomPAR[J].increase;
+                    }
                 }
                 else
                 {
-                    allp.FINAL[allp.ILOC][1] = atoms[I+IOF].AtomPAR[J];
+                    atoms[I+IOF].AtomPAR[J].error=0.0;
+                    atoms[I+IOF].AtomPAR[J].increase=0.0;
+                    if (J == 5)
+                    {
+                        allp.FINAL[allp.ILOC][1] = atoms[I+IOF].AtomPAR[J]*multip.XMLTP[IP]/atoms[I+IOF].MURT;
+                    }
+                    else
+                    {
+                        allp.FINAL[allp.ILOC][1] = atoms[I+IOF].AtomPAR[J];
+                    }
                 }
-                goto  L5;
-L6:
-                atoms[I+IOF].AtomPAR[J].SZ = sqrt(abs(f1.matrix[KM][KM]));
-                atoms[I+IOF].AtomPAR[J].SY = f1.VX[KM]*atoms[I+IOF].AtomPAR[J].codeword*RELAX[1];
-                if (J ==  5)
-                {
-                    DUMMY[KM] = atoms[I+IOF].AtomPAR[J]*multip.XMLTP[IP]/atoms[I+IOF].MURT;
-                    atoms[I+IOF].AtomPAR[J]=atoms[I+IOF].AtomPAR[J] + atoms[I+IOF].AtomPAR[J].SY;
-                    DUMMY[KM+MSZ]  = atoms[I+IOF].AtomPAR[J].SY * multip.XMLTP[IP]/atoms[I+IOF].MURT;
-                    allp.FINAL[allp.ILOC][1] = atoms[I+IOF].AtomPAR[J]*multip.XMLTP[IP]/atoms[I+IOF].MURT;
-                    allp.FINAL[allp.ILOC][2] = atoms[I+IOF].AtomPAR[J].SZ * multip.XMLTP[IP]/atoms[I+IOF].MURT;
-                }
-                else
-                {
-                    DUMMY[KM]  = atoms[I+IOF].AtomPAR[J];
-                    atoms[I+IOF].AtomPAR[J]=atoms[I+IOF].AtomPAR[J] + atoms[I+IOF].AtomPAR[J].SY;
-                    DUMMY[KM+MSZ]  = atoms[I+IOF].AtomPAR[J].SY;
-                    allp.FINAL[allp.ILOC][1] = atoms[I+IOF].AtomPAR[J];
-                    allp.FINAL[allp.ILOC][2] = atoms[I+IOF].AtomPAR[J].SZ;
-                    SMASS[IP] = atoms[I+IOF].AtomPAR[J].SZ;
-                }
-L5:
-                ;
             }
             file6 << atoms[I + IOF].ATEXT << "  ";
             for (J = 1; J <= 4; ++J)
             {
                 file6 << setw(7) << setprecision(4) << fixed << atoms[I+IOF].AtomPAR[J] << " "
-                      << setw(7) << setprecision(4) << fixed << atoms[I+IOF].AtomPAR[J].SY << " "
-                      << setw(7) << setprecision(4) << fixed << atoms[I+IOF].AtomPAR[J].SZ << " ";
+                      << setw(7) << setprecision(4) << fixed << atoms[I+IOF].AtomPAR[J].error << " "
+                      << setw(7) << setprecision(4) << fixed << atoms[I+IOF].AtomPAR[J].increase << " ";
             }
             file6 << setw(7) << setprecision(4) << fixed << atoms[I+IOF].AtomPAR[5] * multip.XMLTP[IP] / atoms[I + IOF].MURT << " "
-                  << setw(7) << setprecision(4) << fixed << atoms[I+IOF].AtomPAR[5].SY * multip.XMLTP[IP] / atoms[I + IOF].MURT << " "
-                  << setw(7) << setprecision(4) << fixed << atoms[I+IOF].AtomPAR[5].SZ * multip.XMLTP[IP] / atoms[I + IOF].MURT << " " << endl;
+                  << setw(7) << setprecision(4) << fixed << atoms[I+IOF].AtomPAR[5].error * multip.XMLTP[IP] / atoms[I + IOF].MURT << " "
+                  << setw(7) << setprecision(4) << fixed << atoms[I+IOF].AtomPAR[5].increase * multip.XMLTP[IP] / atoms[I + IOF].MURT << " " << endl;
         }
         for(I=1; I <= N; I++)
         {
@@ -8240,39 +8297,40 @@ L5:
             {
                 allp.ILOC = allp.ILOC + 1;
                 KM=atoms[I+IOF].AtomPAR[J].codeword.L;
-                if (KM != 0)goto L9;
-                atoms[I+IOF].AtomPAR[J].SY=0.0;
-                atoms[I+IOF].AtomPAR[J].SZ=0.0;
-                allp.FINAL[allp.ILOC][1] = atoms[I+IOF].AtomPAR[J];
-                goto L8;
-L9:
-                atoms[I+IOF].AtomPAR[J].SZ = sqrt(abs(f1.matrix[KM][KM]));
-                atoms[I+IOF].AtomPAR[J].SY = f1.VX[KM]*atoms[I+IOF].AtomPAR[J].codeword*RELAX[2];
-                if (J ==  5)
+                if (KM != 0)
                 {
-                    DUMMY[KM] = atoms[I+IOF].AtomPAR[J]*multip.XMLTP[IP]/atoms[I+IOF].MURT;
-                    atoms[I+IOF].AtomPAR[J]=atoms[I+IOF].AtomPAR[J] + atoms[I+IOF].AtomPAR[J].SY;
-                    DUMMY[KM+MSZ] = atoms[I+IOF].AtomPAR[J].SY * multip.XMLTP[IP]/atoms[I+IOF].MURT;
-                    allp.FINAL[allp.ILOC][1] = atoms[I+IOF].AtomPAR[J]*multip.XMLTP[IP]/atoms[I+IOF].MURT;
-                    allp.FINAL[allp.ILOC][2] = atoms[I+IOF].AtomPAR[J].SZ * multip.XMLTP[IP]/atoms[I+IOF].MURT;
+                    atoms[I+IOF].AtomPAR[J].increase = sqrt(abs(matrix[KM][KM]));
+                    atoms[I+IOF].AtomPAR[J].error = Fx[KM]*atoms[I+IOF].AtomPAR[J].codeword*RELAX[2];
+                    if (J ==  5)
+                    {
+                        DUMMY[KM] = atoms[I+IOF].AtomPAR[J]*multip.XMLTP[IP]/atoms[I+IOF].MURT;
+                        atoms[I+IOF].AtomPAR[J]=atoms[I+IOF].AtomPAR[J] + atoms[I+IOF].AtomPAR[J].error;
+                        DUMMY[KM+MSZ] = atoms[I+IOF].AtomPAR[J].error * multip.XMLTP[IP]/atoms[I+IOF].MURT;
+                        allp.FINAL[allp.ILOC][1] = atoms[I+IOF].AtomPAR[J]*multip.XMLTP[IP]/atoms[I+IOF].MURT;
+                        allp.FINAL[allp.ILOC][2] = atoms[I+IOF].AtomPAR[J].increase * multip.XMLTP[IP]/atoms[I+IOF].MURT;
+                    }
+                    else
+                    {
+                        DUMMY[KM]  =atoms[I+IOF].AtomPAR[J];
+                        atoms[I+IOF].AtomPAR[J]=atoms[I+IOF].AtomPAR[J]+atoms[I+IOF].AtomPAR[J].error;
+                        DUMMY[KM+MSZ]  = atoms[I+IOF].AtomPAR[J].error;
+                        allp.FINAL[allp.ILOC][1] = atoms[I+IOF].AtomPAR[J];
+                        allp.FINAL[allp.ILOC][2] = atoms[I+IOF].AtomPAR[J].increase;
+                    }
                 }
                 else
                 {
-                    DUMMY[KM]  =atoms[I+IOF].AtomPAR[J];
-                    atoms[I+IOF].AtomPAR[J]=atoms[I+IOF].AtomPAR[J]+atoms[I+IOF].AtomPAR[J].SY;
-                    DUMMY[KM+MSZ]  = atoms[I+IOF].AtomPAR[J].SY;
+                    atoms[I+IOF].AtomPAR[J].error=0.0;
+                    atoms[I+IOF].AtomPAR[J].increase=0.0;
                     allp.FINAL[allp.ILOC][1] = atoms[I+IOF].AtomPAR[J];
-                    allp.FINAL[allp.ILOC][2] = atoms[I+IOF].AtomPAR[J].SZ;
                 }
-L8:
-                ;
             }
             file6 << atoms[I + IOF].ATEXT;
             for (J = 6; J <= 11; ++J)
             {
                 file6 << setw(10) << setprecision(6) << fixed << atoms[I+IOF].AtomPAR[J]
-                      << setw(10) << setprecision(6) << fixed << atoms[I+IOF].AtomPAR[J].SY
-                      << setw(10) << setprecision(6) << fixed << atoms[I+IOF].AtomPAR[J].SZ;
+                      << setw(10) << setprecision(6) << fixed << atoms[I+IOF].AtomPAR[J].error
+                      << setw(10) << setprecision(6) << fixed << atoms[I+IOF].AtomPAR[J].increase;
             }
             file6 << endl;
         }
@@ -8291,19 +8349,19 @@ L8:
             KM = phases[IP].PAR[J].codeword.L;
             if ( KM == 0 )
             {
-                phases[IP].PAR[J].SY = 0.0;
-                phases[IP].PAR[J].SZ = 0.0;
+                phases[IP].PAR[J].error = 0.0;
+                phases[IP].PAR[J].increase = 0.0;
                 allp.FINAL[allp.ILOC][1] = phases[IP].PAR[J];
             }
             else
             {
-                phases[IP].PAR[J].SZ = sqrt(abs(f1.matrix[KM][KM]));
-                phases[IP].PAR[J].SY = f1.VX[KM]*phases[IP].PAR[J].codeword*RELAX[3];
+                phases[IP].PAR[J].increase = sqrt(abs(matrix[KM][KM]));
+                phases[IP].PAR[J].error = Fx[KM]*phases[IP].PAR[J].codeword*RELAX[3];
                 DUMMY[KM] = phases[IP].PAR[J];
-                phases[IP].PAR[J] = phases[IP].PAR[J] + phases[IP].PAR[J].SY;
-                DUMMY[KM+MSZ] = phases[IP].PAR[J].SY;
+                phases[IP].PAR[J] = phases[IP].PAR[J] + phases[IP].PAR[J].error;
+                DUMMY[KM+MSZ] = phases[IP].PAR[J].error;
                 allp.FINAL[allp.ILOC][1] = phases[IP].PAR[J];
-                allp.FINAL[allp.ILOC][2] = phases[IP].PAR[J].SZ;
+                allp.FINAL[allp.ILOC][2] = phases[IP].PAR[J].increase;
             }
         }
         DIRECT(DCSM,DCV,IP);
@@ -8314,7 +8372,7 @@ L8:
             allp.ILOC = allp.ILOC + 1;
             KM = phases[IP].PAR[I+5].codeword.L;
             MATCH=0;
-            phases[IP].PAR[I+5].SY = DCV[I]-dc.SAVE[IP][I];
+            phases[IP].PAR[I+5].error = DCV[I]-dc.SAVE[IP][I];
             if (KM != 0)
             {
                 if (I >= 4)
@@ -8327,7 +8385,7 @@ L8:
                 if (MATCH == 0)
                 {
                     DUMMY[KM] = dc.SAVE[IP][I];
-                    DUMMY[KM+MSZ] = phases[IP].PAR[I+5].SY;
+                    DUMMY[KM+MSZ] = phases[IP].PAR[I+5].error;
                 }
             }
             allp.FINAL[allp.ILOC][1] = DCV[I];
@@ -8336,122 +8394,122 @@ L8:
         }
         allp.ILOC = ILOC2;
 
-        phases[IP].PAR[6].SZ = DCSM[1][1];
-        phases[IP].PAR[7].SZ = DCSM[2][2];
-        phases[IP].PAR[8].SZ = DCSM[3][3];
-        phases[IP].PAR[9].SZ = DCSM[4][4];
-        phases[IP].PAR[10].SZ = DCSM[5][5];
-        phases[IP].PAR[11].SZ = DCSM[6][6];
+        phases[IP].PAR[6].increase = DCSM[1][1];
+        phases[IP].PAR[7].increase = DCSM[2][2];
+        phases[IP].PAR[8].increase = DCSM[3][3];
+        phases[IP].PAR[9].increase = DCSM[4][4];
+        phases[IP].PAR[10].increase = DCSM[5][5];
+        phases[IP].PAR[11].increase = DCSM[6][6];
 
         file6 << endl
               << "OVERALL SCALE FACTOR="
               << setw(3) << setprecision(9) << scientific << phases[IP].PAR[1]
-              << setw(3) << setprecision(9) << scientific << phases[IP].PAR[1].SY
-              << setw(3) << setprecision(9) << scientific << phases[IP].PAR[1].SZ << endl
+              << setw(3) << setprecision(9) << scientific << phases[IP].PAR[1].error
+              << setw(3) << setprecision(9) << scientific << phases[IP].PAR[1].increase << endl
               << "OVERALL TEMP. FACTOR="
               << setw(9) << setprecision(4) << fixed << phases[IP].PAR[2]
-              << setw(9) << setprecision(4) << fixed << phases[IP].PAR[2].SY
-              << setw(9) << setprecision(4) << fixed << phases[IP].PAR[2].SZ << endl
+              << setw(9) << setprecision(4) << fixed << phases[IP].PAR[2].error
+              << setw(9) << setprecision(4) << fixed << phases[IP].PAR[2].increase << endl
               << "CELL PARAMETERS=" << endl
               << setw(11) << setprecision(6) << fixed << DCV[1]
-              << setw(11) << setprecision(6) << fixed << phases[IP].PAR[6].SY
-              << setw(11) << setprecision(6) << fixed << phases[IP].PAR[6].SZ << endl
+              << setw(11) << setprecision(6) << fixed << phases[IP].PAR[6].error
+              << setw(11) << setprecision(6) << fixed << phases[IP].PAR[6].increase << endl
               << setw(11) << setprecision(6) << fixed << DCV[2]
-              << setw(11) << setprecision(6) << fixed << phases[IP].PAR[7].SY
-              << setw(11) << setprecision(6) << fixed << phases[IP].PAR[7].SZ << endl
+              << setw(11) << setprecision(6) << fixed << phases[IP].PAR[7].error
+              << setw(11) << setprecision(6) << fixed << phases[IP].PAR[7].increase << endl
               << setw(11) << setprecision(6) << fixed << DCV[3]
-              << setw(11) << setprecision(6) << fixed << phases[IP].PAR[8].SY
-              << setw(11) << setprecision(6) << fixed << phases[IP].PAR[8].SZ << endl
+              << setw(11) << setprecision(6) << fixed << phases[IP].PAR[8].error
+              << setw(11) << setprecision(6) << fixed << phases[IP].PAR[8].increase << endl
               << setw(11) << setprecision(4) << fixed << DCV[4]
-              << setw(11) << setprecision(4) << fixed << phases[IP].PAR[9].SY
-              << setw(11) << setprecision(4) << fixed << phases[IP].PAR[9].SZ << endl
+              << setw(11) << setprecision(4) << fixed << phases[IP].PAR[9].error
+              << setw(11) << setprecision(4) << fixed << phases[IP].PAR[9].increase << endl
               << setw(11) << setprecision(4) << fixed << DCV[5]
-              << setw(11) << setprecision(4) << fixed << phases[IP].PAR[10].SY
-              << setw(11) << setprecision(4) << fixed << phases[IP].PAR[10].SZ << endl
+              << setw(11) << setprecision(4) << fixed << phases[IP].PAR[10].error
+              << setw(11) << setprecision(4) << fixed << phases[IP].PAR[10].increase << endl
               << setw(11) << setprecision(4) << fixed << DCV[6]
-              << setw(11) << setprecision(4) << fixed << phases[IP].PAR[11].SY
-              << setw(11) << setprecision(4) << fixed << phases[IP].PAR[11].SZ << endl
+              << setw(11) << setprecision(4) << fixed << phases[IP].PAR[11].error
+              << setw(11) << setprecision(4) << fixed << phases[IP].PAR[11].increase << endl
               << "PREFERRED ORIENTATION PARAMETERS=" << endl
               << setw(8) << setprecision(5) << fixed << phases[IP].PAR[12]
-              << setw(8) << setprecision(5) << fixed << phases[IP].PAR[12].SY
-              << setw(8) << setprecision(5) << fixed << phases[IP].PAR[12].SZ << endl
+              << setw(8) << setprecision(5) << fixed << phases[IP].PAR[12].error
+              << setw(8) << setprecision(5) << fixed << phases[IP].PAR[12].increase << endl
               << setw(8) << setprecision(5) << fixed << phases[IP].PAR[13]
-              << setw(8) << setprecision(5) << fixed << phases[IP].PAR[13].SY
-              << setw(8) << setprecision(5) << fixed << phases[IP].PAR[13].SZ << endl
+              << setw(8) << setprecision(5) << fixed << phases[IP].PAR[13].error
+              << setw(8) << setprecision(5) << fixed << phases[IP].PAR[13].increase << endl
               << "ASYMMETRY PARAMETER=" << endl
               << setw(8) << setprecision(5) << fixed << phases[IP].PAR[14]
-              << setw(8) << setprecision(5) << fixed << phases[IP].PAR[14].SY
-              << setw(8) << setprecision(5) << fixed << phases[IP].PAR[14].SZ << endl
+              << setw(8) << setprecision(5) << fixed << phases[IP].PAR[14].error
+              << setw(8) << setprecision(5) << fixed << phases[IP].PAR[14].increase << endl
               << "LORENTZIAN HALF WIDTH PARAMS (X AND Y)" << endl
               << setw(8) << setprecision(5) << fixed << phases[IP].PAR[15]
-              << setw(8) << setprecision(5) << fixed << phases[IP].PAR[15].SY
-              << setw(8) << setprecision(5) << fixed << phases[IP].PAR[15].SZ << endl
+              << setw(8) << setprecision(5) << fixed << phases[IP].PAR[15].error
+              << setw(8) << setprecision(5) << fixed << phases[IP].PAR[15].increase << endl
               << setw(8) << setprecision(5) << fixed << phases[IP].PAR[16]
-              << setw(8) << setprecision(5) << fixed << phases[IP].PAR[16].SY
-              << setw(8) << setprecision(5) << fixed << phases[IP].PAR[16].SZ << endl;
+              << setw(8) << setprecision(5) << fixed << phases[IP].PAR[16].error
+              << setw(8) << setprecision(5) << fixed << phases[IP].PAR[16].increase << endl;
         //-----CHECK FOR THE SPLIT PEARSON VII PROFILE
         if (nprof == 5)
         {
             file6 << "LOW SIDE EXPONENT PARAMETERS (NA, NB, NC)="
                   << setw(10) << setprecision(4) << scientific << phases[IP].PAR[17]
-                  << setw(10) << setprecision(4) << scientific << phases[IP].PAR[17].SY
-                  << setw(10) << setprecision(4) << scientific << phases[IP].PAR[17].SZ << endl
+                  << setw(10) << setprecision(4) << scientific << phases[IP].PAR[17].error
+                  << setw(10) << setprecision(4) << scientific << phases[IP].PAR[17].increase << endl
                   << setw(10) << setprecision(4) << scientific << phases[IP].PAR[18]
-                  << setw(10) << setprecision(4) << scientific << phases[IP].PAR[18].SY
-                  << setw(10) << setprecision(4) << scientific << phases[IP].PAR[18].SZ << endl
+                  << setw(10) << setprecision(4) << scientific << phases[IP].PAR[18].error
+                  << setw(10) << setprecision(4) << scientific << phases[IP].PAR[18].increase << endl
                   << setw(10) << setprecision(4) << scientific << phases[IP].PAR[19]
-                  << setw(10) << setprecision(4) << scientific << phases[IP].PAR[19].SY
-                  << setw(10) << setprecision(4) << scientific << phases[IP].PAR[19].SZ << endl
+                  << setw(10) << setprecision(4) << scientific << phases[IP].PAR[19].error
+                  << setw(10) << setprecision(4) << scientific << phases[IP].PAR[19].increase << endl
                   << "HIGH SIDE EXPONENT PARAMETERS (NA, NB, NC)="
                   << setw(10) << setprecision(4) << scientific << phases[IP].PAR[24]
-                  << setw(10) << setprecision(4) << scientific << phases[IP].PAR[24].SY
-                  << setw(10) << setprecision(4) << scientific << phases[IP].PAR[24].SZ << endl
+                  << setw(10) << setprecision(4) << scientific << phases[IP].PAR[24].error
+                  << setw(10) << setprecision(4) << scientific << phases[IP].PAR[24].increase << endl
                   << setw(10) << setprecision(4) << scientific << phases[IP].PAR[25]
-                  << setw(10) << setprecision(4) << scientific << phases[IP].PAR[25].SY
-                  << setw(10) << setprecision(4) << scientific << phases[IP].PAR[25].SZ << endl
+                  << setw(10) << setprecision(4) << scientific << phases[IP].PAR[25].error
+                  << setw(10) << setprecision(4) << scientific << phases[IP].PAR[25].increase << endl
                   << setw(10) << setprecision(4) << scientific << phases[IP].PAR[26]
-                  << setw(10) << setprecision(4) << scientific << phases[IP].PAR[26].SY
-                  << setw(10) << setprecision(4) << scientific << phases[IP].PAR[26].SZ << endl
+                  << setw(10) << setprecision(4) << scientific << phases[IP].PAR[26].error
+                  << setw(10) << setprecision(4) << scientific << phases[IP].PAR[26].increase << endl
                   << "0SPLIT PEARSON VII ASSYMETRY PARAMETER="
                   << setw(10) << setprecision(4) << scientific << phases[IP].PAR[27]
-                  << setw(10) << setprecision(4) << scientific << phases[IP].PAR[27].SY
-                  << setw(10) << setprecision(4) << scientific << phases[IP].PAR[27].SZ << endl;
+                  << setw(10) << setprecision(4) << scientific << phases[IP].PAR[27].error
+                  << setw(10) << setprecision(4) << scientific << phases[IP].PAR[27].increase << endl;
         }
         else
         {
             //-----IF NOT A SPLIT PEARSON VII PROFILE
             file6 << "MIXING PARAMETERS (NA, NB, NC)=" << endl
                   << setw(10) << setprecision(4) << scientific << phases[IP].PAR[17]
-                  << setw(10) << setprecision(4) << scientific << phases[IP].PAR[17].SY
-                  << setw(10) << setprecision(4) << scientific << phases[IP].PAR[17].SZ << endl
+                  << setw(10) << setprecision(4) << scientific << phases[IP].PAR[17].error
+                  << setw(10) << setprecision(4) << scientific << phases[IP].PAR[17].increase << endl
                   << setw(10) << setprecision(4) << scientific << phases[IP].PAR[18]
-                  << setw(10) << setprecision(4) << scientific << phases[IP].PAR[18].SY
-                  << setw(10) << setprecision(4) << scientific << phases[IP].PAR[18].SZ << endl
+                  << setw(10) << setprecision(4) << scientific << phases[IP].PAR[18].error
+                  << setw(10) << setprecision(4) << scientific << phases[IP].PAR[18].increase << endl
                   << setw(10) << setprecision(4) << scientific << phases[IP].PAR[19]
-                  << setw(10) << setprecision(4) << scientific << phases[IP].PAR[19].SY
-                  << setw(10) << setprecision(4) << scientific << phases[IP].PAR[19].SZ << endl;
+                  << setw(10) << setprecision(4) << scientific << phases[IP].PAR[19].error
+                  << setw(10) << setprecision(4) << scientific << phases[IP].PAR[19].increase << endl;
         }
         file6 << "FWHM PARAMETERS=" << endl
               << " U = "
               << setw(10) << setprecision(4) << scientific << phases[IP].PAR[3]
-              << setw(10) << setprecision(4) << scientific << phases[IP].PAR[3].SY
-              << setw(10) << setprecision(4) << scientific << phases[IP].PAR[3].SZ << endl
+              << setw(10) << setprecision(4) << scientific << phases[IP].PAR[3].error
+              << setw(10) << setprecision(4) << scientific << phases[IP].PAR[3].increase << endl
               << " V = "
               << setw(10) << setprecision(4) << scientific << phases[IP].PAR[4]
-              << setw(10) << setprecision(4) << scientific << phases[IP].PAR[4].SY
-              << setw(10) << setprecision(4) << scientific << phases[IP].PAR[4].SZ << endl
+              << setw(10) << setprecision(4) << scientific << phases[IP].PAR[4].error
+              << setw(10) << setprecision(4) << scientific << phases[IP].PAR[4].increase << endl
               << " W = "
               << setw(10) << setprecision(4) << scientific << phases[IP].PAR[5]
-              << setw(10) << setprecision(4) << scientific << phases[IP].PAR[5].SY
-              << setw(10) << setprecision(4) << scientific << phases[IP].PAR[5].SZ << endl
+              << setw(10) << setprecision(4) << scientific << phases[IP].PAR[5].error
+              << setw(10) << setprecision(4) << scientific << phases[IP].PAR[5].increase << endl
               << " CT= "
               << setw(10) << setprecision(4) << scientific << phases[IP].PAR[21]
-              << setw(10) << setprecision(4) << scientific << phases[IP].PAR[21].SY
-              << setw(10) << setprecision(4) << scientific << phases[IP].PAR[21].SZ << endl
+              << setw(10) << setprecision(4) << scientific << phases[IP].PAR[21].error
+              << setw(10) << setprecision(4) << scientific << phases[IP].PAR[21].increase << endl
               << " Z = "
               << setw(10) << setprecision(4) << scientific << phases[IP].PAR[20]
-              << setw(10) << setprecision(4) << scientific << phases[IP].PAR[20].SY
-              << setw(10) << setprecision(4) << scientific << phases[IP].PAR[20].SZ << endl;
+              << setw(10) << setprecision(4) << scientific << phases[IP].PAR[20].error
+              << setw(10) << setprecision(4) << scientific << phases[IP].PAR[20].increase << endl;
 
         //-----Modification introduced by Carlos O. Paiva-Santos to perform
         //-----Quantitative phase analysis, 03/94. Added 05/94, T.S. Moss
@@ -8463,13 +8521,17 @@ L8:
             STMASSA[IP] = STMASSA[IP] + SMASS[IP]*XMAS[ICOCO]*multip.XMLTP[IP];
         }
         //      print '(a,f12.5, I2)', ' stmassa = ', stmassa(ip), ip
-        XFAC = 3.141592654 / 180.000000;
-        DCV[4] = XFAC * DCV[4];
-        DCSM[4][4] = DCSM[4][4] * XFAC;
-        DCV[5] = XFAC * DCV[5];
-        DCSM[5][5] = DCSM[5][5] * XFAC;
-        DCV[6] = DCV[6] * XFAC;
-        DCSM[6][6] = DCSM[6][6] * XFAC;
+
+
+
+        DCV[4] = degtorad( DCV[4] );
+        DCSM[4][4] = degtorad( DCSM[4][4] );
+
+        DCV[5] = degtorad( DCV[5] );
+        DCSM[5][5] = degtorad( DCSM[5][5] );
+
+        DCV[6] = degtorad( DCV[6] );
+        DCSM[6][6] = degtorad( DCSM[6][6] );
         //-----Calculations of VOLUME and SVZM (=W) for each phase
         //-----and respectives standard deviations
         ARGCOS= 1-pow((cos(DCV[4])),2)-pow((cos(DCV[5])),2)-pow((cos(DCV[6])),2) + 2 * (cos(DCV[4])) * (cos(DCV[5])) * (cos(DCV[6]));
@@ -8482,7 +8544,7 @@ L8:
         DVOL[IP] = sqrt(pow((VOL[IP] * DCSM[1][1] / DCV[1]),2) + pow((VOL[IP] * DCSM[2][2] / DCV[2]),2) + pow((VOL[IP] * DCSM[3][3] / DCV[3]),2) + pow(ARG1,2) + pow(ARG2,2) + pow(ARG3,2));
         // standard deviations are calculed below
         W[IP] = phases[IP].PAR[1] * multip.TMASSA[IP] * VOL[IP]/phases[IP].SAQF;
-        DW[IP] =  (phases[IP].PAR[1].SZ/phases[IP].PAR[1]) + (DVOL[IP]/VOL[IP]) + (STMASSA[IP]/multip.TMASSA[IP])/phases[IP].SAQF;
+        DW[IP] =  (phases[IP].PAR[1].increase/phases[IP].PAR[1]) + (DVOL[IP]/VOL[IP]) + (STMASSA[IP]/multip.TMASSA[IP])/phases[IP].SAQF;
         //   end of std
         file6 << "Volume= "
               << setw(9) << setprecision(3) << fixed << VOL[IP]
@@ -8563,18 +8625,18 @@ L8:
         KM=GLB[J].codeword.L;
         if (KM != 0)
         {
-            GLB[J].SZ=sqrt(abs(f1.matrix[KM][KM]));
-            GLB[J].SY=f1.VX[KM]*GLB[J].codeword*RELAX[4];
+            GLB[J].increase=sqrt(abs(matrix[KM][KM]));
+            GLB[J].error=Fx[KM]*GLB[J].codeword*RELAX[4];
             DUMMY[KM] = GLB[J];
-            GLB[J]=GLB[J]+GLB[J].SY;
-            DUMMY[KM+MSZ]  = GLB[J].SY;
+            GLB[J]=GLB[J]+GLB[J].error;
+            DUMMY[KM+MSZ]  = GLB[J].error;
             allp.FINAL[allp.ILOC][1] = GLB[J];
-            allp.FINAL[allp.ILOC][2] = GLB[J].SZ;
+            allp.FINAL[allp.ILOC][2] = GLB[J].increase;
         }
         else
         {
-            GLB[J].SY=0.0;
-            GLB[J].SZ=0.0;
+            GLB[J].error=0.0;
+            GLB[J].increase=0.0;
             allp.FINAL[allp.ILOC][1] = GLB[J];
         }
     }
@@ -8586,76 +8648,71 @@ L8:
     file6 << "GLOBAL PARAMETERS" << endl
           << "ZEROPOINT (ZER)             :"
           << setw(8) << setprecision(4) << fixed << GLB[1]
-          << setw(8) << setprecision(4) << fixed << GLB[1].SY
-          << setw(8) << setprecision(4) << fixed << GLB[1].SZ << endl;
+          << setw(8) << setprecision(4) << fixed << GLB[1].error
+          << setw(8) << setprecision(4) << fixed << GLB[1].increase << endl;
 
     file6 << "SAMPLE DISPLACEMENT (DISP)  :"
           << setw(8) << setprecision(4) << fixed << GLB[10]
-          << setw(8) << setprecision(4) << fixed << GLB[10].SY
-          << setw(8) << setprecision(4) << fixed << GLB[10].SZ << endl
+          << setw(8) << setprecision(4) << fixed << GLB[10].error
+          << setw(8) << setprecision(4) << fixed << GLB[10].increase << endl
           << "SAMPLE TRANSPARENCY (TRANSP):"
           << setw(8) << setprecision(4) << fixed << GLB[11]
-          << setw(8) << setprecision(4) << fixed << GLB[11].SY
-          << setw(8) << setprecision(4) << fixed << GLB[11].SZ << endl
+          << setw(8) << setprecision(4) << fixed << GLB[11].error
+          << setw(8) << setprecision(4) << fixed << GLB[11].increase << endl
           << "ROUGHNESS PARAMETERS        :"
           << "             P              :"
           << setw(8) << setprecision(4) << fixed << GLB[8]
-          << setw(8) << setprecision(4) << fixed << GLB[8].SY
-          << setw(8) << setprecision(4) << fixed << GLB[8].SZ << endl
+          << setw(8) << setprecision(4) << fixed << GLB[8].error
+          << setw(8) << setprecision(4) << fixed << GLB[8].increase << endl
           << "             Q              :"
           << setw(8) << setprecision(4) << fixed << GLB[9]
-          << setw(8) << setprecision(4) << fixed << GLB[9].SY
-          << setw(8) << setprecision(4) << fixed << GLB[9].SZ << endl
+          << setw(8) << setprecision(4) << fixed << GLB[9].error
+          << setw(8) << setprecision(4) << fixed << GLB[9].increase << endl
           << "             R              :"
           << setw(8) << setprecision(4) << fixed << GLB[12]
-          << setw(8) << setprecision(4) << fixed << GLB[12].SY
-          << setw(8) << setprecision(4) << fixed << GLB[12].SZ << endl
+          << setw(8) << setprecision(4) << fixed << GLB[12].error
+          << setw(8) << setprecision(4) << fixed << GLB[12].increase << endl
           << "             T              :"
           << setw(8) << setprecision(4) << fixed << GLB[13]
-          << setw(8) << setprecision(4) << fixed << GLB[13].SY
-          << setw(8) << setprecision(4) << fixed << GLB[13].SZ << endl;
+          << setw(8) << setprecision(4) << fixed << GLB[13].error
+          << setw(8) << setprecision(4) << fixed << GLB[13].increase << endl;
 
 
 
     file6 << " AMORPHOUS SCALE (SCAM):"
           << setw(8) << setprecision(4) << fixed << GLB[20]
-          << setw(8) << setprecision(4) << fixed << GLB[20].SY
-          << setw(8) << setprecision(4) << fixed << GLB[20].SZ << endl;
+          << setw(8) << setprecision(4) << fixed << GLB[20].error
+          << setw(8) << setprecision(4) << fixed << GLB[20].increase << endl;
 
     file6 << endl << "MONOCROMATOR BANDPASS PARAMETERS (PMONI)"
           << setw(8) << setprecision(4) << fixed << GLB[18]
-          << setw(8) << setprecision(4) << fixed << GLB[18].SY
-          << setw(8) << setprecision(4) << fixed << GLB[18].SZ << endl
+          << setw(8) << setprecision(4) << fixed << GLB[18].error
+          << setw(8) << setprecision(4) << fixed << GLB[18].increase << endl
           << setw(8) << setprecision(4) << fixed << GLB[19]
-          << setw(8) << setprecision(4) << fixed << GLB[19].SY
-          << setw(8) << setprecision(4) << fixed << GLB[19].SZ << endl;
-    if (nbckgd != 0) goto L90;
-    file6 << endl << "BACKGROUND PARAMETERS" << endl
-          << setw(12) << setprecision(6) << scientific << GLB[2]
-          << setw(12) << setprecision(6) << scientific << GLB[2].SY
-          << setw(12) << setprecision(6) << scientific << GLB[2].SZ << endl
-          << setw(12) << setprecision(6) << scientific << GLB[3]
-          << setw(12) << setprecision(6) << scientific << GLB[3].SY
-          << setw(12) << setprecision(6) << scientific << GLB[3].SZ << endl
-          << setw(12) << setprecision(6) << scientific << GLB[4]
-          << setw(12) << setprecision(6) << scientific << GLB[4].SY
-          << setw(12) << setprecision(6) << scientific << GLB[4].SZ << endl
-          << setw(12) << setprecision(6) << scientific << GLB[5]
-          << setw(12) << setprecision(6) << scientific << GLB[5].SY
-          << setw(12) << setprecision(6) << scientific << GLB[5].SZ << endl
-          << setw(12) << setprecision(6) << scientific << GLB[6]
-          << setw(12) << setprecision(6) << scientific << GLB[6].SY
-          << setw(12) << setprecision(6) << scientific << GLB[6].SZ << endl
-          << setw(12) << setprecision(6) << scientific << GLB[7]
-          << setw(12) << setprecision(6) << scientific << GLB[7].SY
-          << setw(12) << setprecision(6) << scientific << GLB[7].SZ << endl;
-L90:
-    ;
-    //WRITE (8,ERR=99990) (DUMMY(I),I=1,MAXS),(DUMMY(I),I=MSZ+1,MSZ+MAXS),(DUMMY(I),I=2*MSZ+1,2*MSZ+4)
-    return;
-    //L99990:
-    //cout << "ERROR IN WRITING TO UNIT 8 IN OUTPTR" << endl;
-    //exit(EXIT_FAILURE);
+          << setw(8) << setprecision(4) << fixed << GLB[19].error
+          << setw(8) << setprecision(4) << fixed << GLB[19].increase << endl;
+    if (nbckgd == 0)
+    {
+        file6 << endl << "BACKGROUND PARAMETERS" << endl
+              << setw(12) << setprecision(6) << scientific << GLB[2]
+              << setw(12) << setprecision(6) << scientific << GLB[2].error
+              << setw(12) << setprecision(6) << scientific << GLB[2].increase << endl
+              << setw(12) << setprecision(6) << scientific << GLB[3]
+              << setw(12) << setprecision(6) << scientific << GLB[3].error
+              << setw(12) << setprecision(6) << scientific << GLB[3].increase << endl
+              << setw(12) << setprecision(6) << scientific << GLB[4]
+              << setw(12) << setprecision(6) << scientific << GLB[4].error
+              << setw(12) << setprecision(6) << scientific << GLB[4].increase << endl
+              << setw(12) << setprecision(6) << scientific << GLB[5]
+              << setw(12) << setprecision(6) << scientific << GLB[5].error
+              << setw(12) << setprecision(6) << scientific << GLB[5].increase << endl
+              << setw(12) << setprecision(6) << scientific << GLB[6]
+              << setw(12) << setprecision(6) << scientific << GLB[6].error
+              << setw(12) << setprecision(6) << scientific << GLB[6].increase << endl
+              << setw(12) << setprecision(6) << scientific << GLB[7]
+              << setw(12) << setprecision(6) << scientific << GLB[7].error
+              << setw(12) << setprecision(6) << scientific << GLB[7].increase << endl;
+    }
 }
 
 void DBWS::CEL000()
@@ -8663,36 +8720,13 @@ void DBWS::CEL000()
     //                             THIS SR IS USED TO FORCE A POINT XYZ TO
     //                           LIE IN THE UNIT CELL AT 000.
     blnk1.X[blnk1.MULTX-1] = AMOD(blnk1.X[blnk1.MULTX-1]+8.0,1.0);
-    if ( blnk1.X[blnk1.MULTX-1]-0.99999 < 0) {
-        goto L2;
-    }
-    else {
-        goto L1;
-    }
-L1:
-    blnk1.X[blnk1.MULTX-1] = 0.0;
-L2:
+    if ( blnk1.X[blnk1.MULTX-1]-0.99999 >= 0) blnk1.X[blnk1.MULTX-1] = 0.0;
+
     blnk1.Y[blnk1.MULTX-1] = AMOD(blnk1.Y[blnk1.MULTX-1]+8.0,1.0);
-    if ( blnk1.Y[blnk1.MULTX-1]-0.99999 < 0 ) {
-        goto L4;
-    }
-    else {
-        goto L3;
-    }
-L3:
-    blnk1.Y[blnk1.MULTX-1] = 0.0;
-L4:
+    if ( blnk1.Y[blnk1.MULTX-1]-0.99999 >= 0 ) blnk1.Y[blnk1.MULTX-1] = 0.0;
+
     blnk1.Z[blnk1.MULTX-1] = AMOD(blnk1.Z[blnk1.MULTX-1]+8.0,1.0);
-    if ( blnk1.Z[blnk1.MULTX-1]-0.99999 < 0 ) {
-        goto L6;
-    }
-    else {
-        goto L5;
-    }
-L5:
-    blnk1.Z[blnk1.MULTX-1] = 0.0;
-L6:
-    ;
+    if ( blnk1.Z[blnk1.MULTX-1]-0.99999 >= 0 ) blnk1.Z[blnk1.MULTX-1] = 0.0;
 }
 
 void DBWS::OPERTR(int I, int L2)
@@ -8713,185 +8747,145 @@ void DBWS::OPERTR(int I, int L2)
     I8 = spgcom.NCONT[I]/8192+1;
     switch (I8) {
     case 1:
-        goto L100;
+        switch (I1) {
+        case 1:
+            blnk1.X[blnk1.MULTX] = blnk1.X[L2];
+            break;
+        case 2:
+            blnk1.X[blnk1.MULTX] = blnk1.Y[L2];
+            break;
+        case 3:
+            blnk1.X[blnk1.MULTX] = -blnk1.X[L2];
+            break;
+        case 4:
+            blnk1.X[blnk1.MULTX] = -blnk1.Y[L2];
+            break;
+        default:
+            GOTOER();
+            break;
+        }
+        switch (I2) {
+        case 1:
+            break;
+        case 2:
+            blnk1.X[blnk1.MULTX] += 1.0/2.0;
+            break;
+        case 3:
+            blnk1.X[blnk1.MULTX] += 1.0/4.0;
+            break;
+        case 4:
+            blnk1.X[blnk1.MULTX] += 3.0/4.0;
+            break;
+        default:
+            GOTOER();
+            break;
+        }
+        switch (I3) {
+        case 1:
+            blnk1.Y[blnk1.MULTX] = blnk1.Y[L2];
+            break;
+        case 2:
+            blnk1.Y[blnk1.MULTX] = blnk1.X[L2];
+            break;
+        case 3:
+            blnk1.Y[blnk1.MULTX] = -blnk1.Y[L2];
+            break;
+        case 4:
+            blnk1.Y[blnk1.MULTX] = -blnk1.X[L2];
+            break;
+        default:
+            GOTOER();
+            break;
+        }
+        switch (I4) {
+        case 1:
+            break;
+        case 2:
+            blnk1.Y[blnk1.MULTX] += 1.0/2.0;
+            break;
+        case 3:
+            blnk1.Y[blnk1.MULTX] += 1.0/4.0;
+            break;
+        case 4:
+            blnk1.Y[blnk1.MULTX] += 3.0/4.0;
+            break;
+        default:
+            GOTOER();
+            break;
+        }
+        blnk1.Z[blnk1.MULTX] = blnk1.Z[L2]*double(1-2*I5);
+        switch (I6) {
+        case 1:
+            break;
+        case 2:
+            blnk1.Z[blnk1.MULTX] += 1.0/2.0;
+            break;
+        case 3:
+            blnk1.Z[blnk1.MULTX] += 1.0/4.0;
+            break;
+        case 4:
+            blnk1.Z[blnk1.MULTX] += 3.0/4.0;
+            break;
+        default:
+            GOTOER();
+            break;
+        }
+        switch (I7) {
+        case 1:
+            break;
+        case 2:
+            blnk1.Z[blnk1.MULTX] += 1.0/3.0;
+            break;
+        case 3:
+            blnk1.Z[blnk1.MULTX] += 2.0/3.0;
+            break;
+        default:
+            GOTOER();
+            break;
+        }
+        blnk1.MULTX = blnk1.MULTX+1;
+        CEL000();
+        return;
         break;
     case 2:
-        goto L200;
+        blnk1.X[blnk1.MULTX] = -blnk1.Y[L2];
+        blnk1.Y[blnk1.MULTX] = blnk1.X[L2]-blnk1.Y[L2];
+        blnk1.Z[blnk1.MULTX] = blnk1.Z[L2]+0.333333333*double(I2-2);
+        blnk1.MULTX = blnk1.MULTX+1;
+        CEL000();
+        blnk1.X[blnk1.MULTX] = -blnk1.Y[blnk1.MULTX-1];
+        blnk1.Y[blnk1.MULTX] = -blnk1.X[L2];
+        blnk1.Z[blnk1.MULTX] = blnk1.Z[L2]-0.333333333*double(I2-2);
+        blnk1.MULTX = blnk1.MULTX+1;
+        CEL000();
+        return;
         break;
     case 3:
-        goto L300;
+        I1 = L2;
+        goto L301;
+        break;
+    default:
+        GOTOER();
         break;
     }
-    GOTOER();
-L100:
-    switch (I1) {
-    case 1:
-        goto L101;
-        break;
-    case 2:
-        goto L102;
-        break;
-    case 3:
-        goto L103;
-        break;
-    case 4:
-        goto L104;
-        break;
-    }
-    GOTOER();
-L101:
-    blnk1.X[blnk1.MULTX] = blnk1.X[L2];
-    goto L105;
-L102:
-    blnk1.X[blnk1.MULTX] = blnk1.Y[L2];
-    goto L105;
-L103:
-    blnk1.X[blnk1.MULTX] = -blnk1.X[L2];
-    goto L105;
-L104:
-    blnk1.X[blnk1.MULTX] = -blnk1.Y[L2];
-L105:
-    switch (I2) {
-    case 1:
-        goto L110;
-        break;
-    case 2:
-        goto L107;
-        break;
-    case 3:
-        goto L108;
-        break;
-    case 4:
-        goto L106;
-        break;
-    }
-    GOTOER();
-L106:
-    blnk1.X[blnk1.MULTX] = blnk1.X[blnk1.MULTX]+0.25;
-L107:
-    blnk1.X[blnk1.MULTX] = blnk1.X[blnk1.MULTX]+0.25;
-L108:
-    blnk1.X[blnk1.MULTX] = blnk1.X[blnk1.MULTX]+0.25;
-L110:
-    switch (I3) {
-    case 1:
-        goto L111;
-        break;
-    case 2:
-        goto L112;
-        break;
-    case 3:
-        goto L113;
-        break;
-    case 4:
-        goto L114;
-        break;
-    }
-    GOTOER();
-L111:
-    blnk1.Y[blnk1.MULTX] = blnk1.Y[L2];
-    goto L115;
-L112:
-    blnk1.Y[blnk1.MULTX] = blnk1.X[L2];
-    goto L115;
-L113:
-    blnk1.Y[blnk1.MULTX] = -blnk1.Y[L2];
-    goto L115;
-L114:
-    blnk1.Y[blnk1.MULTX] = -blnk1.X[L2];
-L115:
-    switch (I4) {
-    case 1:
-        goto L120;
-        break;
-    case 2:
-        goto L117;
-        break;
-    case 3:
-        goto L118;
-        break;
-    case 4:
-        goto L116;
-        break;
-    }
-    GOTOER();
-L116:
-    blnk1.Y[blnk1.MULTX] = blnk1.Y[blnk1.MULTX]+0.25;
-L117:
-    blnk1.Y[blnk1.MULTX] = blnk1.Y[blnk1.MULTX]+0.25;
-L118:
-    blnk1.Y[blnk1.MULTX] = blnk1.Y[blnk1.MULTX]+0.25;
-L120:
-    blnk1.Z[blnk1.MULTX] = blnk1.Z[L2]*double(1-2*I5);
-    switch (I6) {
-    case 1:
-        goto L125;
-        break;
-    case 2:
-        goto L122;
-        break;
-    case 3:
-        goto L123;
-        break;
-    case 4:
-        goto L121;
-        break;
-    }
-    GOTOER();
-L121:
-    blnk1.Z[blnk1.MULTX] = blnk1.Z[blnk1.MULTX]+0.25;
-L122:
-    blnk1.Z[blnk1.MULTX] = blnk1.Z[blnk1.MULTX]+0.25;
-L123:
-    blnk1.Z[blnk1.MULTX] = blnk1.Z[blnk1.MULTX]+0.25;
-L125:
-    switch (I7) {
-    case 1:
-        goto L130;
-        break;
-    case 2:
-        goto L127;
-        break;
-    case 3:
-        goto L126;
-        break;
-    }
-    GOTOER();
-L126:
-    blnk1.Z[blnk1.MULTX] = blnk1.Z[blnk1.MULTX]+0.333333333;
-L127:
-    blnk1.Z[blnk1.MULTX] = blnk1.Z[blnk1.MULTX]+0.333333333;
-L130:
-    blnk1.MULTX = blnk1.MULTX+1;
-    CEL000();
-    return;
-L200:
-    blnk1.X[blnk1.MULTX] = -blnk1.Y[L2];
-    blnk1.Y[blnk1.MULTX] = blnk1.X[L2]-blnk1.Y[L2];
-    blnk1.Z[blnk1.MULTX] = blnk1.Z[L2]+0.333333333*double(I2-2);
-    blnk1.MULTX = blnk1.MULTX+1;
-    CEL000();
-    blnk1.X[blnk1.MULTX] = -blnk1.Y[blnk1.MULTX-1];
-    blnk1.Y[blnk1.MULTX] = -blnk1.X[L2];
-    blnk1.Z[blnk1.MULTX] = blnk1.Z[L2]-0.333333333*double(I2-2);
-    goto L130;
-L300:
-    I1 = L2;
+
+
 L301:
     blnk1.X[blnk1.MULTX] = blnk1.Z[I1];
     blnk1.Y[blnk1.MULTX] = blnk1.X[I1];
     blnk1.Z[blnk1.MULTX] = blnk1.Y[I1];
     if ( I1-L2 <= 0 ) {
-        goto L302;
+        I1 = blnk1.MULTX;
+        blnk1.MULTX = blnk1.MULTX+1;
+        CEL000();
+        goto L301;
     }
     else {
-        goto L130;
+        blnk1.MULTX = blnk1.MULTX+1;
+        CEL000();
+        return;
     }
-L302:
-    I1 = blnk1.MULTX;
-    blnk1.MULTX = blnk1.MULTX+1;
-    CEL000();
-    goto L301;
+
 }
 
 void DBWS::SYMOPR()
@@ -8928,29 +8922,24 @@ L103:
         {
             L3=blnk1.MULTX-1;
             if ( spgcom.NCONT[I]-8192 == 0 ) {
-                goto L5;
+                blnk1.X[blnk1.MULTX]=blnk1.X[L2]+1.0/3.0;
+                blnk1.Y[blnk1.MULTX]=blnk1.Y[L2]+2.0/3.0;
+                blnk1.Z[blnk1.MULTX]=blnk1.Z[L2]+2.0/3.0;
+
+                blnk1.X[blnk1.MULTX+1]=blnk1.X[L2]+2.0/3.0;
+                blnk1.Y[blnk1.MULTX+1]=blnk1.Y[L2]+1.0/3.0;
+                blnk1.Z[blnk1.MULTX+1]=blnk1.Z[L2]+1.0/3.0;
+
+                blnk1.MULTX=blnk1.MULTX+1;
+                CEL000();
+                blnk1.MULTX=blnk1.MULTX+1;
+                CEL000();
             }
             else {
-                goto L4;
+                OPERTR(I,L2);
             }
-L5:
-            blnk1.X[blnk1.MULTX]=blnk1.X[L2]+1.0/3.0;
-            blnk1.Y[blnk1.MULTX]=blnk1.Y[L2]+2.0/3.0;
-            blnk1.Z[blnk1.MULTX]=blnk1.Z[L2]+2.0/3.0;
-            blnk1.X[blnk1.MULTX+1]=blnk1.X[L2]+2.0/3.0;
-            blnk1.Y[blnk1.MULTX+1]=blnk1.Y[L2]+1.0/3.0;
-            blnk1.Z[blnk1.MULTX+1]=blnk1.Z[L2]+1.0/3.0;
-            blnk1.MULTX=blnk1.MULTX+1;
-            CEL000();
-            blnk1.MULTX=blnk1.MULTX+1;
-            CEL000();
-            goto L6;
-L4:
-            OPERTR(I,L2);
-L6:
             L5=blnk1.MULTX;
             L6=spgcom.NCONT[I];
-            //L7:
             blnk1.MULTX = L3+1;
 L8:
             L4 = 1;
@@ -9210,7 +9199,7 @@ L200:
 
 void DBWS::ITER()
 {
-    int IORDLIM2,I, J, K, L,IA, KS[50+1], IX,IOF,IPM,LIM,IPREV,IDERIV;
+    int IORDLIM2,I, J, K, L,IA, KS[50+1], ciclo,IOF,IPM,LIM,IPREV,IDERIV;
     double X, X1,YY,CSK[99+1], SDK,DYC, OOM,STH, THX, DISK[99+1], CISK, FPOL, DYCDD[99+1],
           VLAST[MSZ+1], TOTAS, TOTCS, TOTDS;
 
@@ -9218,13 +9207,13 @@ void DBWS::ITER()
     for(I=1; I <= MSZ; I++) VLAST[I]=0.0;
 
     //     **** start cycles ****
-    for(IX=1; IX <= mcycle; IX++)
+    for(ciclo=1; ciclo <= mcycle; ciclo++)
     {
         ASSIGN();
         for(I=1; I <= MSZ; I++)
         {
-            f1.VX[I]=0.0;
-            for(J=1; J <= MSZ; J++) f1.matrix[I][J]=0.0;
+            Fx[I]=0.0;
+            for(J=1; J <= MSZ; J++) matrix[I][J]=0.0;
         }
         for(I=1; I <= NATS; I++) atoms[I].ISODER=0;
         g3.NUM=0;
@@ -9264,8 +9253,10 @@ void DBWS::ITER()
                 //-----COMPUTE FPOL = POLARIZATION FACTOR FOR THIS IPM POINT
                 //     TH  = 2.0 * THETA
                 //     STH = SIN(THETA)
-                STH = sin(g3.TH * 0.008726646);
-                FPOL = (1.0 + ( pow((1.0 - 2.0 * STH * STH),2) ) * CTHM ) / 2.0;
+
+                STH = sin( degtorad(2.0 * g3.TH) );
+
+                FPOL = (1.0 + ( pow((1.0 - 2.0 * pow(STH,2)),2) ) * CTHM ) / 2.0;
                 if (KR_[IPM] == IRS)
                 {
                     // ----IDERIV = 1 MEANS ONLY BACKGROUND (FOR THE STEP-POINTS THAT ARE IN EXCLUDED REGIONS)
@@ -9372,38 +9363,48 @@ void DBWS::ITER()
 
         for(I=1; I <= MAXS; I++)
         {
-            for(J=I; J <= MAXS; J++) f1.matrix[J][I] = f1.matrix[I][J];
+            for(J=I; J <= MAXS; J++) matrix[J][I] = matrix[I][J];
         }
-        g3.COND = DPINV(f1.matrix,f1.VX,MAXS);
+        g3.COND = DPINV(MAXS);
         CHISQ();
         OOM=R_S2/double(g3.NUM-MAXS);
         for(I=1; I <= MAXS; I++)
         {
-            for(J=1; J <= MAXS; J++) f1.matrix[I][J] = f1.matrix[I][J]*OOM;
+            for(J=1; J <= MAXS; J++) matrix[I][J] = matrix[I][J]*OOM;
         }
+
         //              CODE TO ATTEMPT TO STABILIZE OSCILLATIONS
         for(I=1; I <= MAXS; I++)
         {
-            if (SIGN(1.0,f1.VX[I]) == SIGN(1.0,VLAST[I])) goto L60;
-            if (abs(f1.VX[I]) > 1.2*abs(VLAST[I]))goto L60;
-            if (abs(f1.VX[I]) < 0.8*abs(VLAST[I]))goto L60;
-            f1.VX[I]=f1.VX[I]/2.0;
-L60:
-            VLAST[I]=f1.VX[I];
+            if (SIGN(1.0,Fx[I]) != SIGN(1.0,VLAST[I]))
+            {
+                if (abs(Fx[I]) <= 1.2*abs(VLAST[I]))
+                {
+                    if (abs(Fx[I]) >= 0.8*abs(VLAST[I]))
+                    {
+                        Fx[I]=Fx[I]/2.0;
+                    }
+                }
+            }
+            VLAST[I]=Fx[I];
         }
-        OUTPTR(IX);
+
+        OUTPTR(ciclo);
         for(I=1; I <= MAXS; I++)
         {
-            X1=sqrt(abs(f1.matrix[I][I]))*EPS;
-            if (abs(f1.VX[I]) > X1)goto L10;
+            X1=sqrt(abs(matrix[I][I]))*EPS;
+            if (abs(Fx[I]) > X1)goto L10;
         }
         if (MAXS > 0) file6 << endl << "          ***** EPSED OUT *****" << endl;
-        if (MAXS > 0) cntrls.ICYRUN = IX;
+        if (MAXS > 0) cntrls.ICYRUN = ciclo;
         goto L20;
 L10:
         ;
     }
     //                 ***** END CYCLES *****
+
+
+
 L20:
     //        DO 6 I=1,MAXS
     //        DO 6 J=1,MAXS
@@ -9421,12 +9422,12 @@ L38:
     for(I=1; I <= MAXS; I++)
     {
         L=0;
-        X=f1.matrix[I][I];
+        X=matrix[I][I];
         for(J=IA; J <= LIM; J++)
         {
             L=L+1;
-            YY=f1.matrix[J][J]*X;
-            KS[L]=100.0*f1.matrix[I][J]/(sqrt(abs(YY))*SIGN(1.0,YY))+0.5;
+            YY=matrix[J][J]*X;
+            KS[L]=100.0*matrix[I][J]/(sqrt(abs(YY))*SIGN(1.0,YY))+0.5;
         }
         file6 << setw(5) << I;
         for(J=1; J <= L; J++) file6 << setw(6) << KS[J];
@@ -9479,50 +9480,42 @@ void DBWS::RTMT(int IPRT, int IPHASE)
             IZ = abs(IY);
             switch (IZ) {
             case 1:
-                goto L220;
+                VCTR[K][1] = -1.0*double(ISIGN(1,IY));
+                VCTR[K][2] =  1.0*double(ISIGN(1,IY));
+                VCTR[K][3] = 0.0;
                 break;
             case 2:
-                goto L230;
+                VCTR[K][1] =  1.0*double(ISIGN(1,IY));
+                VCTR[K][2] = 0.0;
+                VCTR[K][3] = 0.0;
                 break;
             case 3:
-                goto L240;
+                VCTR[K][1] = 0.0;
+                VCTR[K][2] =  1.0*double(ISIGN(1,IY));
+                VCTR[K][3] = 0.00;
                 break;
             case 4:
-                goto L250;
+                VCTR[K][1] = 0.0;
+                VCTR[K][2] = 0.0;
+                VCTR[K][3] = 1.0*double(ISIGN(1,IY));
+                break;
+            default:
+                GOTOER();
                 break;
             }
-            GOTOER();
-L220:
-            VCTR[K][1] = -1.0*double(ISIGN(1,IY));
-            VCTR[K][2] =  1.0*double(ISIGN(1,IY));
-            VCTR[K][3] = 0.0;
-            goto L300;
-L230:
-            VCTR[K][1] =  1.0*double(ISIGN(1,IY));
-            VCTR[K][2] = 0.0;
-            VCTR[K][3] = 0.0;
-            goto L300;
-L240:
-            VCTR[K][1] = 0.0;
-            VCTR[K][2] =  1.0*double(ISIGN(1,IY));
-            VCTR[K][3] = 0.00;
-            goto L300;
-L250:
-            VCTR[K][1] = 0.0;
-            VCTR[K][2] = 0.0;
-            VCTR[K][3] = 1.0*double(ISIGN(1,IY));
-L300:
             rtmtx.IVEC[IPHASE][I] = rtmtx.IVEC[IPHASE][I]+(9*(int(VCTR[K][1]+1.5))+3*(int(VCTR[K][2]+1.5))+int(VCTR[K][3]+1.5))*32768*pow(32,(3-K))+(int(VCTR[K][4]*12.0+0.5)+16)*pow(32,(3-K));
         }
-        if ( IPRT <= 0 ) goto L310;
-        if (simoper.ISIMOP == 1) goto L310;
-        if ( MOD(I-1,15) == 0) file6 << endl << "\f" << "The operations of the space group are" << endl; // To next page?
-        file6 << endl << endl
-              << " (" << setw(3) << setprecision(0) << fixed << VCTR[1][1] << setw(3) << setprecision(0) << fixed << VCTR[1][2] << setw(3) << setprecision(0) << fixed << VCTR[1][3] << " )    ( X )   ( " << setw(6) << setprecision(3) << VCTR[1][4] << " )    ( X2 )" << endl
-              << " (" << setw(3) << setprecision(0) << fixed << VCTR[2][1] << setw(3) << setprecision(0) << fixed << VCTR[2][2] << setw(3) << setprecision(0) << fixed << VCTR[2][3] << " ) *  ( Y ) + ( " << setw(6) << setprecision(3) << VCTR[2][4] << " ) =  ( Y2  )" << endl
-              << " (" << setw(3) << setprecision(0) << fixed << VCTR[3][1] << setw(3) << setprecision(0) << fixed << VCTR[3][2] << setw(3) << setprecision(0) << fixed << VCTR[3][3] << " )    ( Z )   ( " << setw(6) << setprecision(3) << VCTR[3][4] << " )    ( Z2 )          IVEC(" << setw(3) << I << ") =" << setw(15) << rtmtx.IVEC[IPHASE][I] << endl;
-L310:
-        ;
+        if ( IPRT > 0 )
+        {
+            if (simoper.ISIMOP != 1)
+            {
+                if ( MOD(I-1,15) == 0) file6 << endl << "\f" << "The operations of the space group are" << endl; // To next page?
+                file6 << endl << endl
+                      << " (" << setw(3) << setprecision(0) << fixed << VCTR[1][1] << setw(3) << setprecision(0) << fixed << VCTR[1][2] << setw(3) << setprecision(0) << fixed << VCTR[1][3] << " )    ( X )   ( " << setw(6) << setprecision(3) << VCTR[1][4] << " )    ( X2 )" << endl
+                      << " (" << setw(3) << setprecision(0) << fixed << VCTR[2][1] << setw(3) << setprecision(0) << fixed << VCTR[2][2] << setw(3) << setprecision(0) << fixed << VCTR[2][3] << " ) *  ( Y ) + ( " << setw(6) << setprecision(3) << VCTR[2][4] << " ) =  ( Y2  )" << endl
+                      << " (" << setw(3) << setprecision(0) << fixed << VCTR[3][1] << setw(3) << setprecision(0) << fixed << VCTR[3][2] << setw(3) << setprecision(0) << fixed << VCTR[3][3] << " )    ( Z )   ( " << setw(6) << setprecision(3) << VCTR[3][4] << " )    ( Z2 )          IVEC(" << setw(3) << I << ") =" << setw(15) << rtmtx.IVEC[IPHASE][I] << endl;
+            }
+        }
     }
     rtmtx.MLTPHS[IPHASE]=spgcom.MULTP;
     rtmtx.ICNTPHS[IPHASE]=1;
@@ -10656,19 +10649,19 @@ L37:
         for(IX=1; IX <= ICZ; IX++)
         {
             if ( K != refs[IX].iphase ) goto L481;
-            SHIFT = GLB[10] * cos(REFS[IX][2]/2.0/57.2958) + GLB[11] * sin(REFS[IX][2]/57.2958);
+            SHIFT = GLB[10] * cos(refs[IX].refs[2]/2.0/57.2958) + GLB[11] * sin(refs[IX].refs[2]/57.2958);
             IXX=IXX+1;
             for(J=1; J <= nexcrg; J++)
             {
                 //-----CHECK FOR SPLIT PEARSON VII PROFILE
                 if (nprof+1 == 5)
                 {
-                    if ((REFS[IX][2]+SHIFT+GLB[1]) >= (ALOW[J]-WDT*FWHM[IX][1]) && (REFS[IX][2]+SHIFT+GLB[1]) <= (AHIGH[J]+WDT*FWHM[IX][2]))  goto L481;
+                    if ((refs[IX].refs[2]+SHIFT+GLB[1]) >= (ALOW[J]-WDT*refs[IX].FWHM[1]) && (refs[IX].refs[2]+SHIFT+GLB[1]) <= (AHIGH[J]+WDT*refs[IX].FWHM[2]))  goto L481;
                     //-----FOR ALL OTHER PROFILES
                 }
                 else
                 {
-                    if ((REFS[IX][2]+SHIFT+GLB[1]) >= (ALOW[J]-WDT*REFS[IX][1]) && (REFS[IX][2]+SHIFT+GLB[1]) <= (AHIGH[J]+WDT*REFS[IX][1])) goto L481;
+                    if ((refs[IX].refs[2]+SHIFT+GLB[1]) >= (ALOW[J]-WDT*refs[IX].refs[1]) && (refs[IX].refs[2]+SHIFT+GLB[1]) <= (AHIGH[J]+WDT*refs[IX].refs[1])) goto L481;
                 }
             }
             IXXX=IXXX+1;
@@ -10676,14 +10669,14 @@ L37:
             //-----IF SO CHANGE THE PROFILE LIMITS
             if (nprof+1 == 5)
             {
-                RMIN=REFS[IX][2]+GLB[1]+SHIFT-WDT*FWHM[IX][1];
-                RMAX=REFS[IX][2]+GLB[1]+SHIFT+WDT*FWHM[IX][2];
+                RMIN=refs[IX].refs[2]+GLB[1]+SHIFT-WDT*refs[IX].FWHM[1];
+                RMAX=refs[IX].refs[2]+GLB[1]+SHIFT+WDT*refs[IX].FWHM[2];
                 //-----FOR ALL OTHER PROFILES
             }
             else
             {
-                RMIN=REFS[IX][2]+GLB[1]+SHIFT-WDT*REFS[IX][1];
-                RMAX=REFS[IX][2]+GLB[1]+SHIFT+WDT*REFS[IX][1];
+                RMIN=refs[IX].refs[2]+GLB[1]+SHIFT-WDT*refs[IX].refs[1];
+                RMAX=refs[IX].refs[2]+GLB[1]+SHIFT+WDT*refs[IX].refs[1];
             }
             MIN=(RMIN-THMIN)/STEP+1.5;
             MAX=(RMAX-THMIN)/STEP+1.5;
@@ -10691,33 +10684,33 @@ L37:
             MIN=min(MIN,NPTS);
             MAX=min(MAX,NPTS);
             //-----PATCH TO CALCULATE R-BRAGG
-            prfx.TL=REFS[IX][1];
-            VERT=REFS[IX][2] <= RLIM;
+            prfx.TL=refs[IX].refs[1];
+            VERT=refs[IX].refs[2] <= RLIM;
             if (nprof+1 == 6)
             {
-                prfx.GAM1=phases[K].PAR[17] + phases[K].PAR[18] * REFS[IX][2];
+                prfx.GAM1=phases[K].PAR[17] + phases[K].PAR[18] * refs[IX].refs[2];
             }
             else if (nprof+1 == 7)
             {
-                prfx.GAM1=phases[K].PAR[17]+(phases[K].PAR[18]+phases[K].PAR[19]/REFS[IX][2])/REFS[IX][2];
+                prfx.GAM1=phases[K].PAR[17]+(phases[K].PAR[18]+phases[K].PAR[19]/refs[IX].refs[2])/refs[IX].refs[2];
                 PRSVII(prfx.GAM1);
             }
             else if (nprof+1 == 8)
             {
-                prfx.GAM1=GAM[IX];
-                TLG=HALFG[IX];
-                TLL=HALFL[IX];
+                prfx.GAM1=refs[IX].GAM;
+                TLG=refs[IX].HALFG;
+                TLL=refs[IX].HALFL;
             }
             else if (nprof+1 == 5)
             {
-                spvii.RL=phases[K].PAR[17]+(phases[K].PAR[18]+phases[K].PAR[19]/REFS[IX][2])/REFS[IX][2];
-                spvii.RH=phases[K].PAR[24]+(phases[K].PAR[25]+phases[K].PAR[26]/REFS[IX][2])/REFS[IX][2];
+                spvii.RL=phases[K].PAR[17]+(phases[K].PAR[18]+phases[K].PAR[19]/refs[IX].refs[2])/refs[IX].refs[2];
+                spvii.RH=phases[K].PAR[24]+(phases[K].PAR[25]+phases[K].PAR[26]/refs[IX].refs[2])/refs[IX].refs[2];
                 MSPVII(phases[K].PAR[27],prfx.TL);
             }
             BB=prfx.TL*prfx.TL;
             TIOBS =0.0;
             TIC=0.0;
-            FMGNTD[IX] = FMGNTD[IX]*REFS[IX][3]*phases[K].PAR[1];
+            refs[IX].FMGNTD = refs[IX].FMGNTD*refs[IX].refs[3]*phases[K].PAR[1];
             for(IS=MIN; IS <= MAX; IS++)
             {
                 TH=THMIN+double(IS-1)*STEP;
@@ -10729,7 +10722,7 @@ L37:
                     }
                 }
                 TH2 = 0.5*TH/RAD;
-                prfx.DELTA=TH-REFS[IX][2]-GLB[1]-SHIFT;
+                prfx.DELTA=TH-refs[IX].refs[2]-GLB[1]-SHIFT;
                 prfx.DELT=prfx.DELTA*prfx.DELTA;
                 //     NEXT LINE IS NECESSEARY FOR 2 PHASES WITH VERY DIFFERENT FWHM.
                 if (prfx.DELT/BB > WDT*WDT) goto L410;
@@ -10757,37 +10750,37 @@ L5:
                 OMEGA= Z*PROFIL(nprof+1,prfx.DELT/BB);
                 if (nprof+1 == 5)
                 {
-                    KR_[IS] = KR_[IS] + OMEGA*FMGNTD[IX];
+                    KR_[IS] = KR_[IS] + OMEGA*refs[IX].FMGNTD;
                 }
                 else
                 {
-                    KR_[IS] = KR_[IS] + OMEGA*FMGNTD[IX]/prfx.TL;
+                    KR_[IS] = KR_[IS] + OMEGA*refs[IX].FMGNTD/prfx.TL;
                 }
                 TIC   = TIC + OMEGA;
                 TIOBS=TIOBS+OMEGA*(Y_[IS]-BK_[IS])/max((YC_[IS]-BK_[IS]),1.0);
 L410:
                 ;
             }
-            TIC   = TIC   * FMGNTD[IX]/prfx.TL;
-            TIOBS = TIOBS * FMGNTD[IX]/prfx.TL;
+            TIC   = TIC   * refs[IX].FMGNTD/prfx.TL;
+            TIOBS = TIOBS * refs[IX].FMGNTD/prfx.TL;
             //        ***************************************************************
             //        NEXT LINE IS FOR NOT EVALUATING R-BRAGG FOR REFLECTIONS
             //        WHICH ARE OUTSIDE THE MEASUREMENTS RANGE BUT WHOSE TAILS ARE
             //        IN THE PATTERN
             //        ***************************************************************
-            if ((REFS[IX][2]+SHIFT+GLB[1]) <= THMAX)
+            if ((refs[IX].refs[2]+SHIFT+GLB[1]) <= THMAX)
             {
                 T2OBS = T2OBS+TIOBS;
                 TDOBS = TDOBS + abs(TIOBS-TIC);
                 if (r_ipc == 2 ||r_ipc == 3)
                 {
-                    TFCAL= sqrt(abs(TIC/REFS[IX][3]/phases[K].PAR[1]/struphase.TAVIX[IX]/struphase.SRIX[IX]));
-                    TFOBS= sqrt(abs(TIOBS/REFS[IX][3]/phases[K].PAR[1]/struphase.TAVIX[IX]/struphase.SRIX[IX]));
-                    AFCAL=TFCAL*cos(struphase.APHASE[IX]);
-                    BFCAL=TFCAL*sin(struphase.APHASE[IX]);
-                    AFOBS=TFOBS*cos(struphase.APHASE[IX]);
-                    BFOBS=TFOBS*sin(struphase.APHASE[IX]);
-                    if (REFS[IX][2] <= THMAX)
+                    TFCAL= sqrt(abs(TIC/refs[IX].refs[3]/phases[K].PAR[1]/refs[IX].TAVIX/refs[IX].SRIX));
+                    TFOBS= sqrt(abs(TIOBS/refs[IX].refs[3]/phases[K].PAR[1]/refs[IX].TAVIX/refs[IX].SRIX));
+                    AFCAL=TFCAL*cos(refs[IX].APHASE);
+                    BFCAL=TFCAL*sin(refs[IX].APHASE);
+                    AFOBS=TFOBS*cos(refs[IX].APHASE);
+                    BFOBS=TFOBS*sin(refs[IX].APHASE);
+                    if (refs[IX].refs[2] <= THMAX)
                     {
                         RFNMR = RFNMR + abs(TFOBS-TFCAL);
                         RFDNR = RFDNR + abs(TFOBS);
@@ -10802,7 +10795,7 @@ L410:
                 if (r_ipc == 2) file6 << "NO.  CODE     H   K   L    FWHM    POSN    ICALC      IOBS      FCALC     FOBS   PHASE_C" << endl;
                 if (r_ipc == 3) file6 << "NO.  CODE     H   K   L    FWHM    POSN    ICALC      IOBS     A_CALC    B_CALC     A_OBS     B_OBS" << endl;
             }
-            HW=REFS[IX][1];
+            HW=refs[IX].refs[1];
             if (r_ipc == 1)
             {
                 file6 << setw(4) << IXX
@@ -10811,7 +10804,7 @@ L410:
                       << setw(4) << refs[IX].k
                       << setw(4) << refs[IX].l
                       << setw(8) << setprecision(3) << fixed << HW << " "
-                      << setw(8) << setprecision(3) << fixed << REFS[IX][2] + GLB[1] + SHIFT << " "
+                      << setw(8) << setprecision(3) << fixed << refs[IX].refs[2] + GLB[1] + SHIFT << " "
                       << setw(8) << setprecision(3) << fixed << TIC << " "
                       << setw(10) << setprecision(3) << fixed << TIOBS << endl;
             }
@@ -10825,12 +10818,12 @@ L410:
                           << setw(4) << refs[IX].k
                           << setw(4) << refs[IX].l
                           << setw(8) << setprecision(3) << fixed << HW
-                          << setw(8) << setprecision(3) << fixed << REFS[IX][2] + GLB[1] + SHIFT
+                          << setw(8) << setprecision(3) << fixed << refs[IX].refs[2] + GLB[1] + SHIFT
                           << setw(8) << setprecision(3) << fixed << TIC
                           << setw(10) << setprecision(0) << fixed << TIOBS
                           << setw(10) << setprecision(0) << fixed << TFCAL
                           << setw(10) << setprecision(3) << fixed << TFOBS
-                          << setw(10) << setprecision(3) << fixed << RAD * struphase.APHASE[IX] << endl;
+                          << setw(10) << setprecision(3) << fixed << RAD * refs[IX].APHASE << endl;
                 }
                 else
                 {
@@ -10840,7 +10833,7 @@ L410:
                           << setw(4) << refs[IX].k
                           << setw(4) << refs[IX].l
                           << setw(8) << setprecision(3) << fixed << HW
-                          << setw(8) << setprecision(3) << fixed << REFS[IX][2] + GLB[1] + SHIFT
+                          << setw(8) << setprecision(3) << fixed << refs[IX].refs[2] + GLB[1] + SHIFT
                           << setw(8) << setprecision(3) << fixed << TIC
                           << setw(10) << setprecision(0) << fixed << TIOBS << endl;
                 }
@@ -10855,7 +10848,7 @@ L410:
                           << setw(4) << refs[IX].k
                           << setw(4) << refs[IX].l
                           << setw(8) << setprecision(3) << fixed << HW
-                          << setw(8) << setprecision(3) << fixed << REFS[IX][2] + GLB[1] + SHIFT
+                          << setw(8) << setprecision(3) << fixed << refs[IX].refs[2] + GLB[1] + SHIFT
                           << setw(8) << setprecision(3) << fixed << TIC
                           << setw(10) << setprecision(0) << fixed << TIOBS
                           << setw(10) << setprecision(0) << fixed << AFCAL
@@ -10871,7 +10864,7 @@ L410:
                           << setw(4) << refs[IX].k
                           << setw(4) << refs[IX].l
                           << setw(8) << setprecision(3) << fixed << HW
-                          << setw(8) << setprecision(3) << fixed << REFS[IX][2] + GLB[1] + SHIFT
+                          << setw(8) << setprecision(3) << fixed << refs[IX].refs[2] + GLB[1] + SHIFT
                           << setw(8) << setprecision(3) << fixed << TIC
                           << setw(10) << setprecision(0) << fixed << TIOBS << endl;
                 }
@@ -10891,9 +10884,9 @@ L9221:
                       << setw(4) << refs[IX].l
                       << setw(4) << refs[IX].k
                       << setw(4) << refs[IX].l
-                      << setw(8) << setprecision(3) << fixed << FWHM[IX][1]
-                      << setw(8) << setprecision(3) << fixed << FWHM[IX][2]
-                      << setw(8) << setprecision(3) << fixed << REFS[IX][2] + GLB[1] + SHIFT
+                      << setw(8) << setprecision(3) << fixed << refs[IX].FWHM[1]
+                      << setw(8) << setprecision(3) << fixed << refs[IX].FWHM[2]
+                      << setw(8) << setprecision(3) << fixed << refs[IX].refs[2] + GLB[1] + SHIFT
                       << setw(10) << setprecision(0) << fixed << TIC
                       << setw(10) << setprecision(0) << fixed << TIOBS << endl;
             }
@@ -10906,13 +10899,13 @@ L9221:
                           << setw(4) << refs[IX].l
                           << setw(4) << refs[IX].k
                           << setw(4) << refs[IX].l
-                          << setw(8) << setprecision(3) << fixed << FWHM[IX][1]
-                          << setw(8) << setprecision(3) << fixed << FWHM[IX][2]
-                          << setw(8) << setprecision(3) << fixed << REFS[IX][2] + GLB[1] + SHIFT
+                          << setw(8) << setprecision(3) << fixed << refs[IX].FWHM[1]
+                          << setw(8) << setprecision(3) << fixed << refs[IX].FWHM[2]
+                          << setw(8) << setprecision(3) << fixed << refs[IX].refs[2] + GLB[1] + SHIFT
                           << setw(10) << setprecision(0) << fixed << TIC
                           << setw(10) << setprecision(0) << fixed << TIOBS
                           << setw(10) << setprecision(3) << fixed << TFCAL
-                          << setw(10) << setprecision(3) << fixed << RAD * struphase.APHASE[IX] << endl;
+                          << setw(10) << setprecision(3) << fixed << RAD * refs[IX].APHASE << endl;
                 }
                 else
                 {
@@ -10921,9 +10914,9 @@ L9221:
                           << setw(4) << refs[IX].l
                           << setw(4) << refs[IX].k
                           << setw(4) << refs[IX].l
-                          << setw(8) << setprecision(3) << fixed << FWHM[IX][1]
-                          << setw(8) << setprecision(3) << fixed << FWHM[IX][2]
-                          << setw(8) << setprecision(3) << fixed << REFS[IX][2] + GLB[1] + SHIFT
+                          << setw(8) << setprecision(3) << fixed << refs[IX].FWHM[1]
+                          << setw(8) << setprecision(3) << fixed << refs[IX].FWHM[2]
+                          << setw(8) << setprecision(3) << fixed << refs[IX].refs[2] + GLB[1] + SHIFT
                           << setw(10) << setprecision(0) << fixed << TIC << endl;
                 }
             }
@@ -10936,9 +10929,9 @@ L9221:
                           << setw(4) << refs[IX].l
                           << setw(4) << refs[IX].k
                           << setw(4) << refs[IX].l
-                          << setw(8) << setprecision(3) << fixed << FWHM[IX][1]
-                          << setw(8) << setprecision(3) << fixed << FWHM[IX][2]
-                          << setw(8) << setprecision(3) << fixed << REFS[IX][2] + GLB[1] + SHIFT
+                          << setw(8) << setprecision(3) << fixed << refs[IX].FWHM[1]
+                          << setw(8) << setprecision(3) << fixed << refs[IX].FWHM[2]
+                          << setw(8) << setprecision(3) << fixed << refs[IX].refs[2] + GLB[1] + SHIFT
                           << setw(10) << setprecision(0) << fixed << TIC
                           << setw(10) << setprecision(0) << fixed << TIOBS
                           << setw(10) << setprecision(3) << fixed << AFCAL
@@ -10953,9 +10946,9 @@ L9221:
                           << setw(4) << refs[IX].l
                           << setw(4) << refs[IX].k
                           << setw(4) << refs[IX].l
-                          << setw(8) << setprecision(3) << fixed << FWHM[IX][1]
-                          << setw(8) << setprecision(3) << fixed << FWHM[IX][2]
-                          << setw(8) << setprecision(3) << fixed << REFS[IX][2] + GLB[1] + SHIFT
+                          << setw(8) << setprecision(3) << fixed << refs[IX].FWHM[1]
+                          << setw(8) << setprecision(3) << fixed << refs[IX].FWHM[2]
+                          << setw(8) << setprecision(3) << fixed << refs[IX].refs[2] + GLB[1] + SHIFT
                           << setw(10) << setprecision(0) << fixed << TIC
                           << setw(10) << setprecision(0) << fixed << TIOBS << endl;
                 }
@@ -10968,7 +10961,7 @@ L9222:
                 if (r_ipc == 2) file6 << " NO. CODE     H   K   L     HW     POSN    ICALC      IOBS      HG      HL      ETA     FCALC     FOBS   PHASE_C" << endl;
                 if (r_ipc == 3) file6 << " NO. CODE     H   K   L     HW     POSN    ICALC      IOBS     HG      HL      ETA    A_CALC    B_CALC     A_OBS     B_OBS" << endl;
             }
-            HW=REFS[IX][1];
+            HW=refs[IX].refs[1];
             if (r_ipc == 1)
             {
                 file6 << setw(4) << IXX
@@ -10978,13 +10971,13 @@ L9222:
                       << setw(4) << refs[IX].k
                       << setw(4) << refs[IX].l
                       << setw(8) << setprecision(3) << fixed << HW
-                      << setw(8) << setprecision(3) << fixed << REFS[IX][2] + GLB[1] + SHIFT
+                      << setw(8) << setprecision(3) << fixed << refs[IX].refs[2] + GLB[1] + SHIFT
                       << setw(10) << setprecision(0) << fixed << TIC
                       << setw(10) << setprecision(0) << fixed << TIOBS
                       << setw(8) << setprecision(3) << fixed << TLG
                       << setw(8) << setprecision(3) << fixed << TLL
                       << setw(8) << setprecision(3) << fixed << prfx.GAM1
-                      << setw(10) << setprecision(3) << fixed << RAD * struphase.APHASE[IX] << endl;
+                      << setw(10) << setprecision(3) << fixed << RAD * refs[IX].APHASE << endl;
             }
             else if (r_ipc == 2)
             {
@@ -10997,7 +10990,7 @@ L9222:
                           << setw(4) << refs[IX].k
                           << setw(4) << refs[IX].l
                           << setw(8) << setprecision(3) << fixed << HW
-                          << setw(8) << setprecision(3) << fixed << REFS[IX][2] + GLB[1] + SHIFT
+                          << setw(8) << setprecision(3) << fixed << refs[IX].refs[2] + GLB[1] + SHIFT
                           << setw(10) << setprecision(0) << fixed << TIC
                           << setw(10) << setprecision(0) << fixed << TIOBS
                           << setw(8) << setprecision(3) << fixed << TLG
@@ -11005,7 +10998,7 @@ L9222:
                           << setw(8) << setprecision(3) << fixed << prfx.GAM1
                           << setw(10) << setprecision(3) << fixed << TFCAL
                           << setw(10) << setprecision(3) << fixed << TFOBS
-                          << setw(10) << setprecision(3) << fixed << struphase.APHASE[IX] << endl;
+                          << setw(10) << setprecision(3) << fixed << refs[IX].APHASE << endl;
                 }
                 else
                 {
@@ -11016,7 +11009,7 @@ L9222:
                           << setw(4) << refs[IX].k
                           << setw(4) << refs[IX].l
                           << setw(8) << setprecision(3) << fixed << HW
-                          << setw(8) << setprecision(3) << fixed << REFS[IX][2] + GLB[1] + SHIFT
+                          << setw(8) << setprecision(3) << fixed << refs[IX].refs[2] + GLB[1] + SHIFT
                           << setw(10) << setprecision(0) << fixed << TIC
                           << setw(10) << setprecision(0) << fixed << TIOBS
                           << setw(8) << setprecision(3) << fixed << TLG
@@ -11034,7 +11027,7 @@ L9222:
                           << setw(4) << refs[IX].l
                           << setw(4) << refs[IX].k
                           << setw(4) << refs[IX].l
-                          << setw(8) << setprecision(3) << fixed << REFS[IX][2] + GLB[1] + SHIFT
+                          << setw(8) << setprecision(3) << fixed << refs[IX].refs[2] + GLB[1] + SHIFT
                           << setw(8) << setprecision(3) << fixed << TIC
                           << setw(10) << setprecision(0) << fixed << TIOBS
                           << setw(10) << setprecision(0) << fixed << TLG
@@ -11054,7 +11047,7 @@ L9222:
                           << setw(4) << refs[IX].k
                           << setw(4) << refs[IX].l
                           << setw(8) << setprecision(3) << fixed << HW
-                          << setw(8) << setprecision(3) << fixed << REFS[IX][2] + GLB[1] + SHIFT
+                          << setw(8) << setprecision(3) << fixed << refs[IX].refs[2] + GLB[1] + SHIFT
                           << setw(10) << setprecision(0) << fixed << TIC
                           << setw(10) << setprecision(0) << fixed << TIOBS
                           << setw(8) << setprecision(3) << fixed << TLG
@@ -11257,16 +11250,12 @@ void DBWS::REFGEN(int IPHASE, double ZERO, double DIS, double TRANS, double PREF
     };
 
 
-    double ANGTTETA,SQ,RAD, SQH, POS,TLR,TAN2,XABS, TMIN, SMAX,TANX, PLOR,SMAX1,SHIFT,THMAX1,THMAXX;
+    double ANGTTETA,SQ, SQH, POS,TLR,TAN2,XABS, TMIN, SMAX,TANX, PLOR,SMAX1,SHIFT,THMAX1,THMAXX;
     int I, J, N, H1, H2, H3, I1, L1, I2, I3, IC,I1D, I2D, I3D,LX1, I12D, I13D, I23D,LXN,I123D,
         KXIS,I2DEL, I3DEL, I1MAX, I2MAX, I3MAX,IORDR1, IORDR2,IORDR3,IIPHAS;
     bool ORH1, ORH2, ORH3;
 
 
-    //  SIN1(A) = SIN(A*6.28318531)
-
-    //     RAD = ATAN(1.0)/45.0
-    RAD = 3.14159265359/360.0;
     if ( spgcom.NAXIS > 3 )
     {
         cout << "5001" << endl;
@@ -11346,10 +11335,11 @@ L97:
     //     THAT ARE PRESENT AT ANGLES GREATER THAN THMAX
     //     **************************************************************
     //     PRINT *,'THMAX=',THMAX
-    //      THMAX1=(U*(TAN(THMAX*RAD))**2+V*TAN(THMAX*RAD)+W+ZZZ*(1+
-    //     *(TAN(THMAX*RAD))**2))
+    //      THMAX1=(U*(TAN(THMAX*RAD))**2+V*TAN(THMAX*RAD)+W+ZZZ*(1+*(TAN(THMAX*RAD))**2))
     // also incorporating the cotg^2 term
-    THMAX1=(g1.U*pow((tan(THMAX*RAD)),2)+g1.V*tan(THMAX*RAD)+g1.W+g1.ZZZ*(1+pow((tan(THMAX*RAD)),2)) + g1.UC/(tan(THMAX*RAD)));
+
+    THMAX1=(g1.U*pow(( tan( degtorad(2.0*THMAX) ) ),2)+g1.V*tan(  degtorad(2.0*THMAX) )+g1.W+g1.ZZZ*(1+pow((tan(  degtorad(2.0*THMAX)  )),2)) + g1.UC/(tan(  degtorad(2.0*THMAX)  )));
+
     if ( THMAX1 > 0.0 )
     {
         THMAX1= WDT*sqrt(THMAX1)/2;
@@ -11666,7 +11656,7 @@ L9257:
         TANX=sqrt(TAN2);
         //     SHIFT DUE TO SAMPLE DISPLACEMENT AND TRANSPARENCY
         SHIFT =  DIS*sqrt(1-SQH)+TRANS*sqrt(1.0-(1.0-2.0*SQH)*(1.0-2.0*SQH));
-        POS=atan(TANX)/RAD+ ZERO + SHIFT;
+        POS = 2.0 * radtodeg(atan(TANX)) + ZERO + SHIFT;
         //     if (POS > THMAX || POS > THMIN)goto 3118
         if ( POS > THMAXX  ||  POS < THMIN ) goto L3118;
         IC=IC+1;
@@ -11688,15 +11678,15 @@ L4000:
         refs[IC].iphase = IPHASE;
         refs[IC].phase = &phases[IPHASE];
         //IREFS[IC]=256*(256*(256*(8*IPHASE+LX1)+128+H1)+128+H2)+128+H3;
-        FMGNTD[IC]=MULT(H1,H2,H3,KXIS);
+        refs[IC].FMGNTD=MULT(H1,H2,H3,KXIS);
 
         //------CALCULATE FWHM FOR PSEUDOVOIGT WITH GAUSS AND LORENTZ
         if (nprof == 8)
         {
-            HALFG[IC] =    (g1.U*TAN2+g1.V*TANX+g1.W+g1.ZZZ*(1+TAN2));
-            if (HALFG[IC] > 0.0)
+            refs[IC].HALFG =    (g1.U*TAN2+g1.V*TANX+g1.W+g1.ZZZ*(1+TAN2));
+            if (refs[IC].HALFG > 0.0)
             {
-                HALFG[IC] = sqrt(HALFG[IC]);
+                refs[IC].HALFG = sqrt(refs[IC].HALFG);
             }
             else
             {
@@ -11704,25 +11694,25 @@ L4000:
                 cout << "SQUARE OF FWHM IS NEGATIVE" << endl;
                 exit(EXIT_FAILURE);
             }
-            HALFL[IC] = g1.ULOR*TANX+g1.VLOR/sqrt(1.0-SQH);
-            REFS[IC][1] = pow(
-                                    (pow(HALFG[IC],5.0)+2.69269*pow(HALFG[IC],4.0)*HALFL[IC]+2.42843*pow(HALFG[IC],3.0)*pow(HALFL[IC],2.0)+
-                                     4.47163*pow(HALFG[IC],2.0)*pow(HALFL[IC],3.0)+0.07842*HALFG[IC]*pow(HALFL[IC],4.0)+pow(HALFL[IC],5.0))
+            refs[IC].HALFL = g1.ULOR*TANX+g1.VLOR/sqrt(1.0-SQH);
+            refs[IC].refs[1] = pow(
+                                    (pow(refs[IC].HALFG,5.0)+2.69269*pow(refs[IC].HALFG,4.0)*refs[IC].HALFL+2.42843*pow(refs[IC].HALFG,3.0)*pow(refs[IC].HALFL,2.0)+
+                                     4.47163*pow(refs[IC].HALFG,2.0)*pow(refs[IC].HALFL,3.0)+0.07842*refs[IC].HALFG*pow(refs[IC].HALFL,4.0)+pow(refs[IC].HALFL,5.0))
                                     ,0.2);
-            TLR = HALFL[IC]/REFS[IC][1];
-            GAM[IC] = 1.36603*TLR-0.47719*TLR*TLR+0.11116*pow(TLR,3.0);
+            TLR = refs[IC].HALFL/refs[IC].refs[1];
+            refs[IC].GAM = 1.36603*TLR-0.47719*TLR*TLR+0.11116*pow(TLR,3.0);
         }
         else if (nprof == 5)
         {
-            REFS[IC][1] = (g1.U*TAN2+g1.V*TANX+g1.W);
+            refs[IC].refs[1] = (g1.U*TAN2+g1.V*TANX+g1.W);
         }
         else
         {
-            REFS[IC][1]=(g1.U*TAN2+g1.V*TANX+g1.W+g1.ZZZ*(1+TAN2)+g1.UC/TAN2);              // incorporating cotg^2
+            refs[IC].refs[1]=(g1.U*TAN2+g1.V*TANX+g1.W+g1.ZZZ*(1+TAN2)+g1.UC/TAN2);              // incorporating cotg^2
         }
-        if (REFS[IC][1] > 0.0)
+        if (refs[IC].refs[1] > 0.0)
         {
-            REFS[IC][1]= sqrt(REFS[IC][1]);
+            refs[IC].refs[1]= sqrt(refs[IC].refs[1]);
         }
         else
         {
@@ -11731,8 +11721,8 @@ L4000:
             exit(EXIT_FAILURE);
         }
 L7000:
-        REFS[IC][2]=POS;
-        REFS[IC][3]=PLOR;
+        refs[IC].refs[2]=POS;
+        refs[IC].refs[3]=PLOR;
 L3118:
         ;
     }
@@ -11879,7 +11869,7 @@ void DBWS::ABSORP(double MU, double SW, double TH, double *ABC)
 //     SW = SAMPLE THICKNESS IN CM.
     double EX;
 
-    EX  = ( 2.0 * MU * SW ) / sin(TH * 0.008726646);
+    EX  = ( 2.0 * MU * SW ) / sin( degtorad( 2 * TH ) );
     *ABC = 1.0 - exp(-EX);
 }
 
@@ -13119,7 +13109,7 @@ void DBWS::INPTR()
             for(IXX=ICY; IXX <= ICZ; IXX++)
             {
                 IX=IXX-IXDEL;
-                MLTT = NINT(FMGNTD[IXX]);
+                MLTT = NINT(refs[IXX].FMGNTD);
                 if (nprof == 8)
                 {
                     if ((IX - 1) % 60 == 0) file6 << " NO.  CODE    H   K   L  MULT   HW     POSN      FACTOR,       HWL       HWG     ETA" << endl;
@@ -13129,28 +13119,28 @@ void DBWS::INPTR()
                           << setw(4) << refs[IXX].k
                           << setw(4) << refs[IXX].l
                           << setw(6) << MLTT
-                          << setw(8) << setprecision(3) << fixed << REFS[IXX][1]
-                          << setw(8) << setprecision(3) << fixed << REFS[IXX][2]
-                          << setw(8) << setprecision(3) << fixed << REFS[IXX][3]
-                          << setw(10) << setprecision(6) << fixed << HALFL[IXX]
-                          << setw(8) << setprecision(3) << fixed << HALFG[IXX]
-                          << setw(8) << setprecision(3) << fixed << GAM[IXX] << endl;
+                          << setw(8) << setprecision(3) << fixed << refs[IXX].refs[1]
+                          << setw(8) << setprecision(3) << fixed << refs[IXX].refs[2]
+                          << setw(8) << setprecision(3) << fixed << refs[IXX].refs[3]
+                          << setw(10) << setprecision(6) << fixed << refs[IXX].HALFL
+                          << setw(8) << setprecision(3) << fixed << refs[IXX].HALFG
+                          << setw(8) << setprecision(3) << fixed << refs[IXX].GAM << endl;
                 }
                 else if (nprof == 5)
                 {
-                    FWHM[IXX][1]=2.0*(REFS[IXX][1])*phases[K].PAR[27]/(1.0+phases[K].PAR[27]);
-                    FWHM[IXX][2]=2.0*(REFS[IXX][1])/(1.0+phases[K].PAR[27]);
+                    refs[IXX].FWHM[1]=2.0*(refs[IXX].refs[1])*phases[K].PAR[27]/(1.0+phases[K].PAR[27]);
+                    refs[IXX].FWHM[2]=2.0*(refs[IXX].refs[1])/(1.0+phases[K].PAR[27]);
                     if ((IX - 1) % 60 == 0) file6 << "NO.  CODE    H   K   L  MULT      HWL    HWH     FWHM   POSN    FACTOR" << endl;
                     file6 << " " << setw(4) << IX << setw(4) << refs[IXX].lambda << "   "
                           << setw(4) << refs[IXX].h
                           << setw(4) << refs[IXX].k
                           << setw(4) << refs[IXX].l
                           << setw(6) << MLTT
-                          << setw(8) << setprecision(3) << fixed << FWHM[IXX][1]
-                          << setw(8) << setprecision(3) << fixed << FWHM[IXX][2]
-                          << setw(8) << setprecision(3) << fixed << REFS[IXX][1]
-                          << setw(8) << setprecision(3) << fixed << REFS[IXX][2]
-                          << setw(10) << setprecision(6) << fixed << REFS[IXX][3] << endl;
+                          << setw(8) << setprecision(3) << fixed << refs[IXX].FWHM[1]
+                          << setw(8) << setprecision(3) << fixed << refs[IXX].FWHM[2]
+                          << setw(8) << setprecision(3) << fixed << refs[IXX].refs[1]
+                          << setw(8) << setprecision(3) << fixed << refs[IXX].refs[2]
+                          << setw(10) << setprecision(6) << fixed << refs[IXX].refs[3] << endl;
                 }
                 else
                 {
@@ -13160,13 +13150,13 @@ void DBWS::INPTR()
                           << setw(4) << refs[IXX].k
                           << setw(4) << refs[IXX].l
                           << setw(6) << MLTT
-                          << setw(8) << setprecision(3) << fixed << REFS[IXX][1]
-                          << setw(8) << setprecision(3) << fixed << REFS[IXX][2]
-                          << setw(10) << setprecision(6) << fixed << REFS[IXX][3] << endl;
+                          << setw(8) << setprecision(3) << fixed << refs[IXX].refs[1]
+                          << setw(8) << setprecision(3) << fixed << refs[IXX].refs[2]
+                          << setw(10) << setprecision(6) << fixed << refs[IXX].refs[3] << endl;
                 }
             }
         }
-        for (IX = ICY; IX <= ICZ; ++IX) REFS[IX][3] *= FMGNTD[IX]; // double(MLTT(IX))
+        for (IX = ICY; IX <= ICZ; ++IX) refs[IX].refs[3] *= refs[IX].FMGNTD; // double(MLTT(IX))
     }
     // end of great loop on phases
 
@@ -13492,6 +13482,8 @@ int main(int argc, char* *argv)
 
 
          */
+
+
 
     if (!readcomandline(argc,argv))
     {
